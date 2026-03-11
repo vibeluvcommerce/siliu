@@ -15,6 +15,7 @@
   "build": {
     "appId": "com.siliu.browser",
     "productName": "Siliu Browser",
+    "icon": "assets/icon.ico",
     "directories": {
       "output": "dist"
     },
@@ -22,7 +23,8 @@
     "files": [
       "src/**/*",
       "public/**/*",
-      "node_modules/**/*"
+      "node_modules/**/*",
+      "assets/**/*"
     ],
     "win": {
       "target": [
