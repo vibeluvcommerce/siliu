@@ -1,0 +1,20 @@
+[Desktop Entry]
+Name=Siliu Browser
+Comment=Multi-window Electron browser
+Exec=bash -c "cd /home/ubuntu/.openclaw/workspace/siliu && ELECTRON_DISABLE_SANDBOX=1 npm start"
+Icon=/home/ubuntu/.openclaw/workspace/siliu/public/icon.png
+Type=Application
+Terminal=false
+Categories=Network;WebBrowser;
+MimeType=text/html;text/xml;application/xhtml+xml;application/xml;application/rss+xml;application/rdf+xml;image/gif;image/jpeg;image/png;x-scheme-handler/http;x-scheme-handler/https;x-scheme-handler/ftp;x-scheme-handler/chrome;
+StartupNotify=true
+StartupWMClass=siliu
+Actions=new-tab;new-window;
+
+[Desktop Action new-tab]
+Name=新建标签页
+Exec=bash -c "cd /home/ubuntu/.openclaw/workspace/siliu && ELECTRON_DISABLE_SANDBOX=1 npm start -- --new-tab"
+
+[Desktop Action new-window]
+Name=新建窗口
+Exec=bash -c "cd /home/ubuntu/.openclaw/workspace/siliu && ELECTRON_DISABLE_SANDBOX=1 npm start -- --new-window"

@@ -1,0 +1,3127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Siliu Browser</title>
+
+  <!-- Google Fonts - Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Phosphor Icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+  <style>
+    /* ===== CSS 变量 - Chrome 风格配色 ===== */
+    :root {
+      /* Chrome 颜色系统 */
+      --chrome-bg: #F1F3F4;
+      --chrome-surface: #FFFFFF;
+      --chrome-text: #202124;
+      --chrome-text-secondary: #5F6368;
+      --chrome-border: #DADCE0;
+      --chrome-hover: #E8EAED;
+      --chrome-active: #E8F0FE;
+      --chrome-primary: #1A73E8;
+      --chrome-primary-hover: #185ABC;
+      --chrome-danger: #EA4335;
+      --chrome-success: #34A853;
+
+      /* 尺寸系统 */
+      --titlebar-height: 40px;
+      --toolbar-height: 44px;
+      --tab-height: 34px;
+      --sidebar-width: 360px;
+
+      /* 阴影 */
+      --shadow-sm: 0 1px 2px 0 rgba(60, 64, 67, 0.1);
+      --shadow-md: 0 2px 6px 2px rgba(60, 64, 67, 0.15);
+      --shadow-lg: 0 4px 12px rgba(60, 64, 67, 0.2);
+
+      /* 圆角 */
+      --radius-sm: 4px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-full: 9999px;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--chrome-bg);
+      overflow: hidden;
+      color: var(--chrome-text);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    /* ===== 标题栏 - 无边框窗口风格 ===== */
+    .titlebar {
+      height: var(--titlebar-height);
+      background: linear-gradient(180deg, #F8F9FA 0%, #F1F3F4 100%);
+      border-bottom: 1px solid var(--chrome-border);
+      display: flex;
+      align-items: center;
+      padding: 0 8px 0 0;
+      position: relative;
+      z-index: 100;
+      cursor: default;
+      -webkit-app-region: drag;  /* 整个标题栏默认可拖拽 */
+    }
+    
+    /* 标签区域也设为可拖拽，除非点击在具体的标签或按钮上 */
+    .titlebar .tabs-container {
+      -webkit-app-region: drag;
+    }
+    
+    /* 只有具体的可交互元素不拖拽 */
+    .titlebar .tab,
+    .titlebar .tab-list-dropdown,
+    .titlebar .tab-controls,
+    .titlebar .window-controls {
+      -webkit-app-region: no-drag;
+    }
+
+    /* 标签集合按钮 */
+    .tab-list-dropdown {
+      position: relative;
+      -webkit-app-region: no-drag;
+      margin-right: 4px;
+      flex-shrink: 0;
+      align-self: flex-end; /* 与 tabs 一样贴在底部 */
+      height: var(--tab-height); /* 使用 tab 高度 */
+      display: flex;
+      align-items: center;
+    }
+
+    .tab-list-btn {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 8px;
+      height: 28px;
+      border: none;
+      background: transparent;
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      color: var(--chrome-text-secondary);
+      transition: all 0.15s ease;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .tab-list-btn:hover {
+      background: var(--chrome-hover);
+      color: var(--chrome-text);
+    }
+
+    .tab-list-btn i {
+      font-size: 16px;
+    }
+
+    .tab-count {
+      min-width: 18px;
+      height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--chrome-border);
+      border-radius: var(--radius-full);
+      font-size: 11px;
+      color: var(--chrome-text-secondary);
+      padding: 0 4px;
+    }
+
+    .tab-list-btn:hover .tab-count {
+      background: var(--chrome-text-secondary);
+      color: white;
+    }
+
+    /* 标签容器 */
+    .tabs-container {
+      flex: 1;
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      height: 100%;
+      padding: 0 0 0 4px; /* 右侧无 padding，让按钮紧贴边缘 */
+      -webkit-app-region: no-drag;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* IE/Edge */
+      position: relative;
+      min-width: 0; /* 允许收缩 */
+    }
+
+    .tabs-container::-webkit-scrollbar {
+      display: none; /* Chrome/Safari */
+    }
+
+    /* 单个标签 */
+    .tab {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 12px;
+      height: var(--tab-height);
+      max-width: 200px;
+      min-width: 140px;
+      background: transparent;
+      border-radius: var(--radius-md) var(--radius-md) 0 0;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.2s ease;
+      -webkit-app-region: no-drag;
+      flex-shrink: 0;
+    }
+
+    .tab:hover {
+      background: rgba(255, 255, 255, 0.8);
+    }
+
+    .tab.active {
+      background: var(--chrome-surface);
+      box-shadow: var(--shadow-sm);
+      z-index: 2;
+    }
+
+    .tab::before,
+    .tab::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      width: 8px;
+      height: 8px;
+      background: transparent;
+      transition: all 0.2s ease;
+    }
+
+    .tab.active::before {
+      left: -8px;
+      border-radius: 0 0 var(--radius-md) 0;
+      box-shadow: 4px 4px 0 var(--chrome-surface);
+    }
+
+    .tab.active::after {
+      right: -8px;
+      border-radius: 0 0 0 var(--radius-md);
+      box-shadow: -4px 4px 0 var(--chrome-surface);
+    }
+
+    .tab-favicon {
+      width: 16px;
+      height: 16px;
+      border-radius: var(--radius-sm);
+      flex-shrink: 0;
+      object-fit: contain;
+    }
+
+    .tab-title {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--chrome-text-secondary);
+    }
+
+    .tab.active .tab-title {
+      color: var(--chrome-text);
+    }
+
+    .tab-close {
+      width: 18px;
+      height: 18px;
+      border-radius: var(--radius-full);
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--chrome-text-secondary);
+      opacity: 0;
+      transition: all 0.15s ease;
+      flex-shrink: 0;
+    }
+
+    .tab:hover .tab-close,
+    .tab.active .tab-close {
+      opacity: 1;
+    }
+
+    .tab-close:hover {
+      background: var(--chrome-hover);
+      color: var(--chrome-text);
+    }
+
+    /* 固定标签 */
+    .tab.pinned {
+      width: 36px !important;
+      min-width: 36px !important;
+      max-width: 36px !important;
+      padding: 0 6px !important;
+    }
+
+    .tab.pinned .tab-title {
+      display: none !important;
+    }
+
+    .tab.pinned .tab-close {
+      display: none !important;
+    }
+
+    /* 标签栏控制按钮 - 位于 titlebar 内 tabs-container 外 */
+    .tab-controls {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      padding: 0 8px;
+      -webkit-app-region: no-drag;
+      flex-shrink: 0;
+      background: linear-gradient(180deg, #F8F9FA 0%, #F1F3F4 100%);
+      z-index: 10;
+      align-self: flex-end;
+      height: var(--tab-height);
+      margin-left: auto; /* 靠右对齐 */
+      margin-right: 20px; /* 向右移动，与原生按钮保持间距 */
+    }
+
+    /* 容器内的 tab-controls - 跟随标签 */
+    .tabs-container .tab-controls {
+      position: sticky;
+      right: 0;
+      margin-left: 0;
+      margin-right: 0;
+      padding-right: 4px; /* 右侧留一点间距 */
+    }
+
+    .tab-btn {
+      width: 28px;
+      height: 28px;
+      border: none;
+      background: transparent;
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--chrome-text-secondary);
+      transition: all 0.15s ease;
+    }
+
+    .tab-btn:hover {
+      background: var(--chrome-hover);
+      color: var(--chrome-text);
+    }
+
+    .tab-btn i {
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* 窗口控制按钮 - 放在地址栏右侧 */
+    .window-controls {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-left: 8px;
+      flex-shrink: 0;
+    }
+
+    .win-btn {
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: transparent;
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--chrome-text-secondary);
+      transition: all 0.15s ease;
+    }
+
+    .win-btn:hover {
+      background: var(--chrome-hover);
+      color: var(--chrome-text);
+    }
+
+    .win-btn.close:hover {
+      background: var(--chrome-danger);
+      color: white;
+    }
+
+    .win-btn i {
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ===== 工具栏 - Chrome 风格 ===== */
+    .toolbar {
+      height: var(--toolbar-height);
+      background: var(--chrome-surface);
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      gap: 8px;
+      border-bottom: 1px solid var(--chrome-border);
+    }
+
+    .nav-group {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .nav-btn {
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: transparent;
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--chrome-text-secondary);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      flex-shrink: 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .nav-btn:hover:not(:disabled) {
+      background: var(--chrome-hover);
+      color: var(--chrome-text);
+      transform: scale(1.05);
+    }
+
+    .nav-btn:active:not(:disabled) {
+      transform: scale(0.95);
+    }
+
+    .nav-btn:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+
+    /* 刷新按钮特殊样式 */
+    .nav-btn#btn-reload.loading i {
+      animation: spinRefresh 0.8s linear infinite;
+    }
+
+    @keyframes spinRefresh {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* 导航按钮图标 */
+    .nav-btn i {
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s ease;
+    }
+
+    /* 地址栏 - 自适应宽度 */
+    .omnibox {
+      flex: 1;
+      height: 36px;
+      background: var(--chrome-bg);
+      border: 1px solid transparent;
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      gap: 10px;
+      transition: all 0.2s ease;
+      min-width: 200px;
+      max-width: 100%;
+    }
+
+    .omnibox:hover {
+      background: #E8EAED;
+    }
+
+    .omnibox:focus-within {
+      background: var(--chrome-surface);
+      border-color: var(--chrome-primary);
+      box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.15);
+    }
+
+    .omnibox-icon {
+      color: var(--chrome-text-secondary);
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .omnibox-input {
+      flex: 1;
+      border: none;
+      background: transparent;
+      font-size: 14px;
+      font-weight: 400;
+      color: var(--chrome-text);
+      outline: none;
+      font-family: inherit;
+      min-width: 0;
+    }
+
+    .omnibox-input::placeholder {
+      color: var(--chrome-text-secondary);
+    }
+
+    .omnibox-actions {
+      display: flex;
+      gap: 4px;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .omnibox:focus-within .omnibox-actions {
+      opacity: 1;
+    }
+
+    .omnibox-btn {
+      width: 24px;
+      height: 24px;
+      border: none;
+      background: transparent;
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--chrome-text-secondary);
+      transition: all 0.15s ease;
+    }
+
+    .omnibox-btn:hover {
+      background: var(--chrome-hover);
+      color: var(--chrome-text);
+    }
+
+    /* 工具栏扩展按钮 */
+    .toolbar-ext {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .ext-btn {
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: transparent;
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--chrome-text-secondary);
+      transition: all 0.15s ease;
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .ext-btn:hover {
+      background: var(--chrome-hover);
+      color: var(--chrome-text);
+    }
+
+    .ext-btn.active {
+      color: var(--chrome-primary);
+      background: rgba(26, 115, 232, 0.1);
+    }
+
+    .ext-btn i {
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ext-badge {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      width: 8px;
+      height: 8px;
+      background: var(--chrome-danger);
+      border-radius: var(--radius-full);
+      border: 2px solid var(--chrome-surface);
+    }
+
+    /* ===== 内容区域 ===== */
+    .content-area {
+      position: fixed;
+      top: calc(var(--titlebar-height) + var(--toolbar-height));
+      left: 0;
+      right: 0; /* 默认全宽 */
+      bottom: 0;
+      background: var(--chrome-surface);
+      overflow: hidden;
+      transition: right 0.3s ease;
+    }
+
+    /* sidebar 打开时 content-area 收缩 */
+    body.sidebar-open .content-area {
+      right: var(--sidebar-width);
+    }
+
+    /* ===== 侧边栏 - 美化版 ===== */
+    .sidebar {
+      position: fixed;
+      right: 0;
+      top: calc(var(--titlebar-height) + var(--toolbar-height));
+      width: var(--sidebar-width);
+      height: calc(100vh - var(--titlebar-height) - var(--toolbar-height));
+      background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
+      border-left: 1px solid var(--chrome-border);
+      display: flex;
+      flex-direction: column;
+      z-index: 100;
+      transform: translateX(100%);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: -4px 0 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .sidebar.show {
+      transform: translateX(0);
+    }
+
+    /* 侧边栏头部 - Chrome 蓝色渐变 */
+    .sidebar-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: linear-gradient(135deg, #1A73E8 0%, #185ABC 100%);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .sidebar-header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.08'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+      opacity: 0.5;
+    }
+
+    .sidebar-avatar {
+      width: 44px;
+      height: 44px;
+      background: rgba(255, 255, 255, 0.15);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      position: relative;
+      z-index: 1;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .sidebar-avatar:hover {
+      transform: scale(1.05);
+    }
+
+    /* 未连接状态 - 微妙的灰白色 */
+    .sidebar-avatar.disconnected {
+      background: rgba(241, 245, 249, 0.9);
+      border-color: rgba(203, 213, 225, 0.5);
+      color: #64748B;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    /* 连接状态 - 蓝色 */
+    .sidebar-avatar.connected {
+      background: linear-gradient(135deg, #1A73E8 0%, #185ABC 100%);
+      border-color: rgba(255, 255, 255, 0.5);
+      color: white;
+      box-shadow: 0 0 15px rgba(26, 115, 232, 0.4);
+    }
+
+    .sidebar-avatar i {
+      font-size: 24px;
+    }
+
+    .sidebar-title {
+      flex: 1;
+      font-weight: 700;
+      font-size: 16px;
+      color: white;
+      position: relative;
+      z-index: 1;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .sidebar-actions {
+      display: flex;
+      gap: 6px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .sidebar-btn {
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(255, 255, 255, 0.9);
+      transition: all 0.2s ease;
+      backdrop-filter: blur(10px);
+    }
+
+    .sidebar-btn:hover {
+      background: rgba(255, 255, 255, 0.25);
+      color: white;
+      transform: translateY(-1px);
+    }
+
+    /* 聊天容器 */
+    .chat-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      background: linear-gradient(180deg, #fafbfc 0%, #f5f7fa 100%);
+    }
+
+    .chat-container::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .chat-container::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .chat-container::-webkit-scrollbar-thumb {
+      background: #d1d5db;
+      border-radius: 3px;
+    }
+
+    /* 消息样式 */
+    .message {
+      max-width: 88%;
+      padding: 14px 18px;
+      border-radius: 20px;
+      font-size: 14px;
+      line-height: 1.7;
+      animation: messageSlide 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      word-wrap: break-word;
+    }
+
+    @keyframes messageSlide {
+      from {
+        opacity: 0;
+        transform: translateY(15px) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .message.user {
+      align-self: flex-end;
+      background: linear-gradient(135deg, #1A73E8 0%, #185ABC 100%);
+      color: white;
+      border-bottom-right-radius: 6px;
+      box-shadow: 0 4px 15px rgba(26, 115, 232, 0.3);
+    }
+
+    .message.assistant {
+      align-self: flex-start;
+      background: white;
+      color: #374151;
+      border: 1px solid #e5e7eb;
+      border-bottom-left-radius: 6px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
+
+    .message.system {
+      align-self: center;
+      background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+      color: #92400E;
+      border: 1px solid #F59E0B;
+      font-size: 13px;
+      padding: 10px 16px;
+    }
+
+    /* 打字指示器 */
+    .typing-indicator {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 18px 20px;
+      align-self: flex-start;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 20px;
+      border-bottom-left-radius: 6px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
+
+    .typing-dot {
+      width: 8px;
+      height: 8px;
+      background: #9ca3af;
+      border-radius: 50%;
+      animation: typingBounce 1.4s ease infinite;
+    }
+
+    .typing-dot:nth-child(1) { animation-delay: 0s; }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typingBounce {
+      0%, 60%, 100% { transform: translateY(0); }
+      30% { transform: translateY(-6px); }
+    }
+
+    /* 输入区域 */
+    .chat-input-area {
+      padding: 16px 20px 20px;
+      border-top: 1px solid rgba(0, 0, 0, 0.06);
+      background: white;
+    }
+
+    .chat-input-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #f3f4f6;
+      border: 2px solid transparent;
+      border-radius: 24px;
+      padding: 12px 14px;
+      transition: all 0.2s ease;
+      min-height: 48px;
+    }
+
+    .chat-input-wrapper:focus-within {
+      background: white;
+      border-color: var(--chrome-primary);
+      box-shadow: 0 0 0 4px rgba(26, 115, 232, 0.1);
+    }
+
+    .chat-input {
+      flex: 1;
+      border: none;
+      background: transparent;
+      font-size: 14px;
+      resize: none;
+      outline: none;
+      font-family: inherit;
+      min-height: 20px;
+      max-height: 100px;
+      color: #374151;
+      line-height: 1.5;
+      text-align: left;
+      padding: 2px 0;
+    }
+
+    .chat-input::placeholder {
+      color: #9ca3af;
+      text-align: left;
+      line-height: 20px;
+    }
+
+    /* 多行输入时的滚动条隐藏 */
+    .chat-input::-webkit-scrollbar {
+      width: 0;
+      height: 0;
+      background: transparent;
+    }
+
+    .chat-send-btn {
+      width: 36px;
+      height: 36px;
+      border: none;
+      background: linear-gradient(135deg, #1A73E8 0%, #185ABC 100%);
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+      box-shadow: 0 4px 12px rgba(26, 115, 232, 0.3);
+    }
+
+    .chat-send-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 16px rgba(26, 115, 232, 0.4);
+    }
+
+    .chat-send-btn:active {
+      transform: scale(0.95);
+    }
+
+    .chat-send-btn i {
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ===== 状态指示器 - 现代蓝色进度条 ===== */
+    .loading-indicator {
+      position: fixed;
+      top: calc(var(--titlebar-height) + var(--toolbar-height));
+      left: 0;
+      right: var(--sidebar-width);
+      height: 3px;
+      background: linear-gradient(90deg, 
+        transparent 0%, 
+        var(--chrome-primary) 20%, 
+        var(--chrome-primary) 80%, 
+        transparent 100%
+      );
+      background-size: 200% 100%;
+      animation: loadingSlide 1s ease-in-out infinite;
+      display: none;
+      z-index: 50;
+      box-shadow: 0 1px 4px rgba(26, 115, 232, 0.4);
+      border-radius: 0 0 2px 2px;
+    }
+
+    .loading-indicator.active {
+      display: block;
+    }
+
+    @keyframes loadingSlide {
+      0% { background-position: 100% 0; }
+      100% { background-position: -100% 0; }
+    }
+
+    /* ===== 消息提示区域 - 放在地址栏内 ===== */
+    .toast-area {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: auto;
+      margin-right: 4px;
+      pointer-events: none;
+    }
+
+    .toast-area .toast-item {
+      padding: 4px 10px;
+      background: linear-gradient(135deg, #64748B 0%, #475569 100%);
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(100, 116, 139, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      color: white;
+      font-weight: 500;
+      animation: toastSlideIn 0.3s ease;
+      pointer-events: auto;
+      height: 24px;
+      line-height: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      max-width: 250px;
+    }
+
+    .toast-area .toast-item > span:last-child {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      padding-right: 4px;
+    }
+
+    @keyframes toastSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes toastSlideRight {
+      from {
+        opacity: 0;
+        transform: translateX(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .toast-item .toast-icon {
+      color: white;
+      font-size: 14px;
+    }
+
+    .toast-item.hide {
+      animation: toastFadeRight 0.25s ease forwards;
+    }
+
+    @keyframes toastFadeRight {
+      to {
+        opacity: 0;
+        transform: translateX(30px);
+      }
+    }
+
+    .toast-item.ai-running,
+    .toast-item.ai-paused,
+    .toast-item.ai-error {
+      background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+      box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    @keyframes rotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* ===== 滚动条美化 ===== */
+    ::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #F1F5F9;
+      border-radius: 5px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, #94A3B8 0%, #64748B 100%);
+      border-radius: 5px;
+      border: 2px solid #F1F5F9;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(180deg, #64748B 0%, #475569 100%);
+    }
+    ::-webkit-scrollbar-corner {
+      background: #F1F5F9;
+    }
+    ::-webkit-scrollbar-thumb:horizontal {
+      background: linear-gradient(90deg, #94A3B8 0%, #64748B 100%);
+    }
+    ::-webkit-scrollbar-thumb:horizontal:hover {
+      background: linear-gradient(90deg, #64748B 0%, #475569 100%);
+    }
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: #94A3B8 #F1F5F9;
+    }
+
+    /* ===== Copilot 设置面板 ===== */
+    .copilot-settings-panel {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+
+    .copilot-settings-panel.show {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .copilot-settings-backdrop {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+    }
+
+    .copilot-settings-content {
+      position: relative;
+      width: 90%;
+      max-width: 480px;
+      max-height: 85vh;
+      background: var(--chrome-surface);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transform: scale(0.95);
+      transition: transform 0.3s ease;
+    }
+
+    .copilot-settings-panel.show .copilot-settings-content {
+      transform: scale(1);
+    }
+
+    .copilot-settings-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--chrome-border);
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    }
+
+    .copilot-settings-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--chrome-text);
+    }
+
+    .copilot-settings-title i {
+      font-size: 24px;
+      color: var(--chrome-primary);
+    }
+
+    .copilot-settings-close {
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: transparent;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--chrome-text-secondary);
+      transition: all 0.2s ease;
+    }
+
+    .copilot-settings-close:hover {
+      background: var(--chrome-hover);
+      color: var(--chrome-text);
+    }
+
+    .copilot-settings-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+    }
+
+    .copilot-settings-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      padding: 16px 20px;
+      border-top: 1px solid var(--chrome-border);
+      background: var(--chrome-bg);
+    }
+
+    .settings-section {
+      margin-bottom: 20px;
+    }
+
+    .settings-section:last-child {
+      margin-bottom: 0;
+    }
+
+    .settings-section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--chrome-text);
+      margin-bottom: 12px;
+    }
+
+    .settings-section-title i {
+      color: var(--chrome-primary);
+    }
+
+    .config-section {
+      display: none;
+    }
+
+    .config-section.active {
+      display: block;
+    }
+
+    .service-selector {
+      display: flex;
+      gap: 12px;
+    }
+
+    .service-option {
+      flex: 1;
+      padding: 16px;
+      border: 2px solid var(--chrome-border);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s ease;
+      background: var(--chrome-surface);
+    }
+
+    .service-option:hover {
+      border-color: var(--chrome-primary);
+      background: rgba(26, 115, 232, 0.05);
+    }
+
+    .service-option.active {
+      border-color: var(--chrome-primary);
+      background: rgba(26, 115, 232, 0.1);
+    }
+
+    .service-option i {
+      font-size: 28px;
+      margin-bottom: 8px;
+      display: block;
+      color: var(--chrome-text-secondary);
+    }
+
+    .service-option.active i {
+      color: var(--chrome-primary);
+    }
+
+    .service-name {
+      font-weight: 600;
+      font-size: 13px;
+      margin-bottom: 4px;
+      color: var(--chrome-text);
+    }
+
+    .service-desc {
+      font-size: 11px;
+      color: var(--chrome-text-secondary);
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--chrome-text);
+      margin-bottom: 6px;
+    }
+
+    .form-group input[type="text"],
+    .form-group input[type="password"],
+    .form-group select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--chrome-border);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-family: inherit;
+      background: var(--chrome-surface);
+      color: var(--chrome-text);
+      transition: all 0.2s ease;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--chrome-primary);
+      box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1);
+    }
+
+    .input-with-button {
+      display: flex;
+      gap: 8px;
+    }
+
+    .input-with-button input {
+      flex: 1;
+    }
+
+    .input-with-button button {
+      padding: 0 12px;
+      border: 1px solid var(--chrome-border);
+      background: var(--chrome-hover);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      color: var(--chrome-text-secondary);
+      transition: all 0.2s ease;
+    }
+
+    .input-with-button button:hover {
+      background: var(--chrome-border);
+      color: var(--chrome-text);
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--chrome-text);
+    }
+
+    .checkbox-label input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--chrome-primary);
+      cursor: pointer;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 16px;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: var(--chrome-primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--chrome-primary-hover);
+    }
+
+    .btn-secondary {
+      background: var(--chrome-hover);
+      color: var(--chrome-text);
+    }
+
+    .btn-secondary:hover {
+      background: var(--chrome-border);
+    }
+
+    /* 设置提示 */
+    .settings-toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      padding: 12px 20px;
+      background: var(--chrome-surface);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--chrome-text);
+      opacity: 0;
+      transition: all 0.3s ease;
+      z-index: 10001;
+    }
+
+    .settings-toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .settings-toast.success {
+      border-left: 4px solid var(--chrome-success);
+    }
+
+    .settings-toast.error {
+      border-left: 4px solid var(--chrome-danger);
+    }
+
+    .settings-toast i {
+      font-size: 18px;
+    }
+
+    .settings-toast.success i {
+      color: var(--chrome-success);
+    }
+
+    .settings-toast.error i {
+      color: var(--chrome-danger);
+    }
+  </style>
+</head>
+<body>
+  <!-- 标题栏 -->
+  <div class="titlebar" ondblclick="toggleMaximize()">
+    <!-- 标签集合按钮 -->
+    <div class="tab-list-dropdown" ondblclick="event.stopPropagation();">
+      <button class="tab-list-btn" onclick="toggleTabList()" title="所有标签页">
+        <i class="ph ph-caret-down"></i>
+        <span class="tab-count" id="tab-count">1</span>
+      </button>
+    </div>
+
+    <div class="tabs-container" id="tabs-container">
+      <!-- 标签页动态添加 -->
+    </div>
+
+    <!-- newtab 按钮 - 在 tabs 右侧，超出时固定 -->
+    <div class="tab-controls" id="tab-controls" ondblclick="event.stopPropagation();">
+      <button class="tab-btn" onclick="newTab()" title="新标签页">
+        <i class="ph ph-plus"></i>
+      </button>
+    </div>
+
+    <!-- 窗口控制按钮 - 在标题栏右侧 -->
+    <div class="window-controls">
+      <button class="win-btn minimize" onclick="minimizeWindow()" title="最小化">
+        <i class="ph ph-minus"></i>
+      </button>
+      <button class="win-btn maximize" onclick="maximizeWindow()" title="最大化">
+        <i class="ph ph-corners-out"></i>
+      </button>
+      <button class="win-btn close" onclick="closeWindow()" title="关闭">
+        <i class="ph ph-x"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- 工具栏 -->
+  <div class="toolbar">
+    <div class="nav-group">
+      <button class="nav-btn" id="btn-back" onclick="goBack()" disabled title="后退">
+        <i class="ph ph-arrow-left"></i>
+      </button>
+      <button class="nav-btn" id="btn-forward" onclick="goForward()" disabled title="前进">
+        <i class="ph ph-arrow-right"></i>
+      </button>
+      <button class="nav-btn" id="btn-reload" onclick="reload()" title="刷新">
+        <i class="ph ph-arrow-clockwise"></i>
+      </button>
+      <button class="nav-btn" id="btn-home" onclick="goHome()" title="主页">
+        <i class="ph ph-house"></i>
+      </button>
+    </div>
+
+    <div class="omnibox">
+      <i class="ph ph-lock-key omnibox-icon" id="security-icon"></i>
+      <input type="text" class="omnibox-input" id="address-input"
+             placeholder="搜索或输入网址"
+             onkeydown="handleAddressKey(event)"
+             onclick="selectAddress()"
+             spellcheck="false"
+             autocomplete="off"
+             autocorrect="off"
+             autocapitalize="off">
+      <div class="omnibox-actions">
+        <button class="omnibox-btn" onclick="clearAddress()" title="清除">
+          <i class="ph ph-x"></i>
+        </button>
+      </div>
+      <!-- 消息提示区域 - 放在地址栏内 -->
+      <div class="toast-area" id="toast-area"></div>
+    </div>
+
+    <!-- 扩展按钮 -->
+    <div class="toolbar-ext">
+      <button class="ext-btn active" id="adblock-btn" onclick="toggleAdBlock()" title="广告拦截">
+        <i class="ph ph-shield-check"></i>
+      </button>
+      <button class="ext-btn" id="copilot-btn" onclick="toggleCopilot()" title="Siliu Copilot">
+        <i class="ph ph-robot"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- 内容区域 -->
+  <div class="content-area" id="content-area"></div>
+
+  <!-- 加载指示器 -->
+  <div class="loading-indicator" id="loading-indicator"></div>
+
+  <!-- 侧边栏 -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-avatar disconnected" onclick="toggleOpenClaw()" title="点击连接 AI">
+        <i class="ph ph-robot"></i>
+      </div>
+      <div class="sidebar-title">Siliu Copilot</div>
+      <div class="sidebar-actions">
+        <button class="sidebar-btn" onclick="openCopilotSettings()" title="设置">
+          <i class="ph ph-gear"></i>
+        </button>
+        <button class="sidebar-btn" onclick="clearChat()" title="清空对话">
+          <i class="ph ph-trash"></i>
+        </button>
+        <button class="sidebar-btn" onclick="toggleSidebar()" title="关闭">
+          <i class="ph ph-x"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="chat-container" id="chat-container">
+      <div class="message assistant">
+        你好！我是 Siliu Copilot，可以帮你操作浏览器。试试说"打开 Google 搜索 iPhone"。
+      </div>
+    </div>
+
+    <div class="chat-input-area">
+      <div class="chat-input-wrapper">
+        <textarea class="chat-input" id="chat-input" placeholder="输入指令..." onkeydown="handleChatKey(event)" rows="1" spellcheck="false"></textarea>
+        <button class="chat-send-btn" onclick="sendMessage()">
+          <i class="ph ph-paper-plane-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ========== Copilot 设置 ==========
+    // 打开 Copilot 设置页面（在新标签页中）
+    async function openCopilotSettings() {
+      // 构建设置页面 URL
+      const settingsUrl = new URL('copilot-settings.html', window.location.href).href;
+      
+      // 检查是否已存在设置标签页
+      const existingSettingsTab = views.find(v => v.url && v.url.includes('copilot-settings.html'));
+      if (existingSettingsTab) {
+        // 切换到已存在的设置标签页
+        await switchTab(existingSettingsTab.id);
+        return;
+      }
+      
+      // 创建新标签页打开设置
+      const sidebar = document.getElementById('sidebar');
+      const sidebarOpen = sidebar?.classList?.contains('show') || false;
+      
+      try {
+        const result = await window.siliuAPI?.createView?.(settingsUrl, sidebarOpen);
+        console.log('[Shell] Opened Copilot settings in new tab:', result);
+      } catch (err) {
+        console.error('[Shell] Failed to open Copilot settings:', err);
+      }
+    }
+  </script>
+
+  <!-- TabRenderer -->
+  <script src="./tab-renderer.js"></script>
+
+  <script>
+    // 状态
+    let currentViewId = null;
+    let views = [];
+
+    // ========== 窗口控制 ==========
+    function minimizeWindow() {
+      window.siliuAPI?.minimizeWindow?.();
+    }
+
+    function maximizeWindow() {
+      window.siliuAPI?.maximizeWindow?.();
+    }
+
+    function closeWindow() {
+      window.siliuAPI?.closeWindow?.();
+    }
+
+    function toggleMaximize() {
+      // 双击标题栏空白处切换最大化/还原
+      window.siliuAPI?.maximizeWindow?.();
+    }
+
+    // ========== 标题栏交互 ==========
+    function initTitlebarInteractions() {
+      // 系统 titlebar 已自带双击最大化功能
+      // 无需自定义实现
+    }
+    async function navigate() {
+      const url = document.getElementById('address-input').value.trim();
+      if (url && currentViewId) {
+        await window.siliuAPI?.navigate?.(currentViewId, url);
+      }
+    }
+
+    async function goBack() {
+      if (currentViewId) {
+        await window.siliuAPI?.goBack?.(currentViewId);
+      }
+    }
+
+    async function goForward() {
+      if (currentViewId) {
+        await window.siliuAPI?.goForward?.(currentViewId);
+      }
+    }
+
+    async function reload() {
+      if (currentViewId) {
+        const btn = document.getElementById('btn-reload');
+        btn.classList.add('loading');
+        await window.siliuAPI?.reload?.(currentViewId);
+        setTimeout(() => btn.classList.remove('loading'), 500);
+      }
+    }
+
+    async function goHome() {
+      if (currentViewId) {
+        // 使用相对路径，避免硬编码绝对路径
+        const homeUrl = new URL('newtab.html', window.location.href).href;
+        await window.siliuAPI?.navigate?.(currentViewId, homeUrl);
+      }
+    }
+
+    function handleAddressKey(e) {
+      if (e.key === 'Enter') {
+        const input = document.getElementById('address-input');
+        const query = input.value.trim();
+        if (!query) return;
+
+        // 判断是否是 URL
+        const isUrl = /^(https?:\/\/)?([\w-]+\.)+[\w-]+/.test(query);
+
+        if (isUrl) {
+          // URL - 确保有 https:// 前缀
+          let url = query;
+          if (!url.startsWith('http://') && !url.startsWith('https://')) {
+            url = 'https://' + url;
+          }
+          navigateToUrl(url);
+        } else {
+          // 搜索 - 使用 Google
+          const searchUrl = 'https://www.google.com/search?q=' + encodeURIComponent(query);
+          navigateToUrl(searchUrl);
+        }
+      }
+    }
+
+    async function navigateToUrl(url) {
+      if (currentViewId) {
+        await window.siliuAPI?.navigate?.(currentViewId, url);
+      }
+    }
+
+    function clearAddress() {
+      document.getElementById('address-input').value = '';
+      document.getElementById('address-input').focus();
+    }
+
+    function selectAddress() {
+      const input = document.getElementById('address-input');
+      input.select();
+    }
+
+    // ========== 标签栏管理器（解耦版） ==========
+    // 使用 TabRenderer 处理 UI，业务逻辑通过事件委托
+    let tabRenderer;
+
+    function initTabManager() {
+      tabRenderer = new TabRenderer('tabs-container');
+
+      // 监听 TabRenderer 事件，转发到 siliuAPI
+      tabRenderer.on('tab:activate', (viewId) => {
+        window.siliuAPI?.setActiveView?.(viewId);
+      });
+
+      tabRenderer.on('tab:close', (viewId) => {
+        window.siliuAPI?.closeView?.(viewId);
+      });
+
+      tabRenderer.on('tab:contextmenu', ({ viewId, isPinned, x, y }) => {
+        // 使用原生上下文菜单（避免被 BrowserView 覆盖），在鼠标位置显示
+        window.siliuAPI?.showTabContextMenu?.(viewId, isPinned, x, y);
+      });
+
+      tabRenderer.on('tab:detach', (viewId) => {
+        console.log('[TabBar] Detach tab:', viewId);
+        // 直接从标签元素获取 URL（比 views 数组更可靠）
+        const tab = tabRenderer.tabs.get(String(viewId));
+        let url = '';
+        if (tab) {
+          const titleEl = tab.querySelector('.tab-title');
+          // 从 tab 元素查找 URL（如果存储在 dataset 中）
+          url = tab.dataset.url || '';
+        }
+        // 如果找不到 URL，使用视图数组中的
+        if (!url) {
+          const view = views.find(v => v.id === viewId);
+          url = view?.url || 'https://www.google.com';
+        }
+        console.log('[TabBar] Detaching with URL:', url);
+        // 通知主进程创建新窗口
+        window.siliuAPI?.detachTab?.(viewId, url);
+      });
+
+      tabRenderer.on('tab:reorder', (newOrder) => {
+        console.log('[TabBar] New order:', newOrder);
+        // TODO: 同步到 Core
+      });
+
+      // 监听来自主进程的菜单操作
+      window.siliuAPI?.on?.('tab:toggle-pin', ({ viewId }) => {
+        console.log('[Shell] toggle-pin received for viewId:', viewId, 'type:', typeof viewId);
+        tabRenderer.togglePin(viewId);
+      });
+
+      window.siliuAPI?.on?.('tab:mute', ({ viewId }) => {
+        // 通过 IPC 通知主进程静音
+        window.siliuAPI?.muteView?.(viewId);
+      });
+
+      // 监听静音状态变化
+      window.siliuAPI?.on?.('tab:muted', ({ viewId, isMuted }) => {
+        tabRenderer.updateTab(viewId, { isMuted });
+      });
+
+      window.siliuAPI?.on?.('tab:close-others', ({ viewId }) => {
+        tabRenderer.closeOthers(viewId);
+      });
+
+      window.siliuAPI?.on?.('tab:close-right', ({ viewId }) => {
+        tabRenderer.closeRight(viewId);
+      });
+
+      window.siliuAPI?.on?.('tab:add-to-group', ({ viewId }) => {
+        const colors = ['#4285F4', '#EA4335', '#FBBC04', '#34A853', '#A142F4'];
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        tabRenderer.addGroupColor(viewId, color);
+      });
+    }
+
+    // ========== 标签列表下拉菜单 ==========
+    let tabListClickHandler = null;
+    let isTabListShown = false;
+
+    async function toggleTabList() {
+      if (isTabListShown) {
+        hideTabList();
+      } else {
+        await showTabList();
+      }
+    }
+
+    async function showTabList() {
+      const btn = document.querySelector('.tab-list-btn');
+      const rect = btn.getBoundingClientRect();
+
+      // 获取主窗口的位置（用于转换客户端坐标到屏幕坐标）
+      const { x: winX, y: winY } = await window.siliuAPI?.getWindowPosition?.() || { x: 0, y: 0 };
+
+      // 获取按钮的屏幕坐标
+      const bounds = {
+        x: winX + rect.left,
+        y: winY + rect.bottom,
+        width: rect.width,
+        height: rect.height
+      };
+
+      console.log('[Shell] Tab list button position:', bounds);
+
+      // 获取所有标签数据 - 反转顺序让新标签在上方
+      const tabs = tabRenderer.getAllTabs().map(tab => {
+        const view = views.find(v => v.id === tab.viewId);
+        return {
+          viewId: tab.viewId,
+          title: tab.title,
+          favicon: view?.favicon || '',
+          isActive: tab.isActive,
+          isPinned: tab.isPinned
+        };
+      }).reverse(); // 反转：新标签在上，老标签在下
+
+      // 显示置顶窗口
+      await window.siliuAPI?.showTabList?.(tabs, bounds);
+
+      // 标记为显示状态
+      isTabListShown = true;
+
+      // 延迟绑定点击外部关闭（避免立即触发）
+      setTimeout(() => {
+        bindClickOutsideHandler();
+      }, 10);
+    }
+
+    // 绑定点击外部关闭
+    function bindClickOutsideHandler() {
+      // 先移除旧的
+      if (tabListClickHandler) {
+        document.removeEventListener('mousedown', tabListClickHandler, true);
+      }
+
+      tabListClickHandler = (e) => {
+        const btn = document.querySelector('.tab-list-btn');
+
+        // 如果菜单没显示，不处理
+        if (!isTabListShown) {
+          document.removeEventListener('mousedown', tabListClickHandler, true);
+          return;
+        }
+
+        // 如果点击的是按钮，让 toggleTabList 处理
+        if (btn.contains(e.target)) {
+          return;
+        }
+
+        // 点击外部，关闭列表
+        hideTabList();
+        document.removeEventListener('mousedown', tabListClickHandler, true);
+        tabListClickHandler = null;
+      };
+
+      // 使用捕获阶段监听 mousedown
+      document.addEventListener('mousedown', tabListClickHandler, true);
+    }
+
+    function hideTabList() {
+      // 移除点击监听
+      if (tabListClickHandler) {
+        document.removeEventListener('mousedown', tabListClickHandler, true);
+        tabListClickHandler = null;
+      }
+
+      window.siliuAPI?.hideTabList?.();
+      isTabListShown = false;
+    }
+
+    function updateTabCount() {
+      const count = tabRenderer.tabs.size;
+      document.getElementById('tab-count').textContent = count;
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    async function newTab() {
+      // 获取当前侧边栏状态
+      const sidebar = document.getElementById('sidebar');
+      const sidebarOpen = sidebar?.classList?.contains('show') || false;
+      await window.siliuAPI?.createView?.(null, sidebarOpen);
+    }
+
+    async function closeTab(viewId) {
+      await window.siliuAPI?.closeView?.(viewId);
+    }
+
+    async function switchTab(viewId) {
+      // 获取当前侧边栏状态
+      const sidebar = document.getElementById('sidebar');
+      const sidebarOpen = sidebar?.classList?.contains('show') || false;
+      await window.siliuAPI?.setActiveView?.(viewId, sidebarOpen);
+    }
+
+    function addTab(viewId, title, url, favicon = '') {
+      // 使用解耦的 TabRenderer
+      tabRenderer.createTab(viewId, { title, url, favicon });
+      views.push({ id: viewId, title, url, favicon });
+      updateActiveTab(viewId);
+      updateTabCount(); // 更新标签计数
+    }
+
+    function removeTab(viewId) {
+      tabRenderer.removeTab(viewId);
+      views = views.filter(v => v.id !== viewId);
+      // 延迟更新计数，等待动画完成
+      setTimeout(() => updateTabCount(), 200);
+    }
+
+    function updateActiveTab(viewId) {
+      // 更新所有标签的激活状态
+      tabRenderer.tabs.forEach((tab, id) => {
+        tabRenderer.updateTab(id, { isActive: id === viewId });
+      });
+      currentViewId = viewId;
+    }
+
+    function updateTabTitle(viewId, title) {
+      tabRenderer.updateTab(viewId, { title });
+      const view = views.find(v => v.id === viewId);
+      if (view) view.title = title;
+    }
+
+    function updateTabFavicon(viewId, favicon) {
+      tabRenderer.updateTab(viewId, { favicon });
+      // 更新 views 数组中的 favicon
+      const view = views.find(v => v.id === viewId);
+      if (view) view.favicon = favicon;
+    }
+
+    // ========== Copilot 连接控制 ==========
+    // 标记是否已检查过配置
+    let hasCheckedConfig = false;
+    let hasCopilotConfig = false;
+
+    async function toggleCopilot() {
+      const btn = document.getElementById('copilot-btn');
+      const sidebar = document.getElementById('sidebar');
+      const isOpen = !sidebar.classList.contains('show');
+
+      // 切换侧边栏显示
+      sidebar.classList.toggle('show', isOpen);
+      btn.classList.toggle('active', isOpen);
+
+      if (isOpen) {
+        // 展开侧边栏：先展开，再调整 BrowserView
+        setTimeout(() => {
+          window.siliuAPI?.setSidebarOpen?.(true);
+        }, 300);
+
+        // 连接已在应用启动时自动建立，此处不再重复连接
+        // 无配置时保持空白，等待用户去设置页面配置
+      } else {
+        // 收起侧边栏：先调整 BrowserView，再收起
+        window.siliuAPI?.setSidebarOpen?.(false);
+        // 不主动断开连接，保持连接供其他窗口或下次使用
+        // 项目关闭时会自动断开
+      }
+    }
+
+    // ========== 侧边栏（旧函数保留兼容）==========
+    function toggleSidebar() {
+      toggleCopilot();
+    }
+
+    // ========== 广告拦截 ==========
+    let adblockEnabled = true;
+
+    function toggleAdBlock() {
+      const btn = document.getElementById('adblock-btn');
+      const icon = btn.querySelector('i');
+      const badge = document.getElementById('adblock-badge');
+
+      adblockEnabled = !adblockEnabled;
+      btn.classList.toggle('active', adblockEnabled);
+
+      // 切换图标
+      if (adblockEnabled) {
+        icon.className = 'ph ph-shield-check';
+        btn.title = '广告拦截已开启';
+      } else {
+        icon.className = 'ph ph-shield-slash';
+        btn.title = '广告拦截已关闭';
+      }
+
+      // 通知主进程
+      window.siliuAPI?.setAdBlockEnabled?.(adblockEnabled);
+    }
+
+    // 监听 AdBlock 统计 - 使用 toast 通知
+    let lastAdBlockCount = 0;
+    window.siliuAPI?.on?.('adblock:stats', ({ total, today }) => {
+      console.log('[Shell] AdBlock stats:', total, today, 'last:', lastAdBlockCount);
+
+      // 只在数量增加时更新计数（toast 由 toast:adblock 事件触发）
+      if (today > lastAdBlockCount) {
+        lastAdBlockCount = today;
+      }
+    });
+
+    // 监听通用 toast 事件
+    window.siliuAPI?.on?.('toast:show', ({ message, type, duration }) => {
+      addToast(message, type, duration || 3000);  // 使用 addToast 支持 duration
+    });
+
+    // 监听 AdBlock toast 事件
+    window.siliuAPI?.on?.('toast:adblock', ({ blocked }) => {
+      showAdBlockToast(blocked);
+    });
+
+    // 初始化 AdBlock 状态
+    window.siliuAPI?.on?.('adblock:enabled', ({ enabled }) => {
+      adblockEnabled = enabled;
+      const btn = document.getElementById('adblock-btn');
+      const icon = btn.querySelector('i');
+      btn.classList.toggle('active', enabled);
+      icon.className = enabled ? 'ph ph-shield-check' : 'ph ph-shield-slash';
+    });
+
+    // ========== 聊天 ==========
+    // AI 连接状态
+    let aiConnection = {
+      connected: false,
+      mode: 'none',  // 'openclaw' | 'kimi' | 'none'
+      name: 'None',
+      displayName: '未连接'
+    };
+    let openclawConnecting = false;
+    let pendingServiceType = 'openclaw';
+    let currentStreamDiv = null;
+    let currentStreamContent = '';
+
+    async function sendMessage() {
+      const input = document.getElementById('chat-input');
+      const text = input.value.trim();
+      if (!text) return;
+
+      console.log('[Shell] Sending message:', text);
+
+      // 添加用户消息
+      addChatMessage('user', text);
+      input.value = '';
+      input.style.height = 'auto';
+
+      // 检查 AI 连接状态，如果未连接则自动尝试连接
+      if (!aiConnection.connected) {
+        addChatMessage('assistant', `正在连接到 ${aiConnection.name === 'None' ? 'AI' : aiConnection.name} 服务...`);
+        
+        try {
+          const result = await window.siliuAPI?.openclawConnect?.();
+          if (!result?.success) {
+            addChatMessage('assistant', `无法连接到 ${aiConnection.displayName}，请检查配置`);
+            return;
+          }
+          // 注意：连接成功后，openclaw:connected 事件会自动更新 UI
+        } catch (err) {
+          addChatMessage('assistant', `连接失败: ${err.message}`);
+          return;
+        }
+      }
+
+      // 直接发送用户消息，提示词由 Copilot 模块处理
+      const prompt = text;
+
+      try {
+        console.log('[Shell] Calling copilotSendMessage...');
+        const result = await window.siliuAPI?.copilotSendMessage?.(prompt);
+        console.log('[Shell] Send message result:', result);
+      } catch (err) {
+        console.error('[Shell] Send message failed:', err);
+        addChatMessage('assistant', '发送失败: ' + err.message);
+      }
+    }
+
+    // 检测是否为浏览器操作请求
+    function isBrowserOperation(text) {
+      const browserKeywords = ['打开', '访问', '导航', '截图', '点击', '搜索', '输入', '滚动', '获取', '查找', '等待', '刷新', '返回', '前进', '关闭', '浏览', '跳转', '查看', '填写', '提交', '登录'];
+      return browserKeywords.some(kw => text.toLowerCase().includes(kw.toLowerCase()));
+    }
+
+    // 开始流式消息
+    function startStream() {
+      finishStream();
+      const container = document.getElementById('chat-container');
+      const div = document.createElement('div');
+      div.className = 'message assistant streaming';
+      div.innerHTML = '<div class="message-content"></div>';
+      container.appendChild(div);
+      currentStreamDiv = div;
+      currentStreamContent = '';
+      container.scrollTop = container.scrollHeight;
+    }
+
+    // 追加流式文本
+    function appendStreamText(text) {
+      if (!currentStreamDiv) {
+        startStream();
+      }
+      currentStreamContent += text;
+      const contentDiv = currentStreamDiv.querySelector('.message-content');
+      contentDiv.textContent = currentStreamContent;
+      document.getElementById('chat-container').scrollTop = document.getElementById('chat-container').scrollHeight;
+    }
+
+    // 结束流式消息
+    function finishStream() {
+      if (currentStreamDiv) {
+        currentStreamDiv.classList.remove('streaming');
+        currentStreamDiv = null;
+        currentStreamContent = '';
+      }
+    }
+
+    function addChatMessage(role, text) {
+      console.log('[Shell] Adding message:', role, text.slice(0, 50));
+      const container = document.getElementById('chat-container');
+      if (!container) {
+        console.error('[Shell] chat-container not found!');
+        return;
+      }
+      const msg = document.createElement('div');
+      msg.className = `message ${role}`;
+      msg.textContent = text;
+      
+      // 为消息添加右键菜单支持
+      msg.addEventListener('contextmenu', handleMessageContextMenu);
+      
+      container.appendChild(msg);
+      container.scrollTop = container.scrollHeight;
+    }
+    
+    // 处理消息右键菜单
+    function handleMessageContextMenu(e) {
+      const selection = window.getSelection();
+      const selectedText = selection?.toString()?.trim();
+      
+      // 如果有选中文本，显示右键菜单
+      if (selectedText) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // 保存选中的文本范围
+        const range = selection.getRangeAt(0);
+        
+        // 显示右键菜单
+        showMessageContextMenu(selectedText, e.clientX, e.clientY);
+      }
+    }
+    
+    // 显示消息右键菜单
+    async function showMessageContextMenu(text, x, y) {
+      try {
+        await window.siliuAPI?.showShellContextMenu?.(false, true, text);
+      } catch (err) {
+        console.error('[Shell] Message context menu failed:', err);
+      }
+    }
+
+    function clearChat() {
+      const container = document.getElementById('chat-container');
+      container.innerHTML = `
+        <div class="message assistant">
+          对话已清空。我是 Siliu Copilot，有什么可以帮你的吗？
+        </div>
+      `;
+      // 为初始消息添加右键菜单
+      const initialMsg = container.querySelector('.message');
+      if (initialMsg) {
+        initialMsg.addEventListener('contextmenu', handleMessageContextMenu);
+      }
+    }
+
+    function handleChatKey(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+      // 自动调整高度
+      e.target.style.height = 'auto';
+      e.target.style.height = e.target.scrollHeight + 'px';
+    }
+
+    // ========== OpenClaw 连接控制 ==========
+    async function toggleOpenClaw() {
+      if (openclawConnecting) return;
+
+      if (aiConnection.connected) {
+        // 断开连接
+        await window.siliuAPI?.openclawDisconnect?.();
+        aiConnection.connected = false;
+        updateOpenClawUI('disconnected');
+      } else {
+        // 连接
+        openclawConnecting = true;
+        updateOpenClawUI('connecting');
+
+        // 获取当前服务类型
+        try {
+          const config = await window.siliuAPI?.copilotGetConfig?.();
+          pendingServiceType = config?.config?.serviceType === 'cloud' ? 'cloud' : 'local';
+        } catch (e) {
+          pendingServiceType = 'local';
+        }
+
+        try {
+          const result = await window.siliuAPI?.openclawConnect?.();
+          if (result?.success) {
+            aiConnection.connected = true;
+            updateOpenClawUI('connected');
+            loadChatHistory();
+            // 显示连接成功提示
+            const serviceName = pendingServiceType === 'cloud' ? 'Siliu AI 云端服务' : 'OpenClaw 本地服务';
+            showToast(`已连接到 ${serviceName}`, 'success');
+          } else {
+            aiConnection.connected = false;
+            updateOpenClawUI('error', result?.error || '连接失败');
+            // 显示连接失败提示
+            const serviceName = pendingServiceType === 'cloud' ? 'Siliu AI 云端服务' : 'OpenClaw 本地服务';
+            showToast(`连接 ${serviceName} 失败`, 'error');
+          }
+        } catch (err) {
+          aiConnection.connected = false;
+          updateOpenClawUI('error', err.message);
+          // 显示异常提示
+          showToast('连接失败: ' + err.message, 'error');
+        } finally {
+          openclawConnecting = false;
+        }
+      }
+    }
+
+    function updateOpenClawUI(state, errorMsg) {
+      // 更新侧边栏头像的连接状态
+      const avatar = document.querySelector('.sidebar-avatar');
+      
+      console.log('[Shell] updateOpenClawUI called with state:', state, 'avatar exists:', !!avatar);
+      
+      if (avatar) {
+        avatar.classList.remove('connected', 'disconnected');
+        
+        switch (state) {
+          case 'connected':
+            avatar.classList.add('connected');
+            console.log('[Shell] Avatar class set to connected');
+            break;
+          case 'connecting':
+          case 'error':
+          case 'unconfigured':
+          default:
+            avatar.classList.add('disconnected');
+            console.log('[Shell] Avatar class set to disconnected');
+            break;
+        }
+      } else {
+        console.log('[Shell] Warning: avatar element not found!');
+      }
+    }
+
+    // 加载历史对话
+    async function loadChatHistory() {
+      if (!window.siliuAPI?.openclawGetHistory) return;
+      try {
+        const result = await window.siliuAPI.openclawGetHistory(50);
+        if (result?.success && result.data?.messages) {
+          displayChatHistory(result.data.messages);
+        }
+      } catch (err) {
+        console.error('[OpenClaw] Load history error:', err);
+      }
+    }
+
+    // 显示历史对话
+    function displayChatHistory(messages) {
+      const container = document.getElementById('chat-container');
+      container.innerHTML = '';
+
+      messages.forEach(msg => {
+        const role = msg.role === 'user' ? 'user' : 'assistant';
+        let text = '';
+        if (Array.isArray(msg.content)) {
+          text = msg.content
+            .filter(c => c.type === 'text')
+            .map(c => c.text)
+            .join('\n');
+        } else if (typeof msg.content === 'string') {
+          text = msg.content;
+        }
+        if (text) {
+          addChatMessage(role, text);
+        }
+      });
+    }
+
+    // 从消息中提取文本
+    function extractTextFromMessage(message) {
+      if (!message) return '';
+      if (typeof message === 'string') return message;
+      
+      // OpenClaw 格式: content 数组
+      if (message.content) {
+        if (Array.isArray(message.content)) {
+          return message.content
+            .filter(c => c.type === 'text')
+            .map(c => c.text)
+            .join('');
+        }
+        return message.content;
+      }
+      
+      // 其他可能的字段
+      if (message.text) return message.text;
+      if (message.delta) return message.delta;
+      
+      return JSON.stringify(message);
+    }
+
+    // ========== 通知 ==========
+    // Toast 队列管理
+    const toastQueue = [];
+    const MAX_TOASTS = 3; // 同时显示的最大数量
+    let activeToasts = 0;
+
+    // 截断文本（备用，CSS主要负责省略）
+    function truncateText(text, maxLen = 200) {
+      if (!text || text.length <= maxLen) return text;
+      return text.substring(0, maxLen) + '...';
+    }
+
+    // Toast 去重 - 记录最近显示的 Toast
+    const recentToasts = new Map();
+    const TOAST_DEDUP_DURATION = 3000; // 3秒内相同消息不重复显示
+
+    function addToast(message, type = 'success', duration = 3000, iconClass = null) {
+      const toastArea = document.getElementById('toast-area');
+      if (!toastArea) return;
+
+      // 截断消息用于显示
+      const displayMessage = truncateText(message);
+      
+      // 去重检查：相同消息在3秒内不重复显示
+      const now = Date.now();
+      const toastKey = `${type}:${displayMessage}`;
+      const lastShown = recentToasts.get(toastKey);
+      if (lastShown && (now - lastShown) < TOAST_DEDUP_DURATION) {
+        console.log('[Toast] Duplicate suppressed:', displayMessage);
+        return;
+      }
+      recentToasts.set(toastKey, now);
+      
+      // 清理过期的去重记录
+      for (const [key, time] of recentToasts.entries()) {
+        if (now - time > TOAST_DEDUP_DURATION) {
+          recentToasts.delete(key);
+        }
+      }
+
+      // 如果已经达到最大数量，只保留最新的
+      const existingToasts = toastArea.querySelectorAll('.toast-item:not(.hide)');
+      if (existingToasts.length >= MAX_TOASTS) {
+        // 移除最旧的一个
+        const oldest = existingToasts[0];
+        oldest.classList.add('hide');
+        setTimeout(() => oldest.remove(), 300);
+        activeToasts--;
+      }
+
+      const item = document.createElement('div');
+      item.className = 'toast-item';
+      
+      // 确定图标 - 使用 Phosphor Icons（全部白色）
+      let iconHtml;
+      if (iconClass) {
+        iconHtml = `<i class="${iconClass}"></i>`;
+      } else {
+        const iconMap = {
+          'success': '<i class="ph ph-check-circle"></i>',
+          'error': '<i class="ph ph-x-circle"></i>',
+          'warning': '<i class="ph ph-warning-circle"></i>',
+          'info': '<i class="ph ph-info"></i>'
+        };
+        iconHtml = iconMap[type] || iconMap['info'];
+      }
+      
+      item.innerHTML = `
+        <span class="toast-icon">${iconHtml}</span>
+        <span>${displayMessage}</span>
+      `;
+
+      toastArea.appendChild(item);
+      activeToasts++;
+
+      setTimeout(() => {
+        item.classList.add('hide');
+        setTimeout(() => {
+          item.remove();
+          activeToasts--;
+        }, 300);
+      }, duration);
+    }
+
+    function showToast(message, type = 'success') {
+      addToast(message, type, 3000);
+    }
+
+    // 统一 Toast 系统 - 单元素，替换显示
+    let currentToastEl = null;
+    let toastTimer = null;
+    let aiState = { status: 'idle', message: '' };
+
+    function showToastUnified(message, type, duration = 3000) {
+      const area = document.getElementById('toast-area');
+      if (!area) return;
+
+      // 清除定时器
+      if (toastTimer) {
+        clearTimeout(toastTimer);
+        toastTimer = null;
+      }
+
+      // 截断消息
+      const displayMessage = truncateText(message);
+
+      // 获取或创建元素
+      if (!currentToastEl) {
+        currentToastEl = document.createElement('div');
+        currentToastEl.className = 'toast-item';
+        area.appendChild(currentToastEl);
+      }
+
+      // 设置类型样式
+      currentToastEl.className = 'toast-item';
+      if (type === 'ai-running' || type === 'ai-thinking') currentToastEl.classList.add('ai-running');
+      if (type === 'ai-paused') currentToastEl.classList.add('ai-paused');
+      if (type === 'ai-error') currentToastEl.classList.add('ai-error');
+
+      // 设置图标 - 全部使用白色 Phosphor Icons
+      let iconHtml = '';
+      if (type.startsWith('ai-')) {
+        if (type === 'ai-running' || type === 'ai-thinking') {
+          iconHtml = '<i class="ph ph-spinner" style="animation:spin 1s linear infinite;"></i>';
+        } else if (type === 'ai-paused') {
+          iconHtml = '<i class="ph ph-pause-circle"></i>';
+        } else if (type === 'ai-error') {
+          iconHtml = '<i class="ph ph-warning-circle"></i>';
+        }
+      } else {
+        // 普通提示使用白色 Phosphor Icons
+        if (message && message.includes('已拦截')) {
+          iconHtml = '<i class="ph ph-shield-check"></i>';
+          currentToastEl.classList.add('adblock');
+        } else if (type === 'success') {
+          iconHtml = '<i class="ph ph-check-circle"></i>';
+          currentToastEl.classList.add('success');
+        } else if (type === 'error') {
+          iconHtml = '<i class="ph ph-x-circle"></i>';
+          currentToastEl.classList.add('error');
+        } else if (type === 'warning') {
+          iconHtml = '<i class="ph ph-warning-circle"></i>';
+          currentToastEl.classList.add('warning');
+        } else {
+          iconHtml = '<i class="ph ph-info"></i>';
+          currentToastEl.classList.add('info');
+        }
+      }
+
+      currentToastEl.innerHTML = `
+        <span class="toast-icon">${iconHtml}</span>
+        <span>${displayMessage}</span>
+      `;
+
+      // 临时提示定时恢复
+      if (duration > 0) {
+        toastTimer = setTimeout(() => {
+          if (aiState.status !== 'idle') {
+            // 恢复AI状态
+            showToastUnified(aiState.message, `ai-${aiState.status}`, 0);
+          } else {
+            // 隐藏
+            currentToastEl.classList.add('hide');
+            setTimeout(() => {
+              currentToastEl?.remove();
+              currentToastEl = null;
+            }, 300);
+          }
+        }, duration);
+      }
+    }
+
+    // 更新AI状态
+    function updateAIStatus(status, message) {
+      aiState = { status, message };
+      
+      // 如果有临时提示在显示，清除它并继续显示AI状态
+      if (toastTimer) {
+        clearTimeout(toastTimer);
+        toastTimer = null;
+        currentToastEl?.classList.add('hide');
+        setTimeout(() => {
+          currentToastEl?.remove();
+          currentToastEl = null;
+          // 显示新的AI状态
+          if (status !== 'idle') {
+            showToastUnified(message, `ai-${status}`, 0);
+          }
+        }, 300);
+        return;
+      }
+      
+      if (status === 'idle') {
+        currentToastEl?.classList.add('hide');
+        setTimeout(() => {
+          currentToastEl?.remove();
+          currentToastEl = null;
+        }, 300);
+      } else {
+        showToastUnified(message, `ai-${status}`, 0);
+      }
+    }
+
+    // 广告拦截
+    let adBlockCount = 0;
+    let adBlockDebounce = null;
+
+    function showAdBlockToast(blocked) {
+      adBlockCount += blocked;
+      if (adBlockDebounce) clearTimeout(adBlockDebounce);
+      adBlockDebounce = setTimeout(() => {
+        if (adBlockCount > 0) {
+          // 临时显示广告拦截提示，然后恢复 AI 状态
+          showToastUnified(`已拦截 ${adBlockCount} 个广告`, 'temp', 2500);
+          adBlockCount = 0;
+        }
+      }, 500);
+    }
+
+    // ========== 事件监听 ==========
+    function setupEventListeners() {
+      let loadingState = false;
+
+      // 标签页创建
+      window.siliuAPI?.on?.('tab-created', ({ id, url, title }) => {
+        addTab(id, title || '新标签页', url);
+      });
+
+      // 标签页关闭
+      window.siliuAPI?.on?.('tab-closed', ({ id }) => {
+        removeTab(id);
+      });
+
+      // 标签页激活
+      window.siliuAPI?.on?.('tab-activated', ({ id, url, canGoBack, canGoForward, isLoading }) => {
+        updateActiveTab(id);
+        
+        // 更新标签 URL
+        if (url) {
+          tabRenderer.updateTab(id, { url });
+        }
+
+        // 处理地址栏显示 - 新标签页和设置页面不显示本地路径
+        if (url) {
+          const addressInput = document.getElementById('address-input');
+          if (url.startsWith('file://') && (url.includes('newtab.html') || url.includes('copilot-settings.html'))) {
+            addressInput.value = '';
+            addressInput.placeholder = url.includes('copilot-settings.html') ? 'Copilot 设置' : '搜索或输入网址';
+          } else {
+            addressInput.value = url;
+            addressInput.placeholder = '搜索或输入网址';
+          }
+        }
+
+        document.getElementById('btn-back').disabled = !canGoBack;
+        document.getElementById('btn-forward').disabled = !canGoForward;
+
+        // 根据加载状态更新指示器
+        const indicator = document.getElementById('loading-indicator');
+        if (isLoading) {
+          indicator.classList.add('active');
+          loadingState = true;
+        } else {
+          indicator.classList.remove('active');
+          loadingState = false;
+        }
+      });
+
+      // 标题更新
+      window.siliuAPI?.on?.('tab-title-updated', ({ id, title }) => {
+        updateTabTitle(id, title);
+      });
+
+      // URL 更新
+      window.siliuAPI?.on?.('tab-url-changed', ({ id, url }) => {
+        const view = views.find(v => v.id === id);
+        if (view) view.url = url;
+      });
+
+      // Favicon 更新
+      window.siliuAPI?.on?.('tab-favicon-updated', ({ id, favicon }) => {
+        updateTabFavicon(id, favicon);
+      });
+
+      // 加载状态 - 使用状态跟踪避免重复
+      window.siliuAPI?.on?.('tab-loading-started', () => {
+        if (!loadingState) {
+          document.getElementById('loading-indicator').classList.add('active');
+          loadingState = true;
+        }
+      });
+
+      window.siliuAPI?.on?.('tab-loading-stopped', ({ url }) => {
+        if (loadingState) {
+          document.getElementById('loading-indicator').classList.remove('active');
+          loadingState = false;
+        }
+        if (currentViewId && url) {
+          const addressInput = document.getElementById('address-input');
+          if (url.startsWith('file://') && (url.includes('newtab.html') || url.includes('copilot-settings.html'))) {
+            addressInput.value = '';
+            addressInput.placeholder = url.includes('copilot-settings.html') ? 'Copilot 设置' : '搜索或输入网址';
+          } else {
+            addressInput.value = url;
+          }
+        }
+      });
+
+      // 从标签列表关闭标签
+      window.siliuAPI?.on?.('tablist:close-tab', ({ viewId }) => {
+        // 同步删除 titlebar 中的标签
+        removeTab(viewId);
+      });
+
+      // OpenClaw 连接事件
+      window.siliuAPI?.on?.('openclaw:connected', (data) => {
+        console.log('[Shell] openclaw:connected received', data);
+        aiConnection.connected = true;
+        openclawConnecting = false;
+        updateOpenClawUI('connected');
+        // 连接成功后加载历史对话
+        loadChatHistory();
+      });
+
+      window.siliuAPI?.on?.('openclaw:disconnected', (data) => {
+        aiConnection.connected = false;
+        openclawConnecting = false;
+        updateOpenClawUI('disconnected');
+      });
+
+      // AI toast 提示（连接成功/失败等）
+      window.siliuAPI?.on?.('ai:toast', ({ message, type }) => {
+        showToast(message, type);
+      });
+
+      // 未配置事件
+      window.siliuAPI?.on?.('openclaw:unconfigured', (data) => {
+        console.log('[Shell] AI service not configured:', data);
+        aiConnection.connected = false;
+        aiConnection.mode = 'none';
+        aiConnection.name = 'None';
+        aiConnection.displayName = '未配置';
+        openclawConnecting = false;
+        updateOpenClawUI('unconfigured', '请配置 AI 服务');
+        // 显示提示消息
+        addChatMessage('system', '欢迎使用 Siliu Copilot！请先在设置中配置 AI 服务。点击上方的 [设置] 按钮打开设置。');
+      });
+
+      // AI 状态事件（新模式）
+      window.siliuAPI?.on?.('ai:status', (status) => {
+        console.log('[Shell] ai:status received:', JSON.stringify(status));
+        if (status) {
+          // 如果后端说已连接但我们没主动连接，可能是错误状态
+          if (status.connected && !openclawConnecting && !aiConnection.connected) {
+            console.log('[Shell] Warning: backend says connected but we never connected!');
+          }
+          
+          const prevConnected = aiConnection.connected;
+          const prevMode = aiConnection.mode;
+          
+          aiConnection = {
+            connected: status.connected || false,
+            mode: status.mode || 'none',
+            name: status.name || 'None',
+            displayName: status.displayName || (status.connected ? '已连接' : '未连接')
+          };
+          
+          console.log('[Shell] AI status updated from', prevConnected, 'to', aiConnection.connected);
+          
+          // 更新 UI
+          if (aiConnection.connected) {
+            updateOpenClawUI('connected');
+          } else {
+            updateOpenClawUI('disconnected');
+          }
+          
+          // 只有在状态真正改变时才显示 toast（避免与 copilot-settings 重复）
+          // 注意：toast 由 copilot-settings.html 统一显示，这里只更新 UI
+          // if (prevConnected !== aiConnection.connected || prevMode !== aiConnection.mode) {
+          //   if (aiConnection.connected) {
+          //     console.log('[Shell] Showing connected toast from ai:status');
+          //     showToast(`已连接到 ${aiConnection.displayName}`, 'success');
+          //   }
+          // }
+        }
+      });
+
+      // 连接错误事件
+      window.siliuAPI?.on?.('openclaw:connectionError', (data) => {
+        console.log('[Shell] Connection error:', data);
+        aiConnection.connected = false;
+        openclawConnecting = false;
+        updateOpenClawUI('disconnected');
+      });
+
+      // OpenClaw 消息事件 - 参考 siliu-electron 工作正常的实现
+      window.siliuAPI?.on?.('openclaw:message', (msg) => {
+        console.log('[Shell] openclaw:message received:', JSON.stringify(msg).slice(0, 300));
+        if (!msg) return;
+
+        // OpenClaw 消息可能有多种格式：
+        // 1. { event: 'chat', payload: { state: 'delta', delta: ... } }
+        // 2. { event: 'chat', state: 'delta', delta: ... }
+        
+        if (msg.event === 'chat') {
+          const payload = msg.payload || msg;
+          
+          // 流式消息增量 (delta 状态)
+          if (payload.state === 'delta') {
+            const deltaContent = payload.delta || payload.message;
+            const text = extractTextFromMessage(deltaContent);
+            if (text) {
+              if (!currentStreamDiv) startStream();
+              appendStreamText(text);
+            }
+          }
+          // 最终消息 (final 状态)
+          else if (payload.state === 'final') {
+            finishStream();
+            // 注意：Copilot 扩展会处理浏览器操作，这里只显示消息
+            // 不要重复执行步骤，避免冲突
+            console.log('[Shell] Final message received, displayed by Copilot extension');
+          }
+          // 错误状态
+          else if (payload.state === 'error') {
+            finishStream();
+            const errorMsg = payload.errorMessage || payload.error?.message || '未知错误';
+            addChatMessage('assistant', '错误: ' + errorMsg);
+          }
+        }
+      });
+
+      // Copilot 消息
+      window.siliuAPI?.on?.('copilot:message', ({ text }) => {
+        addChatMessage('assistant', text);
+      });
+
+      // Copilot 流式消息
+      window.siliuAPI?.on?.('copilot:stream', ({ text }) => {
+        appendStreamText(text);
+      });
+
+      // Copilot 任务开始
+      window.siliuAPI?.on?.('copilot:task-start', () => {
+        console.log('[Copilot] Task started');
+        // 重置AI状态，清除之前的toast
+        updateAIStatus('idle', '');
+      });
+
+      // Copilot 任务取消
+      window.siliuAPI?.on?.('copilot:task-cancelled', () => {
+        console.log('[Copilot] Task cancelled');
+        // 清除AI状态toast
+        updateAIStatus('idle', '');
+      });
+
+      // Copilot 与AI沟通中 - 新增
+      window.siliuAPI?.on?.('copilot:thinking', ({ text, task, message }) => {
+        const displayText = text || task || '处理中...';
+        const truncated = displayText.substring(0, 30);
+        const suffix = displayText.length > 30 ? '...' : '';
+        updateAIStatus('thinking', `与AI沟通: ${truncated}${suffix}`);
+      });
+
+      // Copilot 步骤开始 - 使用 updateAIStatus 显示当前操作（只有一个 toast）
+      window.siliuAPI?.on?.('copilot:step-start', ({ step, action, description, mode }) => {
+        const modeText = mode ? `[${mode}] ` : '';
+        updateAIStatus('running', `${modeText}步骤 ${step}: ${description}`);
+      });
+
+      // Copilot 步骤结果 - 成功/失败都通过 updateAIStatus 显示
+      window.siliuAPI?.on?.('copilot:step-result', ({ step, action, success, error }) => {
+        if (!success) {
+          updateAIStatus('error', `[步骤 ${step}] ${action} 失败: ${error || '未知错误'}`);
+        }
+        // 成功时不更新，保持显示 "running" 状态直到下一步
+      });
+
+      // Copilot 截图
+      window.siliuAPI?.on?.('copilot:screenshot', ({ dataUrl }) => {
+        console.log('[Copilot] Screenshot captured');
+      });
+
+      // Copilot 任务完成
+      window.siliuAPI?.on?.('copilot:task-finish', ({ message, steps }) => {
+        updateAIStatus('idle', '');
+        addChatMessage('assistant', `<i class="ph ph-flag-checkered" style="margin-right:4px;"></i>任务完成（${steps} 步）\n${message}`);
+      });
+
+      // Copilot 需要登录
+      window.siliuAPI?.on?.('copilot:need-login', ({ message }) => {
+        updateAIStatus('paused', '需要用户操作');
+        showContinueButton();
+      });
+
+      // Copilot 询问是否继续
+      window.siliuAPI?.on?.('copilot:ask-continue', ({ step, error }) => {
+        updateAIStatus('error', '[步骤失败] 步骤失败，等待确认');
+        showChoiceButtons();
+      });
+    }
+
+    // 初始化
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('[Shell] Ready');
+      initTabManager();
+      initTitlebarInteractions();
+      setupEventListeners();
+      
+      // 延迟检查 OpenClaw 连接状态（确保窗口已完全加载）
+      setTimeout(() => {
+        console.log('[Shell] Calling checkOpenClawStatus from setTimeout');
+        checkOpenClawStatus();
+      }, 500);
+    });
+
+    // 检查 OpenClaw 状态
+    async function checkOpenClawStatus() {
+      try {
+        // 使用新的 ai:getStatus API 获取连接信息
+        const status = await window.siliuAPI?.openclawStatus?.();
+        console.log('[Shell] checkOpenClawStatus received:', JSON.stringify(status));
+        
+        if (status) {
+          console.log('[Shell] Setting aiConnection.connected to:', status.connected);
+          aiConnection = {
+            connected: status.connected || false,
+            mode: status.mode || 'none',
+            name: status.name || 'None',
+            displayName: status.displayName || (status.connected ? '已连接' : '未连接')
+          };
+          
+          if (aiConnection.connected) {
+            console.log('[Shell] Updating UI to connected');
+            updateOpenClawUI('connected');
+            // 如果已经连接，加载历史对话
+            loadChatHistory();
+          } else {
+            console.log('[Shell] Updating UI to disconnected');
+            updateOpenClawUI('disconnected');
+          }
+        }
+      } catch (err) {
+        console.log('[Shell] Status check failed:', err);
+      }
+    }
+
+    // 解析步骤
+    function parseSteps(response) {
+      const jsonMatch = response.match(/```json\n?([\s\S]*?)\n?```/);
+      if (jsonMatch) {
+        try {
+          return JSON.parse(jsonMatch[1]);
+        } catch (e) {
+          console.error('[Chat] Failed to parse JSON steps:', e);
+        }
+      }
+      return null;
+    }
+
+    // 执行步骤
+    async function executeSteps(steps) {
+      if (!steps || !Array.isArray(steps)) return;
+
+      for (const step of steps) {
+        console.log('[Chat] Executing step:', step);
+        
+        if (step.description) {
+          addChatMessage('assistant', `<i class="ph ph-play-circle" style="margin-right:4px;"></i>${step.description}`);
+        }
+
+        try {
+          let result;
+          switch (step.action) {
+            case 'navigate':
+              result = await window.siliuAPI?.siliuNavigate?.(step.url);
+              break;
+            case 'click':
+              result = await window.siliuAPI?.siliuClick?.(step.selector);
+              break;
+            case 'type':
+              result = await window.siliuAPI?.siliuType?.(step.selector, step.text);
+              break;
+            case 'screenshot':
+              result = await window.siliuAPI?.siliuScreenshot?.(step.params || {});
+              if (result?.success && result.dataUrl) {
+                addChatMessage('assistant', `📷 截图完成 (${result.width}x${result.height})`);
+                const imgDiv = document.createElement('div');
+                imgDiv.className = 'message assistant';
+                imgDiv.innerHTML = `<div class="message-content"><img src="${result.dataUrl}" style="max-width:100%;border-radius:8px;"></div>`;
+                document.getElementById('chat-container').appendChild(imgDiv);
+              }
+              break;
+            case 'get_content':
+              result = await window.siliuAPI?.siliuGetContent?.();
+              break;
+            case 'wait_for':
+              result = await window.siliuAPI?.siliuWaitFor?.(step.selector, step.timeout || 10000);
+              break;
+            case 'scroll':
+              result = await window.siliuAPI?.siliuScroll?.(step.direction, step.amount);
+              break;
+            case 'sleep':
+              await new Promise(resolve => setTimeout(resolve, step.ms || 1000));
+              result = { success: true };
+              break;
+            default:
+              result = { success: false, error: `Unknown action: ${step.action}` };
+          }
+
+          if (!result?.success) {
+            addChatMessage('assistant', `步骤失败: ${result?.error || 'Unknown error'}`);
+          }
+        } catch (err) {
+          console.error('[Chat] Step execution failed:', err);
+          addChatMessage('assistant', `执行错误: ${err.message}`);
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
+      // 执行完成后发送结果给 AI
+      sendResultToAI();
+    }
+
+    // 发送结果给 AI
+    async function sendResultToAI() {
+      try {
+        const content = await window.siliuAPI?.siliuGetContent?.();
+        const pageInfo = await window.siliuAPI?.siliuGetPageInfo?.();
+        
+        const contentPreview = content?.content?.substring(0, 800) || '（无法获取页面内容）';
+        
+        const resultMessage = `[步骤执行完成]
+
+当前页面: ${pageInfo?.url || 'unknown'}
+
+页面内容预览:
+${contentPreview}${content?.content?.length > 800 ? '\n...' : ''}
+
+请分析结果并给出下一步操作。如果需要继续操作，请再次以 JSON 格式回复步骤。`;
+
+        if (aiConnection.connected) {
+          startStream();
+          await window.siliuAPI?.openclawSendMessage?.(resultMessage);
+        }
+      } catch (err) {
+        console.error('[Chat] Failed to send result to AI:', err);
+      }
+    }
+
+    // 显示继续按钮（登录后继续）
+    function showContinueButton() {
+      const container = document.getElementById('chat-container');
+      // 移除旧的按钮
+      const oldBtn = document.getElementById('continue-button-container');
+      if (oldBtn) oldBtn.remove();
+      
+      const div = document.createElement('div');
+      div.className = 'message assistant';
+      div.id = 'continue-button-container';
+      div.innerHTML = `
+        <div class="message-content" style="background:#1e3a5f;border:1px solid #3b82f6;border-radius:8px;padding:12px;">
+          <p style="margin:0 0 10px 0;color:#93c5fd;"><i class="ph ph-pause-circle" style="margin-right:4px;"></i>任务已暂停，请完成登录后点击继续</p>
+          <button onclick="onContinueClick()" style="padding:8px 20px;background:#3b82f6;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:bold;">
+            <i class="ph ph-play-circle" style="margin-right:4px;"></i>继续执行
+          </button>
+        </div>
+      `;
+      container.appendChild(div);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    // 继续按钮点击
+    async function onContinueClick() {
+      console.log('[Shell] onContinueClick called');
+      const btnContainer = document.getElementById('continue-button-container');
+      if (btnContainer) {
+        console.log('[Shell] Removing continue button container');
+        btnContainer.remove();
+      }
+      
+      try {
+        console.log('[Shell] Calling copilotContinue...');
+        const result = await window.siliuAPI?.copilotContinue?.();
+        console.log('[Shell] copilotContinue result:', result);
+      } catch (err) {
+        console.error('[Shell] Continue failed:', err);
+        addChatMessage('assistant', '继续执行失败: ' + err.message);
+      }
+    }
+
+    // 显示选择按钮（失败后）
+    function showChoiceButtons() {
+      const container = document.getElementById('chat-container');
+      // 移除旧的按钮
+      const oldBtn = document.getElementById('choice-buttons-container');
+      if (oldBtn) oldBtn.remove();
+      
+      const div = document.createElement('div');
+      div.className = 'message assistant';
+      div.id = 'choice-buttons-container';
+      div.innerHTML = `
+        <div class="message-content" style="background:#2a1810;border:1px solid #f59e0b;border-radius:8px;padding:12px;">
+          <p style="margin:0 0 10px 0;color:#fbbf24;"><i class="ph ph-warning" style="margin-right:6px;"></i>步骤执行失败</p>
+          <div style="display:flex;gap:10px;">
+            <button onclick="onUserChoice(true)" style="padding:8px 20px;background:#10b981;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:bold;">
+              <i class="ph ph-arrow-clockwise" style="margin-right:4px;"></i>重试/继续
+            </button>
+            <button onclick="onUserChoice(false)" style="padding:8px 20px;background:#6b7280;color:white;border:none;border-radius:4px;cursor:pointer;">
+              停止任务
+            </button>
+          </div>
+        </div>
+      `;
+      container.appendChild(div);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    // 用户选择
+    async function onUserChoice(shouldContinue) {
+      const btnContainer = document.getElementById('choice-buttons-container');
+      if (btnContainer) btnContainer.remove();
+      
+      try {
+        await window.siliuAPI?.copilotUserChoice?.(shouldContinue);
+      } catch (err) {
+        console.error('[Shell] User choice failed:', err);
+      }
+    }
+
+    // ========== Shell 输入框右键菜单 ==========
+    // 保存右键时的焦点元素
+    let shellFocusedElement = null;
+
+    // 监听来自主进程的编辑操作
+    window.siliuAPI?.on?.('shell:editor-cut', () => {
+      // 剪切命令依赖于当前选区，而不是焦点元素
+      document.execCommand('cut');
+    });
+
+    window.siliuAPI?.on?.('shell:editor-copy', () => {
+      // 复制命令依赖于当前选区，而不是焦点元素
+      document.execCommand('copy');
+    });
+
+    window.siliuAPI?.on?.('shell:editor-paste', () => {
+      if (shellFocusedElement && document.contains(shellFocusedElement)) {
+        shellFocusedElement.focus();
+        document.execCommand('paste');
+      }
+    });
+
+    window.siliuAPI?.on?.('shell:editor-select-all', () => {
+      // 如果聚焦的是输入框，全选输入框内容
+      if (shellFocusedElement && document.contains(shellFocusedElement)) {
+        if (shellFocusedElement.select) {
+          shellFocusedElement.select();
+          return;
+        } else if (shellFocusedElement.isContentEditable) {
+          const selection = window.getSelection();
+          const range = document.createRange();
+          range.selectNodeContents(shellFocusedElement);
+          selection.removeAllRanges();
+          selection.addRange(range);
+          return;
+        }
+      }
+      
+      // 如果选中了对话消息中的文本，全选该消息内容
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        const container = range.commonAncestorContainer;
+        const messageEl = container.nodeType === Node.TEXT_NODE 
+          ? container.parentElement?.closest('.message')
+          : container.closest?.('.message');
+        
+        if (messageEl) {
+          const newRange = document.createRange();
+          newRange.selectNodeContents(messageEl);
+          selection.removeAllRanges();
+          selection.addRange(newRange);
+          return;
+        }
+      }
+      
+      // 默认全选整个文档
+      document.execCommand('selectAll');
+    });
+
+    // 为输入框添加右键菜单支持
+    function setupShellContextMenu() {
+      const addressInput = document.getElementById('address-input');
+      const chatInput = document.getElementById('chat-input');
+      
+      const inputs = [addressInput, chatInput].filter(Boolean);
+      
+      inputs.forEach(input => {
+        input.addEventListener('contextmenu', async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          // 保存当前元素
+          shellFocusedElement = input;
+          
+          // 获取选中文本
+          const start = input.selectionStart || 0;
+          const end = input.selectionEnd || 0;
+          const selectedText = input.value.substring(start, end);
+          const hasSelection = start !== end;
+          
+          // 显示右键菜单
+          try {
+            await window.siliuAPI?.showShellContextMenu?.(true, hasSelection, selectedText);
+          } catch (err) {
+            console.error('[Shell] Context menu failed:', err);
+          }
+        });
+      });
+      
+      // 为 Copilot 对话面板中的现有消息添加右键菜单
+      const chatContainer = document.getElementById('chat-container');
+      if (chatContainer) {
+        const existingMessages = chatContainer.querySelectorAll('.message');
+        existingMessages.forEach(msg => {
+          msg.addEventListener('contextmenu', handleMessageContextMenu);
+        });
+      }
+    }
+
+    // DOM 加载完成后设置右键菜单
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', setupShellContextMenu);
+    } else {
+      setupShellContextMenu();
+    }
+  </script>
+</body>
+</html>

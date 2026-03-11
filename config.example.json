@@ -1,0 +1,43 @@
+// config.example.json - Siliu Browser 完整配置示例
+{
+  "ai": {
+    // 模式选择: "openclaw" | "kimi"
+    "mode": "openclaw",
+    
+    // OpenClaw 配置
+    "openclaw": {
+      "url": "ws://192.168.1.100:18789",
+      "token": "your-gateway-token",
+      "sessionKey": "agent:window:main",
+      "isCloud": false  // 如果 OpenClaw 在云端，设为 true 启用图床上传
+    },
+    
+    // Kimi 直连配置（绕过 OpenClaw）
+    "kimi": {
+      "apiKey": "sk-your-kimi-api-key",
+      "baseUrl": "https://api.moonshot.cn/v1",
+      "model": "kimi-k2.5"
+    }
+  },
+  
+  "visual": {
+    // 截图配置
+    "maxWidth": 1280,
+    "quality": 80,
+    "format": "jpeg",
+    
+    // 图床配置（用于云端 OpenClaw）
+    "uploadProvider": "catbox",  // catbox | smms | imgur | oxo
+    
+    // 各图床配置（按需填写）
+    "uploaderConfig": {
+      // SM.MS: 访问 https://sm.ms/home/apitoken 获取
+      "smmsToken": "your-smms-token",
+      
+      // Imgur: 访问 https://api.imgur.com/oauth2/addclient 注册应用
+      "imgurClientId": "your-imgur-client-id"
+    }
+  },
+  
+  "tempDir": "/tmp/siliu-screenshots"
+}

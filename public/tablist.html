@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-user-select: none; user-select: none; }
+    :root { --bg: #fff; --text: #202124; --text-sec: #5f6368; --hover: #e8eaed; --active-bg: #e8f0fe; --active-text: #1a73e8; --close-hover: #ea4335; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 13px; background: transparent; overflow: hidden; user-select: none; }
+    .container { background: var(--bg); border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); height: 100vh; display: flex; flex-direction: column; }
+    .header { padding: 12px 16px; font-size: 12px; font-weight: 500; color: var(--text-sec); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #f1f3f4; flex-shrink: 0; }
+    .tab-list { flex: 1; overflow-y: auto; padding: 6px; }
+    .tab-item { display: flex; align-items: center; border-radius: 6px; cursor: pointer; transition: all 0.15s; margin-bottom: 2px; min-height: 36px; }
+    .tab-item:hover { background: var(--hover); }
+    .tab-item.active { background: var(--active-bg); }
+    .tab-item.active .title { color: var(--active-text); font-weight: 500; }
+    .tab-content { flex: 1; display: flex; align-items: center; gap: 10px; min-width: 0; padding: 8px 10px; overflow: hidden; }
+    .favicon { width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .favicon img { width: 100%; height: 100%; object-fit: contain; }
+    .globe-icon { width: 16px; height: 16px; color: var(--text-sec); }
+    .title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); font-size: 13px; pointer-events: none; }
+    .close-btn { width: 24px; height: 24px; border: none; background: transparent; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-sec); opacity: 0; transition: all 0.15s; margin-right: 4px; }
+    .tab-item:hover .close-btn { opacity: 1; }
+    .close-btn:hover { background: rgba(234, 67, 53, 0.1); color: var(--close-hover); }
+    .tab-list::-webkit-scrollbar { width: 10px; }
+    .tab-list::-webkit-scrollbar-track { background: #F1F5F9; border-radius: 5px; }
+    .tab-list::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #94A3B8 0%, #64748B 100%); border-radius: 5px; border: 2px solid #F1F5F9; }
+    .tab-list::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, #64748B 0%, #475569 100%); }
+    .empty { padding: 40px; text-align: center; color: var(--text-sec); font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">已打开的标签页</div>
+    <div class="tab-list" id="tab-list"><div class="empty">加载中...</div></div>
+  </div>
+  <script>
+    const { send, on } = window.electronAPI;
+    
+    function renderTabs(tabs) {
+      const list = document.getElementById('tab-list');
+      if (tabs.length === 0) {
+        list.innerHTML = '<div class="empty">没有打开的标签页</div>';
+        return;
+      }
+      list.innerHTML = tabs.map(tab => {
+        const favicon = tab.favicon 
+          ? `<img src="${tab.favicon}" onerror="this.style.display='none'" />` 
+          : '<svg class="globe-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><ellipse cx="12" cy="12" rx="4" ry="10" fill="none" stroke="currentColor" stroke-width="2"/><line x1="2" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="2"/></svg>';
+        return `
+          <div class="tab-item ${tab.isActive ? 'active' : ''}" data-view-id="${tab.viewId}">
+            <div class="tab-content">
+              <div class="favicon">${favicon}</div>
+              <div class="title">${tab.title || '新标签页'}</div>
+            </div>
+            <button class="close-btn" data-action="close" data-view-id="${tab.viewId}" title="关闭">
+              <svg viewBox="0 0 24 24" width="12" height="12"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+            </button>
+          </div>
+        `;
+      }).join('');
+    }
+    
+    // 事件委托
+    document.getElementById('tab-list').addEventListener('click', (e) => {
+      const closeBtn = e.target.closest('.close-btn');
+      if (closeBtn) {
+        const viewId = closeBtn.dataset.viewId;
+        console.log('[TabList] Close clicked:', viewId);
+        send('tablist:close', { viewId });
+        return;
+      }
+      
+      const tabContent = e.target.closest('.tab-content');
+      if (tabContent) {
+        const tabItem = tabContent.closest('.tab-item');
+        const viewId = tabItem?.dataset.viewId;
+        console.log('[TabList] Switch clicked:', viewId);
+        send('tablist:switch', { viewId });
+        return;
+      }
+    });
+    
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') send('tablist:hide');
+    });
+    
+    on('tablist:init', ({ tabs }) => renderTabs(tabs));
+    on('tablist:update', ({ tabs }) => renderTabs(tabs));
+    
+    console.log('[TabList] Ready');
+  </script>
+</body>
+</html>

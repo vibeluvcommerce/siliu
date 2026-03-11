@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Copilot 设置 - Siliu Browser</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --chrome-bg: #F1F3F4;
+      --chrome-surface: #FFFFFF;
+      --chrome-text: #202124;
+      --chrome-text-secondary: #5F6368;
+      --chrome-border: #DADCE0;
+      --chrome-hover: #E8EAED;
+      --chrome-primary: #1A73E8;
+      --chrome-primary-hover: #185ABC;
+      --chrome-success: #34A853;
+      --chrome-warning: #FBBC04;
+      --chrome-danger: #EA4335;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--chrome-bg);
+      color: var(--chrome-text);
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 100vh;
+      overflow-y: auto;
+      /* 滚动条美化 */
+      scrollbar-width: thin;
+      scrollbar-color: #94A3B8 #F1F5F9;
+    }
+
+    /* Webkit 滚动条美化 */
+    body::-webkit-scrollbar {
+      width: 10px;
+    }
+
+    body::-webkit-scrollbar-track {
+      background: #F1F5F9;
+      border-radius: 5px;
+    }
+
+    body::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, #94A3B8 0%, #64748B 100%);
+      border-radius: 5px;
+      border: 2px solid #F1F5F9;
+    }
+
+    body::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(180deg, #64748B 0%, #475569 100%);
+    }
+
+    body::-webkit-scrollbar-corner {
+      background: #F1F5F9;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .header-icon {
+      width: 64px;
+      height: 64px;
+      background: linear-gradient(135deg, var(--chrome-primary) 0%, var(--chrome-primary-hover) 100%);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+      color: white;
+      font-size: 32px;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--chrome-text);
+      margin-bottom: 8px;
+    }
+
+    .header p {
+      color: var(--chrome-text-secondary);
+      font-size: 14px;
+    }
+
+    .card {
+      background: var(--chrome-surface);
+      border-radius: 12px;
+      border: 1px solid var(--chrome-border);
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--chrome-border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .card-header i {
+      font-size: 20px;
+      color: var(--chrome-primary);
+    }
+
+    .card-header h2 {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .card-body {
+      padding: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group:last-child {
+      margin-bottom: 0;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--chrome-text);
+      margin-bottom: 8px;
+    }
+
+    .label-description {
+      font-size: 12px;
+      color: var(--chrome-text-secondary);
+      font-weight: 400;
+      margin-left: 8px;
+    }
+
+    input[type="text"],
+    input[type="password"],
+    input[type="number"],
+    select {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid var(--chrome-border);
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      background: var(--chrome-surface);
+      color: var(--chrome-text);
+      transition: all 0.2s ease;
+    }
+
+    input[type="text"]:focus,
+    input[type="password"]:focus,
+    input[type="number"]:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--chrome-primary);
+      box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1);
+    }
+
+    .input-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    .input-group input {
+      flex: 1;
+    }
+
+    .btn {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: var(--chrome-primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--chrome-primary-hover);
+    }
+
+    .btn-secondary {
+      background: var(--chrome-hover);
+      color: var(--chrome-text);
+    }
+
+    .btn-secondary:hover {
+      background: var(--chrome-border);
+    }
+
+    .btn-icon {
+      padding: 10px;
+      background: var(--chrome-hover);
+      color: var(--chrome-text-secondary);
+    }
+
+    .btn-icon:hover {
+      background: var(--chrome-border);
+      color: var(--chrome-text);
+    }
+
+    .service-selector {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .service-option {
+      flex: 1;
+      padding: 16px;
+      border: 2px solid var(--chrome-border);
+      border-radius: 12px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s ease;
+    }
+
+    .service-option:hover {
+      border-color: var(--chrome-primary);
+      background: rgba(26, 115, 232, 0.05);
+    }
+
+    .service-option.active {
+      border-color: var(--chrome-primary);
+      background: rgba(26, 115, 232, 0.1);
+    }
+
+    .service-option i {
+      font-size: 28px;
+      margin-bottom: 8px;
+      display: block;
+      color: var(--chrome-text-secondary);
+    }
+
+    .service-option.active i {
+      color: var(--chrome-primary);
+    }
+
+    .service-option .name {
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .service-option .desc {
+      font-size: 12px;
+      color: var(--chrome-text-secondary);
+    }
+
+    .config-section {
+      display: none;
+    }
+
+    .config-section.active {
+      display: block;
+    }
+
+    .checkbox-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+    }
+
+    .checkbox-wrapper input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--chrome-primary);
+    }
+
+    .checkbox-wrapper label {
+      margin: 0;
+      cursor: pointer;
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      margin-top: 24px;
+    }
+
+    .info-box {
+      background: #E8F0FE;
+      border-left: 4px solid var(--chrome-primary);
+      padding: 12px 16px;
+      border-radius: 0 8px 8px 0;
+      margin-bottom: 20px;
+      font-size: 13px;
+      color: var(--chrome-text);
+    }
+
+    .info-box i {
+      color: var(--chrome-primary);
+      margin-right: 8px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* 按钮禁用状态 */
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* 旋转动画 */
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="header-icon">
+        <i class="ph ph-robot"></i>
+      </div>
+      <h1>Copilot 设置</h1>
+      <p>配置 AI 服务连接</p>
+    </div>
+
+    <!-- 服务类型选择 -->
+    <div class="card">
+      <div class="card-header">
+        <i class="ph ph-plugs-connected"></i>
+        <h2>AI 服务类型</h2>
+      </div>
+      <div class="card-body">
+        <div class="info-box">
+          <i class="ph ph-info"></i>
+          <span id="service-info">选择本地 OpenClaw 免费使用，或连接 Siliu AI 云端服务</span>
+        </div>
+
+        <div class="service-selector">
+          <div class="service-option active" data-type="cloud" onclick="selectService('cloud')">
+            <i class="ph ph-cloud"></i>
+            <div class="name">Siliu AI 云端</div>
+            <div class="desc">收费 · 更强能力</div>
+          </div>
+          <div class="service-option" data-type="local" onclick="selectService('local')">
+            <i class="ph ph-desktop"></i>
+            <div class="name">本地 OpenClaw</div>
+            <div class="desc">免费 · 本地运行</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 云端配置 -->
+    <div class="card config-section active" id="cloud-config">
+      <div class="card-header">
+        <i class="ph ph-cloud-gear"></i>
+        <h2>Siliu AI 云端配置</h2>
+      </div>
+      <div class="card-body">
+        <div class="form-group">
+          <label>API Endpoint</label>
+          <input type="text" id="cloud-endpoint" value="https://api.siliu.ai/v1" placeholder="https://api.siliu.ai/v1">
+        </div>
+
+        <div class="form-group">
+          <label>
+            API Key
+            <span class="label-description">从 Siliu 控制台获取</span>
+          </label>
+          <div class="input-group">
+            <input type="password" id="cloud-apikey" placeholder="sk-...">
+            <button class="btn btn-icon" onclick="togglePassword('cloud-apikey')" title="显示/隐藏">
+              <i class="ph ph-eye"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>模型</label>
+          <select id="cloud-model">
+            <option value="kimi-k2.5">Kimi K2.5</option>
+            <option value="k2p5">Kimi K2.5 (Coding)</option>
+            <option value="MiniMax-M2.5-highspeed">MiniMax M2.5 HighSpeed</option>
+          </select>
+          <span class="label-description" id="model-hint"></span>
+        </div>
+
+        <div class="form-group">
+          <label>
+            Temperature
+            <span class="label-description">创造性程度 (0-2)</span>
+          </label>
+          <input type="number" id="cloud-temperature" value="0.7" min="0" max="2" step="0.1">
+        </div>
+
+        <div class="form-group">
+          <label>
+            Max Tokens
+            <span class="label-description">单次回复最大长度</span>
+          </label>
+          <input type="number" id="cloud-maxtokens" value="4096" min="100" max="8192" step="100">
+        </div>
+      </div>
+    </div>
+
+    <!-- 本地配置 -->
+    <div class="card config-section" id="local-config">
+      <div class="card-header">
+        <i class="ph ph-gear"></i>
+        <h2>本地 OpenClaw 配置</h2>
+      </div>
+      <div class="card-body">
+        <div class="form-group">
+          <label>Gateway URL</label>
+          <input type="text" id="local-url" value="ws://127.0.0.1:18789" placeholder="ws://127.0.0.1:18789">
+        </div>
+
+        <div class="form-group">
+          <label>
+            Token
+            <span class="label-description">OpenClaw 认证令牌</span>
+          </label>
+          <div class="input-group">
+            <input type="password" id="local-token" placeholder="请输入 OpenClaw Token">
+            <button class="btn btn-icon" onclick="togglePassword('local-token')" title="显示/隐藏">
+              <i class="ph ph-eye"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Session Key</label>
+          <input type="text" id="local-session" value="agent:main:main" placeholder="agent:main:main">
+        </div>
+
+        <div class="form-group">
+          <div class="checkbox-wrapper">
+            <input type="checkbox" id="local-auto-connect" checked>
+            <label for="local-auto-connect">启动时自动连接</label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 通用设置 -->
+    <div class="card">
+      <div class="card-header">
+        <i class="ph ph-sliders-horizontal"></i>
+        <h2>通用设置</h2>
+      </div>
+      <div class="card-body">
+        <div class="form-group">
+          <div class="checkbox-wrapper">
+            <input type="checkbox" id="general-browser-auto" checked>
+            <label for="general-browser-auto">启用浏览器自动化</label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>
+            历史记录数量
+            <span class="label-description">加载最近多少条对话</span>
+          </label>
+          <input type="number" id="general-history" value="50" min="10" max="200" step="10">
+        </div>
+      </div>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="actions">
+      <button class="btn btn-secondary" onclick="window.siliuAPI?.openDevTools?.()">
+        <i class="ph ph-bug"></i>
+        调试
+      </button>
+      <button class="btn btn-secondary" onclick="resetConfig()">
+        <i class="ph ph-arrow-counter-clockwise"></i>
+        重置默认
+      </button>
+      <button class="btn btn-secondary" onclick="testConnection()">
+        <i class="ph ph-plug"></i>
+        测试连接
+      </button>
+      <button class="btn btn-primary" onclick="saveConfig()">
+        <i class="ph ph-floppy-disk"></i>
+        保存设置
+      </button>
+    </div>
+  </div>
+
+  <script>
+    let currentConfig = {};
+
+    // 加载配置
+    async function loadConfig() {
+      console.log('[CopilotSettings] loadConfig called');
+      try {
+        const result = await window.siliuAPI?.copilotGetConfig?.();
+        console.log('[CopilotSettings] copilotGetConfig result:', result);
+        // IPC 返回 { success, config } 格式
+        const config = result?.config || result;
+        console.log('[CopilotSettings] extracted config:', config);
+        if (config) {
+          currentConfig = config;
+          applyConfig(config);
+        } else {
+          console.warn('[CopilotSettings] No config received');
+        }
+      } catch (err) {
+        console.error('[CopilotSettings] Failed to load config:', err);
+      }
+    }
+
+    // 应用配置到表单
+    function applyConfig(config) {
+      console.log('[CopilotSettings] applyConfig called with:', JSON.stringify(config, null, 2));
+
+      // 直接使用配置中的 serviceType，如果没有则默认云端
+      const serviceType = config.serviceType || 'cloud';
+      console.log('[CopilotSettings] serviceType:', serviceType);
+      selectService(serviceType);
+
+      // 本地配置
+      if (config.local) {
+        document.getElementById('local-url').value = config.local.url || 'ws://127.0.0.1:18789';
+        // 只有配置了 token 才显示，不填充默认值
+        document.getElementById('local-token').value = config.local.token || '';
+        document.getElementById('local-session').value = config.local.sessionKey || 'agent:main:main';
+      }
+
+      // 云端配置
+      if (config.cloud) {
+        document.getElementById('cloud-endpoint').value = config.cloud.apiEndpoint || '';
+        document.getElementById('cloud-apikey').value = config.cloud.apiKey || '';
+        // 设置模型值
+        const modelSelect = document.getElementById('cloud-model');
+        const modelValue = config.cloud.model;
+        if (modelValue === 'k2p5' || modelValue === 'k2') {
+          modelSelect.value = 'k2p5';
+        } else if (modelValue === 'kimi-k2.5' || modelValue === 'kimi-latest') {
+          modelSelect.value = modelValue;
+        } else if (modelValue && modelValue.startsWith('MiniMax-')) {
+          modelSelect.value = modelValue;
+        } else {
+          modelSelect.value = 'kimi-k2.5';
+        }
+        updateModelHint();
+        document.getElementById('cloud-temperature').value = config.cloud.temperature || 0.7;
+        document.getElementById('cloud-maxtokens').value = config.cloud.maxTokens || 4096;
+      }
+
+      // 通用设置
+      if (config.general) {
+        document.getElementById('general-browser-auto').checked = config.general.browserAutomation !== false;
+        document.getElementById('general-history').value = config.general.historyLimit || 50;
+      }
+    }
+
+    // 选择服务类型
+    function selectService(type) {
+      console.log('[CopilotSettings] Selecting service:', type);
+
+      // 确保 type 有效
+      if (type !== 'cloud' && type !== 'local') {
+        console.warn('[CopilotSettings] Invalid service type:', type, 'defaulting to local');
+        type = 'local';
+      }
+
+      document.querySelectorAll('.service-option').forEach(el => {
+        el.classList.toggle('active', el.dataset.type === type);
+      });
+
+      document.querySelectorAll('.config-section').forEach(el => {
+        el.classList.toggle('active', el.id === type + '-config');
+      });
+
+      document.getElementById('service-info').textContent = type === 'local'
+        ? '本地 OpenClaw 需要在本机运行 OpenClaw Gateway'
+        : 'Siliu AI 云端需要有效的 API Key，可在控制台获取';
+    }
+
+    // 根据选择的模型更新提示
+    function updateModelHint() {
+      const modelSelect = document.getElementById('cloud-model');
+      const modelHint = document.getElementById('model-hint');
+      if (modelSelect.value === 'k2p5') {
+        modelHint.textContent = '使用 Kimi Coding API (Anthropic 格式)';
+      } else if (modelSelect.value.startsWith('MiniMax-')) {
+        modelHint.textContent = '使用 MiniMax API (Anthropic 格式)';
+      } else {
+        modelHint.textContent = '使用普通 Kimi API (OpenAI 格式)';
+      }
+    }
+
+    // 监听模型选择变化
+    document.getElementById('cloud-model')?.addEventListener('change', updateModelHint);
+
+    // 切换密码显示
+    function togglePassword(id) {
+      const input = document.getElementById(id);
+      input.type = input.type === 'password' ? 'text' : 'password';
+    }
+
+    // 收集表单数据
+    function collectConfig() {
+      const serviceType = document.querySelector('.service-option.active')?.dataset.type || 'local';
+      
+      const localToken = document.getElementById('local-token').value;
+      console.log('[CopilotSettings] collectConfig, local-token value:', localToken ? '***' + localToken.slice(-4) : '(empty)');
+      
+      return {
+        serviceType,
+        local: {
+          url: document.getElementById('local-url').value,
+          token: localToken,
+          sessionKey: document.getElementById('local-session').value
+        },
+        cloud: {
+          apiEndpoint: document.getElementById('cloud-endpoint').value,
+          apiKey: document.getElementById('cloud-apikey').value,
+          model: document.getElementById('cloud-model').value,
+          temperature: parseFloat(document.getElementById('cloud-temperature').value),
+          maxTokens: parseInt(document.getElementById('cloud-maxtokens').value)
+        },
+        general: {
+          browserAutomation: document.getElementById('general-browser-auto').checked,
+          historyLimit: parseInt(document.getElementById('general-history').value)
+        }
+      };
+    }
+
+    // 保存配置
+    async function saveConfig() {
+      const config = collectConfig();
+      
+      // 检查 token 是否为空
+      if (config.serviceType === 'local' && !config.local?.token) {
+        console.log('[CopilotSettings] Token is empty, aborting save');
+        window.siliuAPI?.showToast?.('请先输入 OpenClaw Token', 'error');
+        document.getElementById('local-token')?.focus();
+        return;
+      }
+
+      try {
+        const result = await window.siliuAPI?.copilotSaveConfig?.(config);
+        console.log('[CopilotSettings] saveConfig result:', result);
+
+        // 配置未变化，静默处理
+        if (result?.configChanged === false) {
+          return;
+        }
+
+        // 保存失败
+        if (!result?.success) {
+          window.siliuAPI?.showToast?.('保存失败: ' + (result?.error || '未知错误'), 'error');
+          return;
+        }
+
+        // 连接成功或失败都显示 toast（由后端返回的消息决定）
+        if (result.message) {
+          const type = result.reconnected ? 'success' : 'error';
+          window.siliuAPI?.showToast?.(result.message, type);
+        }
+      } catch (err) {
+        console.log('[CopilotSettings] saveConfig error:', err);
+        window.siliuAPI?.showToast?.('保存失败: ' + err.message, 'error');
+      }
+    }
+
+    // 测试连接
+    async function testConnection() {
+      const config = collectConfig();
+      try {
+        const result = await window.siliuAPI?.copilotTestConnection?.(config);
+        if (result?.success) {
+          alert('连接成功！');
+        } else {
+          alert('连接失败: ' + (result?.error || '未知错误'));
+        }
+      } catch (err) {
+        alert('连接失败: ' + err.message);
+      }
+    }
+
+    // 重置配置
+    async function resetConfig() {
+      // 获取当前选中的服务类型
+      const currentServiceType = document.querySelector('.service-option.active')?.dataset.type || 'local';
+      const serviceName = currentServiceType === 'local' ? '本地 OpenClaw' : 'Siliu AI 云端';
+
+      if (confirm(`确定要重置 ${serviceName} 的配置吗？此操作将清空该服务的所有配置信息。`)) {
+        try {
+          await window.siliuAPI?.copilotResetConfig?.(currentServiceType);
+          loadConfig();
+        } catch (err) {
+          alert('重置失败: ' + err.message);
+        }
+      }
+    }
+
+    // 初始化
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('[CopilotSettings] DOM loaded');
+      console.log('[CopilotSettings] siliuAPI available:', !!window.siliuAPI);
+      console.log('[CopilotSettings] copilotGetConfig available:', !!window.siliuAPI?.copilotGetConfig);
+      console.log('[CopilotSettings] showToast available:', !!window.siliuAPI?.showToast);
+      loadConfig();
+    });
+  </script>
+</body>
+</html>

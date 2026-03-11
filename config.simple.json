@@ -1,0 +1,34 @@
+// config.simple.json - 简化配置示例
+// 只需配置 OpenClaw URL，系统自动选择最佳方案
+
+{
+  "ai": {
+    // OpenClaw 配置
+    "openclaw": {
+      // 本地 OpenClaw（默认）
+      // 系统会自动：启动 HTTP 截图服务 → OpenClaw 访问本地文件
+      "url": "ws://127.0.0.1:18789",
+      "token": "your-local-token"
+      
+      // 远程/云端 OpenClaw
+      // 系统会自动：使用 Kimi API 直连（绕过 OpenClaw）
+      // "url": "ws://your-cloud-server:18789",
+      // "token": "your-cloud-token"
+    },
+    
+    // 远程模式时需要 Kimi API Key（本地模式可选）
+    "kimi": {
+      "apiKey": "sk-your-kimi-api-key"
+    }
+  }
+}
+
+// 自动选择逻辑：
+// 
+// OpenClaw URL 包含 localhost/127.0.0.1/192.168.x.x/10.x.x.x → 本地模式
+//   └─ 启动本地 HTTP 服务提供截图
+//   └─ 通过 OpenClaw 发送给 AI
+//
+// OpenClaw URL 为其他地址（云端服务器）→ 远程模式  
+//   └─ 截图保存为临时文件
+//   └─ 读取为 Base64 直连 Kimi API（绕过 OpenClaw）

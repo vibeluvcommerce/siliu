@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>新标签页 - Siliu</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Phosphor Icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  
+  <style>
+    :root {
+      --bg-primary: #F8F9FA;
+      --bg-secondary: #FFFFFF;
+      --text-primary: #202124;
+      --text-secondary: #5F6368;
+      --accent: #1A73E8;
+      --accent-hover: #185ABC;
+      --border: #DADCE0;
+      --shadow: 0 4px 12px rgba(60, 64, 67, 0.15);
+      --shadow-hover: 0 8px 24px rgba(60, 64, 67, 0.2);
+      --danger: #EA4335;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #F8F9FA 0%, #E8F0FE 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-primary);
+      overflow: hidden;
+    }
+    
+    .container {
+      text-align: center;
+      padding: 40px 20px;
+      max-width: 900px;
+      width: 100%;
+    }
+    
+    .logo-section {
+      margin-bottom: 40px;
+    }
+    
+    .logo {
+      width: 100px;
+      height: 100px;
+      background: linear-gradient(135deg, var(--accent) 0%, #4285F4 100%);
+      border-radius: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 24px;
+      box-shadow: var(--shadow);
+      animation: float 3s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+    
+    .logo i {
+      font-size: 48px;
+      color: white;
+    }
+    
+    h1 {
+      font-size: 42px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .subtitle {
+      font-size: 16px;
+      color: var(--text-secondary);
+      font-weight: 400;
+    }
+    
+    /* 搜索框 */
+    .search-section {
+      margin-bottom: 48px;
+    }
+    
+    .search-box {
+      position: relative;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    
+    .search-input-wrapper {
+      display: flex;
+      align-items: center;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 4px 4px 4px 20px;
+      box-shadow: var(--shadow);
+      transition: all 0.3s ease;
+    }
+    
+    .search-input-wrapper:focus-within {
+      box-shadow: var(--shadow-hover);
+      border-color: var(--accent);
+    }
+    
+    .search-icon {
+      color: var(--text-secondary);
+      font-size: 20px;
+      margin-right: 12px;
+    }
+    
+    .search-input {
+      flex: 1;
+      border: none;
+      background: transparent;
+      font-size: 16px;
+      padding: 12px 0;
+      outline: none;
+      font-family: inherit;
+      color: var(--text-primary);
+    }
+    
+    .search-input::placeholder {
+      color: var(--text-secondary);
+    }
+    
+    .search-btn {
+      width: 40px;
+      height: 40px;
+      border: none;
+      background: var(--accent);
+      border-radius: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      transition: all 0.2s ease;
+    }
+    
+    .search-btn:hover {
+      background: var(--accent-hover);
+      transform: scale(1.05);
+    }
+    
+    /* 快捷方式 */
+    .shortcuts-section {
+      margin-top: 20px;
+    }
+    
+    .shortcuts-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    
+    .shortcuts-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .add-shortcut-btn {
+      width: 24px;
+      height: 24px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: all 0.2s ease;
+    }
+    
+    .add-shortcut-btn:hover {
+      background: var(--border);
+      color: var(--accent);
+    }
+    
+    .add-shortcut-btn i {
+      font-size: 16px;
+    }
+    
+    .shortcuts {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    
+    .shortcut {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      padding: 20px 24px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      min-width: 100px;
+      text-decoration: none;
+      position: relative;
+    }
+    
+    .shortcut:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-hover);
+      border-color: var(--accent);
+    }
+    
+    /* 悬停时显示操作按钮 */
+    .shortcut-actions {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      display: flex;
+      gap: 4px;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      z-index: 10;
+    }
+    
+    .shortcut-wrapper:hover .shortcut-actions {
+      opacity: 1;
+    }
+    
+    /* 圆形操作按钮 */
+    .shortcut-action-btn {
+      width: 22px;
+      height: 22px;
+      border: none;
+      background: var(--bg-secondary);
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+      transition: all 0.15s ease;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .shortcut-action-btn:hover {
+      background: var(--bg-primary);
+      color: var(--accent);
+      transform: scale(1.1);
+    }
+    
+    .shortcut-action-btn.delete:hover {
+      background: var(--danger);
+      color: white;
+    }
+    
+    .shortcut-action-btn i {
+      font-size: 11px;
+    }
+    
+    .shortcut-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background: var(--bg-primary);
+    }
+    
+    .shortcut-icon img {
+      width: 28px;
+      height: 28px;
+      object-fit: contain;
+    }
+    
+    .shortcut-icon i {
+      font-size: 28px;
+      color: white;
+    }
+    
+    .shortcut:hover .shortcut-icon {
+      transform: scale(1.05);
+    }
+    
+    .shortcut-text {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      max-width: 80px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    
+    /* 背景装饰 */
+    .bg-decoration {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      pointer-events: none;
+      z-index: -1;
+      overflow: hidden;
+    }
+    
+    .bg-circle {
+      position: absolute;
+      border-radius: 50%;
+      opacity: 0.03;
+      background: var(--accent);
+    }
+    
+    .bg-circle:nth-child(1) {
+      width: 400px;
+      height: 400px;
+      top: -100px;
+      right: -100px;
+    }
+    
+    .bg-circle:nth-child(2) {
+      width: 300px;
+      height: 300px;
+      bottom: -50px;
+      left: -50px;
+    }
+    
+    /* 对话框 */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    
+    .modal-overlay.active {
+      display: flex;
+    }
+    
+    .modal {
+      background: var(--bg-secondary);
+      border-radius: 16px;
+      padding: 24px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: var(--shadow-hover);
+    }
+    
+    .modal-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: var(--text-primary);
+    }
+    
+    .form-group {
+      margin-bottom: 16px;
+    }
+    
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+    
+    .form-input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+    
+    .form-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1);
+    }
+    
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+    
+    .modal-btn {
+      flex: 1;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .modal-btn.primary {
+      background: var(--accent);
+      color: white;
+    }
+    
+    .modal-btn.primary:hover {
+      background: var(--accent-hover);
+    }
+    
+    .modal-btn.secondary {
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+    }
+    
+    .modal-btn.secondary:hover {
+      background: var(--bg-primary);
+    }
+    
+    .modal-btn.danger {
+      background: var(--danger);
+      color: white;
+    }
+    
+    .modal-btn.danger:hover {
+      background: #D33B27;
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-decoration">
+    <div class="bg-circle"></div>
+    <div class="bg-circle"></div>
+  </div>
+
+  <div class="container">
+    <div class="logo-section">
+      <div class="logo">
+        <i class="ph ph-robot"></i>
+      </div>
+      <h1>Siliu Browser</h1>
+      <p class="subtitle">智能 AI 驱动的浏览器体验</p>
+    </div>
+    
+    <div class="search-section">
+      <div class="search-box">
+        <div class="search-input-wrapper">
+          <i class="ph ph-magnifying-glass search-icon"></i>
+          <input type="text" class="search-input" placeholder="搜索或输入网址" onkeydown="handleSearch(event)" autofocus>
+          <button class="search-btn" onclick="performSearch()">
+            <i class="ph ph-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="shortcuts-section">
+      <div class="shortcuts-header">
+        <span class="shortcuts-title">快捷访问</span>
+        <button class="add-shortcut-btn" onclick="openAddModal()" title="添加快捷访问">
+          <i class="ph ph-plus"></i>
+        </button>
+      </div>
+      <div class="shortcuts" id="shortcuts-container">
+        <!-- 快捷访问将通过 JS 动态生成 -->
+      </div>
+    </div>
+  </div>
+  
+  <!-- 编辑/添加对话框 -->
+  <div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <h3 class="modal-title" id="modal-title">编辑快捷访问</h3>
+      <div class="form-group">
+        <label class="form-label">名称</label>
+        <input type="text" class="form-input" id="shortcut-name" placeholder="例如: Google">
+      </div>
+      <div class="form-group">
+        <label class="form-label">网址</label>
+        <input type="text" class="form-input" id="shortcut-url" placeholder="例如: https://www.google.com">
+      </div>
+      <div class="modal-actions">
+        <button class="modal-btn secondary" onclick="closeModal()">取消</button>
+        <button class="modal-btn danger" id="delete-btn" onclick="deleteShortcut()" style="display:none">删除</button>
+        <button class="modal-btn primary" onclick="saveShortcut()">保存</button>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // 默认快捷访问（使用 Phosphor Icon）
+    const defaultShortcuts = [
+      { id: 1, name: 'Google', url: 'https://www.google.com', icon: 'google-logo', color: 'linear-gradient(135deg, #4285F4 0%, #34A853 100%)' },
+      { id: 2, name: 'Bilibili', url: 'https://www.bilibili.com', icon: 'television', color: 'linear-gradient(135deg, #FB7299 0%, #FC9BAD 100%)' },
+      { id: 3, name: 'GitHub', url: 'https://www.github.com', icon: 'github-logo', color: 'linear-gradient(135deg, #333 0%, #666 100%)' },
+      { id: 4, name: '知乎', url: 'https://www.zhihu.com', icon: 'book-open', color: 'linear-gradient(135deg, #0084FF 0%, #0066CC 100%)' },
+      { id: 5, name: 'YouTube', url: 'https://www.youtube.com', icon: 'youtube-logo', color: 'linear-gradient(135deg, #FF0000 0%, #CC0000 100%)' },
+      { id: 6, name: 'Twitter', url: 'https://www.twitter.com', icon: 'twitter-logo', color: 'linear-gradient(135deg, #1DA1F2 0%, #0D8BD9 100%)' }
+    ];
+    
+    let shortcuts = [];
+    let currentEditId = null;
+    
+    // 获取 favicon URL
+    function getFaviconUrl(url) {
+      try {
+        const urlObj = new URL(url);
+        return `https://www.google.com/s2/favicons?domain=${urlObj.hostname}&sz=64`;
+      } catch {
+        return null;
+      }
+    }
+    
+    // 加载快捷访问
+    function loadShortcuts() {
+      const saved = localStorage.getItem('siliu-shortcuts');
+      if (saved) {
+        shortcuts = JSON.parse(saved);
+      } else {
+        shortcuts = [...defaultShortcuts];
+        saveShortcuts();
+      }
+      renderShortcuts();
+    }
+    
+    // 保存快捷访问
+    function saveShortcuts() {
+      localStorage.setItem('siliu-shortcuts', JSON.stringify(shortcuts));
+    }
+    
+    // 渲染快捷访问
+    function renderShortcuts() {
+      const container = document.getElementById('shortcuts-container');
+      container.innerHTML = shortcuts.map(s => {
+        // 如果有 icon 字段，使用 Phosphor Icon（默认快捷访问）
+        // 否则使用 favicon（用户添加的）
+        if (s.icon) {
+          return `
+        <div class="shortcut-wrapper" style="position: relative; display: inline-block;">
+          <a class="shortcut" href="${s.url}" title="${s.name}">
+            <div class="shortcut-icon" style="background: ${s.color};">
+              <i class="ph ph-${s.icon}"></i>
+            </div>
+            <span class="shortcut-text">${s.name}</span>
+          </a>
+          <div class="shortcut-actions">
+            <button class="shortcut-action-btn" onclick="event.preventDefault(); event.stopPropagation(); openEditModal(${s.id})" title="编辑">
+              <i class="ph ph-pencil"></i>
+            </button>
+            <button class="shortcut-action-btn delete" onclick="event.preventDefault(); event.stopPropagation(); deleteShortcutById(${s.id})" title="删除">
+              <i class="ph ph-x"></i>
+            </button>
+          </div>
+        </div>
+      `;
+        } else {
+          // 用户添加的，使用 favicon
+          const faviconUrl = getFaviconUrl(s.url);
+          return `
+        <div class="shortcut-wrapper" style="position: relative; display: inline-block;">
+          <a class="shortcut" href="${s.url}" title="${s.name}">
+            <div class="shortcut-icon">
+              <img src="${faviconUrl}" alt="" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+              <i class="ph ph-globe" style="display: none; color: var(--text-secondary);"></i>
+            </div>
+            <span class="shortcut-text">${s.name}</span>
+          </a>
+          <div class="shortcut-actions">
+            <button class="shortcut-action-btn" onclick="event.preventDefault(); event.stopPropagation(); openEditModal(${s.id})" title="编辑">
+              <i class="ph ph-pencil"></i>
+            </button>
+            <button class="shortcut-action-btn delete" onclick="event.preventDefault(); event.stopPropagation(); deleteShortcutById(${s.id})" title="删除">
+              <i class="ph ph-x"></i>
+            </button>
+          </div>
+        </div>
+      `;
+        }
+      }).join('');
+    }
+    
+    // 搜索功能
+    function handleSearch(e) {
+      if (e.key === 'Enter') {
+        performSearch();
+      }
+    }
+    
+    function performSearch() {
+      const query = document.querySelector('.search-input').value.trim();
+      if (query) {
+        if (query.includes('.') && !query.includes(' ') && !query.includes('?')) {
+          window.location.href = 'https://' + query.replace(/^https?:\/\//, '');
+        } else {
+          window.location.href = 'https://www.google.com/search?q=' + encodeURIComponent(query);
+        }
+      }
+    }
+    
+    // 打开添加对话框
+    function openAddModal() {
+      currentEditId = null;
+      document.getElementById('modal-title').textContent = '添加快捷访问';
+      document.getElementById('shortcut-name').value = '';
+      document.getElementById('shortcut-url').value = '';
+      document.getElementById('delete-btn').style.display = 'none';
+      document.getElementById('modal-overlay').classList.add('active');
+    }
+    
+    // 打开编辑对话框
+    function openEditModal(id) {
+      currentEditId = id;
+      const shortcut = shortcuts.find(s => s.id === id);
+      if (!shortcut) return;
+      
+      document.getElementById('modal-title').textContent = '编辑快捷访问';
+      document.getElementById('shortcut-name').value = shortcut.name;
+      document.getElementById('shortcut-url').value = shortcut.url;
+      document.getElementById('delete-btn').style.display = 'block';
+      document.getElementById('modal-overlay').classList.add('active');
+    }
+    
+    // 保存快捷访问
+    function saveShortcut() {
+      const name = document.getElementById('shortcut-name').value.trim();
+      const url = document.getElementById('shortcut-url').value.trim();
+      
+      if (!name || !url) {
+        alert('请填写名称和网址');
+        return;
+      }
+      
+      // 确保 URL 有协议
+      let finalUrl = url;
+      if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+        finalUrl = 'https://' + finalUrl;
+      }
+      
+      if (currentEditId) {
+        // 编辑 - 保留原有 icon/color（如果有）
+        const index = shortcuts.findIndex(s => s.id === currentEditId);
+        if (index !== -1) {
+          shortcuts[index] = {
+            ...shortcuts[index],
+            name,
+            url: finalUrl
+          };
+        }
+      } else {
+        // 添加 - 用户添加的不带 icon，使用 favicon
+        const newId = Math.max(...shortcuts.map(s => s.id), 0) + 1;
+        shortcuts.push({
+          id: newId,
+          name,
+          url: finalUrl
+        });
+      }
+      
+      saveShortcuts();
+      renderShortcuts();
+      closeModal();
+    }
+    
+    // 删除快捷访问（从对话框）
+    function deleteShortcut() {
+      if (!currentEditId) return;
+      if (!confirm('确定要删除这个快捷访问吗？')) return;
+      
+      shortcuts = shortcuts.filter(s => s.id !== currentEditId);
+      saveShortcuts();
+      renderShortcuts();
+      closeModal();
+    }
+    
+    // 删除快捷访问（从悬停按钮）
+    function deleteShortcutById(id) {
+      if (!confirm('确定要删除这个快捷访问吗？')) return;
+      
+      shortcuts = shortcuts.filter(s => s.id !== id);
+      saveShortcuts();
+      renderShortcuts();
+    }
+    
+    // 关闭对话框
+    function closeModal(e) {
+      if (e && e.target !== e.currentTarget) return;
+      document.getElementById('modal-overlay').classList.remove('active');
+    }
+    
+    // 初始化
+    document.addEventListener('DOMContentLoaded', () => {
+      loadShortcuts();
+      document.querySelector('.search-input').focus();
+    });
+  </script>
+</body>
+</html>
