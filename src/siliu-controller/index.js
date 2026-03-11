@@ -302,6 +302,45 @@ class SiliuController {
   }
 
   /**
+   * 鼠标悬停（hover）
+   */
+  async hover(selectorOrText, options = {}) {
+    return this._executeWithFallback(
+      'hover',
+      async (ctrl) => ctrl.hover(selectorOrText, options),
+      async () => this._nativeHover(selectorOrText, options)
+    );
+  }
+
+  /**
+   * 坐标悬停
+   */
+  async hoverAt(xPercent, yPercent, viewportInfo = null) {
+    if (!this.cdpController?.isConnected) {
+      return { result: { success: false, error: 'CDP not connected' }, mode: 'JS' };
+    }
+    
+    try {
+      const result = await this.cdpController.hover({ x: xPercent, y: yPercent });
+      return { result, mode: 'CDP' };
+    } catch (err) {
+      console.error('[SiliuController] hoverAt failed:', err.message);
+      return { result: { success: false, error: err.message }, mode: 'JS' };
+    }
+  }
+
+  /**
+   * 选择下拉框选项
+   */
+  async select(selector, option) {
+    return this._executeWithFallback(
+      'select',
+      async (ctrl) => ctrl.selectOption(selector, option),
+      async () => this._nativeSelect(selector, option)
+    );
+  }
+
+  /**
    * 截图
    */
   async screenshot() {
@@ -677,6 +716,105 @@ class SiliuController {
       document.body.innerText.substring(0, 10000)
     `);
     return { success: true, content };
+  }
+
+  /**
+   * JS 降级：鼠标悬停
+   */
+  async _nativeHover(selectorOrText, options = {}) {
+    const wc = this._getActiveWebContents();
+    if (!wc) throw new Error('无法获取页面');
+
+    await wc.executeJavaScript(`
+      (function() {
+        let el;
+        if ('${selectorOrText}'.startsWith('.') || '${selectorOrText}'.startsWith('#') || '${selectorOrText}'.startsWith('[')) {
+          el = document.querySelector('${selectorOrText}');
+        } else {
+          const elements = document.querySelectorAll('*');
+          for (const e of elements) {
+            if ((e.innerText || '').includes('${selectorOrText}') ||
+                (e.textContent || '').includes('${selectorOrText}')) {
+              el = e;
+              break;
+            }
+          }
+        }
+        if (el) {
+          // 触发 mouseenter 和 mouseover 事件
+          el.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true, cancelable: true }));
+          el.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, cancelable: true }));
+          el.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, cancelable: true }));
+          // 添加 hover class（某些框架依赖）
+          el.classList.add('hover');
+          return true;
+        }
+        return false;
+      })()
+    `);
+
+    return { success: true };
+  }
+
+  /**
+   * JS 降级：选择下拉框选项
+   */
+  async _nativeSelect(selector, option) {
+    const wc = this._getActiveWebContents();
+    if (!wc) throw new Error('无法获取页面');
+
+    const result = await wc.executeJavaScript(`
+      (function() {
+        const select = document.querySelector('${selector.replace(/'/g, "\\'")}');
+        if (!select) return { success: false, error: 'Select element not found' };
+        if (select.tagName !== 'SELECT') return { success: false, error: 'Element is not a SELECT' };
+
+        const optionValue = '${option.replace(/'/g, "\\'")}';
+        let targetOption = null;
+
+        // 1. 尝试匹配 value
+        targetOption = Array.from(select.options).find(opt => opt.value === optionValue);
+
+        // 2. 尝试匹配 text
+        if (!targetOption) {
+          targetOption = Array.from(select.options).find(opt => 
+            opt.text.trim() === optionValue || 
+            opt.text.trim().includes(optionValue)
+          );
+        }
+
+        // 3. 尝试匹配 index
+        if (!targetOption && /^\\d+$/.test(optionValue)) {
+          const index = parseInt(optionValue);
+          if (index >= 0 && index < select.options.length) {
+            targetOption = select.options[index];
+          }
+        }
+
+        if (!targetOption) {
+          return { 
+            success: false, 
+            error: 'Option not found: ' + optionValue,
+            availableOptions: Array.from(select.options).map(o => ({ value: o.value, text: o.text }))
+          };
+        }
+
+        // 设置选中值
+        select.value = targetOption.value;
+        
+        // 触发事件
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+        select.dispatchEvent(new Event('input', { bubbles: true }));
+
+        return { 
+          success: true, 
+          selectedValue: targetOption.value, 
+          selectedText: targetOption.text 
+        };
+      })()
+    `);
+
+    return result;
   }
 }
 

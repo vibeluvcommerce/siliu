@@ -1153,6 +1153,38 @@ ${this.isExecuting ? `当前任务: ${this.currentTask}` : ''}
             await this._smartWait('click');
             break;
           }
+          case 'hover': {
+            console.log(`[WindowCopilot:${this.windowId}] Calling controller.hover...`);
+            await this._blurShellInput();
+
+            // 支持坐标 hover
+            if (decision.target?.type === 'coordinate') {
+              const { x, y } = decision.target;
+              console.log(`[WindowCopilot:${this.windowId}] Hover at coordinate: (${x}, ${y})`);
+              const viewportInfo = this.executionContext?.lastObservation?.viewport;
+              const { result, mode } = await this.controller.hoverAt(x, y, viewportInfo);
+              stepResult = result;
+              actualMode = mode;
+            } else {
+              // selector hover
+              const selector = decision.target?.selector || decision.selector;
+              const { result, mode } = await this.controller.hover(selector);
+              console.log(`[WindowCopilot:${this.windowId}] hover returned mode: ${mode}`);
+              stepResult = result;
+              actualMode = mode;
+            }
+            await this._smartWait('hover');
+            break;
+          }
+          case 'select': {
+            console.log(`[WindowCopilot:${this.windowId}] Calling controller.select...`);
+            const { result, mode } = await this.controller.select(decision.selector, decision.option);
+            console.log(`[WindowCopilot:${this.windowId}] select returned mode: ${mode}`);
+            stepResult = result;
+            actualMode = mode;
+            await this._smartWait('select');
+            break;
+          }
           case 'type': {
             console.log(`[WindowCopilot:${this.windowId}] Calling controller.type...`);
 
@@ -1394,6 +1426,36 @@ ${this.isExecuting ? `当前任务: ${this.currentTask}` : ''}
             document.querySelector(${JSON.stringify(decision.selector)})?.click()
           `);
           return { success: true };
+
+        case 'hover':
+          await webContents.executeJavaScript(`
+            (function() {
+              const el = document.querySelector(${JSON.stringify(decision.selector)});
+              if (el) {
+                el.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+                el.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+                el.classList.add('hover');
+              }
+            })()
+          `);
+          return { success: true };
+
+        case 'select':
+          const selectResult = await webContents.executeJavaScript(`
+            (function() {
+              const select = document.querySelector(${JSON.stringify(decision.selector)});
+              if (!select) return { success: false, error: 'Select not found' };
+              const option = '${decision.option}';
+              let target = Array.from(select.options).find(opt => opt.value === option || opt.text.includes(option));
+              if (target) {
+                select.value = target.value;
+                select.dispatchEvent(new Event('change', { bubbles: true }));
+                return { success: true };
+              }
+              return { success: false, error: 'Option not found' };
+            })()
+          `);
+          return selectResult || { success: false };
 
         case 'type':
           await webContents.executeJavaScript(`
@@ -2276,6 +2338,8 @@ ${text.substring(0, 500)}
     const baseWait = {
       navigate: 1500,    // 导航后等待页面加载
       click: 500,        // 点击后等待响应
+      hover: 500,        // hover后等待下拉菜单/Tooltip显示
+      select: 300,       // 选择后等待页面响应
       type: 200,         // 输入后短暂等待
       scroll: 800,       // 滚动后等待内容加载
       wheel: 1000,       // 滚轮切换视频等待动画

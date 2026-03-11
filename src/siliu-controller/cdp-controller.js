@@ -1225,3 +1225,151 @@ class CDPController {
 }
 
 module.exports = CDPController;
+
+
+  /**
+   * 鼠标悬停（hover）- 支持 CSS 选择器、文本内容、XPath、坐标
+   */
+  async hover(selectorOrText, options = {}) {
+    await this.randomDelay(200, 400);
+
+    // 支持坐标 hover
+    if (options.coordinate || (typeof selectorOrText === 'object' && selectorOrText.x !== undefined)) {
+      const { x, y } = options.coordinate || selectorOrText;
+      
+      // 获取当前鼠标位置
+      const startPos = await this.getMousePosition();
+      const startX = startPos.x || 100;
+      const startY = startPos.y || 100;
+
+      // 模拟人类鼠标移动到目标位置（贝塞尔曲线）
+      const moveDuration = 200 + Math.random() * 300;
+      await this.humanLikeMouseMove(startX, startY, x, y, moveDuration);
+
+      // 悬停一段时间（触发 hover 效果）
+      await this.humanPause('normal');
+
+      return { success: true, position: { x, y }, mode: 'CDP' };
+    }
+
+    // 查找元素
+    let nodeId = await this.smartFind(selectorOrText);
+
+    if (!nodeId) {
+      await this.sleep(500);
+      nodeId = await this.smartFind(selectorOrText);
+      if (!nodeId) {
+        throw new Error(`Element not found: ${selectorOrText}`);
+      }
+    }
+
+    // 滚动到元素可见
+    try {
+      await this.cdp.send('DOM.scrollIntoViewIfNeeded', { nodeId });
+      await this.sleep(200);
+    } catch (e) {
+      // 忽略
+    }
+
+    // 获取元素中心位置
+    const boxModel = await this.cdp.send('DOM.getBoxModel', { nodeId });
+    const { content } = boxModel.model;
+    const targetX = (content[0] + content[4]) / 2;
+    const targetY = (content[1] + content[5]) / 2;
+
+    // 获取当前鼠标位置
+    const startPos = await this.getMousePosition();
+    const startX = startPos.x || 100;
+    const startY = startPos.y || 100;
+
+    // 模拟人类鼠标移动到目标位置（贝塞尔曲线）
+    const moveDuration = 200 + Math.random() * 300;
+    await this.humanLikeMouseMove(startX, startY, targetX, targetY, moveDuration);
+
+    // 悬停一段时间（触发 hover 效果）
+    await this.humanPause('normal');
+
+    return { success: true, position: { x: targetX, y: targetY } };
+  }
+
+  /**
+   * 选择下拉框选项 - 支持 select 标签
+   * @param {string} selector - select 元素的选择器
+   * @param {string} option - 选项值（可以是 value、text 或 index）
+   */
+  async selectOption(selector, option) {
+    await this.randomDelay(200, 400);
+
+    // 查找 select 元素
+    const nodeId = await this.querySelector(selector);
+
+    if (!nodeId) {
+      throw new Error(`Select element not found: ${selector}`);
+    }
+
+    // 滚动到元素可见
+    try {
+      await this.cdp.send('DOM.scrollIntoViewIfNeeded', { nodeId });
+      await this.sleep(200);
+    } catch (e) {
+      // 忽略
+    }
+
+    // 使用 CDP 执行选择
+    const result = await this.cdp.evaluate(`
+      (function() {
+        const select = document.querySelector('${selector.replace(/'/g, "\\'")}');
+        if (!select) return { success: false, error: 'Select element not found' };
+        if (select.tagName !== 'SELECT') return { success: false, error: 'Element is not a SELECT' };
+
+        const optionValue = '${option.replace(/'/g, "\\'")}';
+        let targetOption = null;
+
+        // 1. 尝试匹配 value
+        targetOption = Array.from(select.options).find(opt => opt.value === optionValue);
+
+        // 2. 尝试匹配 text
+        if (!targetOption) {
+          targetOption = Array.from(select.options).find(opt => 
+            opt.text.trim() === optionValue || 
+            opt.text.trim().includes(optionValue)
+          );
+        }
+
+        // 3. 尝试匹配 index
+        if (!targetOption && /^\\d+$/.test(optionValue)) {
+          const index = parseInt(optionValue);
+          if (index >= 0 && index < select.options.length) {
+            targetOption = select.options[index];
+          }
+        }
+
+        if (!targetOption) {
+          return { 
+            success: false, 
+            error: 'Option not found: ' + optionValue,
+            availableOptions: Array.from(select.options).map(o => ({ value: o.value, text: o.text }))
+          };
+        }
+
+        // 设置选中值
+        select.value = targetOption.value;
+        
+        // 触发 change 事件
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+        
+        // 同时触发 input 事件
+        select.dispatchEvent(new Event('input', { bubbles: true }));
+
+        return { 
+          success: true, 
+          selectedValue: targetOption.value, 
+          selectedText: targetOption.text 
+        };
+      })()
+    `, { returnByValue: true });
+
+    await this.humanPause('normal');
+
+    return { success: true, selector, option, ...result };
+  }
