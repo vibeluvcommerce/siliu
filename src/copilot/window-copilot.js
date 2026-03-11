@@ -1126,11 +1126,22 @@ ${this.isExecuting ? `当前任务: ${this.currentTask}` : ''}
           case 'click': {
             console.log(`[WindowCopilot:${this.windowId}] Calling controller.click...`);
 
-            // 点击前先让 shell 窗口的输入框失焦，避免焦点冲突
-            await this._blurShellInput();
+            // 【注意】点击下拉菜单时不能 blur，否则 hover 状态会丢失
+            // 只在非坐标点击（selector 点击）且可能是输入框时 blur
+            const isCoordinateClick = decision.target?.type === 'coordinate';
+            const isAddressBar = decision.selector?.includes('address') ||
+                                 decision.selector?.includes('url') ||
+                                 decision.selector?.includes('omnibox');
+            
+            if (!isCoordinateClick && !isAddressBar) {
+              // 点击前先让 shell 窗口的输入框失焦，避免焦点冲突
+              await this._blurShellInput();
+            } else if (isCoordinateClick) {
+              console.log(`[WindowCopilot:${this.windowId}] Coordinate click, skipping blur to preserve hover state`);
+            }
 
             // 支持坐标点击（视觉驱动）
-            if (decision.target?.type === 'coordinate') {
+            if (isCoordinateClick) {
               const { x, y } = decision.target;
               console.log(`[WindowCopilot:${this.windowId}] Clicking at coordinate: (${x}, ${y})`);
               // 【关键】传递视口信息用于坐标校准
