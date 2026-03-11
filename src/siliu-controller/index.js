@@ -251,11 +251,11 @@ class SiliuController {
    * 输入文本
    * 返回 { result, mode, attempts: [{mode, success, error}] }
    */
-  async type(selectorOrText, text) {
+  async type(selectorOrText, text, options = {}) {
     return this._executeWithFallback(
       'type',
-      async (ctrl) => ctrl.type(selectorOrText, text),
-      async () => this._nativeType(selectorOrText, text)
+      async (ctrl) => ctrl.type(selectorOrText, text, options),
+      async () => this._nativeType(selectorOrText, text, options)
     );
   }
 
@@ -712,7 +712,7 @@ class SiliuController {
     return { success: true };
   }
 
-  async _nativeType(selectorOrText, text) {
+  async _nativeType(selectorOrText, text, options = {}) {
     const wc = this._getActiveWebContents();
     if (!wc) throw new Error('无法获取页面');
 
@@ -842,36 +842,74 @@ class SiliuController {
     const wc = this._getActiveWebContents();
     if (!wc) throw new Error('无法获取页面');
 
-    await wc.executeJavaScript(`
-      (function() {
-        let el;
-        if ('${selectorOrText}'.startsWith('.') || '${selectorOrText}'.startsWith('#') || '${selectorOrText}'.startsWith('[')) {
-          el = document.querySelector('${selectorOrText}');
-        } else {
-          const elements = document.querySelectorAll('*');
-          for (const e of elements) {
-            if ((e.innerText || '').includes('${selectorOrText}') ||
-                (e.textContent || '').includes('${selectorOrText}')) {
-              el = e;
-              break;
+    // 处理坐标对象
+    if (selectorOrText && typeof selectorOrText === 'object' && selectorOrText.x !== undefined) {
+      // 坐标方式：点击获取焦点，然后全选
+      await this._nativeClickAt(selectorOrText.x, selectorOrText.y);
+      await this._sleep(100);
+      
+      await wc.executeJavaScript(`
+        (function() {
+          const el = document.activeElement;
+          if (!el) return { success: false, error: 'No focused element' };
+          
+          if (el.select) {
+            el.select();
+          } else if (el.setSelectionRange) {
+            el.setSelectionRange(0, el.value?.length || 0);
+          }
+          el.dispatchEvent(new Event('select', { bubbles: true }));
+          return { success: true };
+        })()
+      `);
+      return { success: true };
+    }
+
+    // 字符串选择器方式
+    if (selectorOrText && typeof selectorOrText === 'string') {
+      const escapedSelector = selectorOrText.replace(/'/g, "\\'");
+      await wc.executeJavaScript(`
+        (function() {
+          let el;
+          if ('${escapedSelector}'.startsWith('.') || '${escapedSelector}'.startsWith('#') || '${escapedSelector}'.startsWith('[')) {
+            el = document.querySelector('${escapedSelector}');
+          } else {
+            const elements = document.querySelectorAll('*');
+            for (const e of elements) {
+              if ((e.innerText || '').includes('${escapedSelector}') ||
+                  (e.textContent || '').includes('${escapedSelector}')) {
+                el = e;
+                break;
+              }
             }
           }
-        }
-        if (!el) return { success: false, error: 'Element not found' };
+          if (!el) return { success: false, error: 'Element not found' };
+          
+          el.focus();
+          if (el.select) {
+            el.select();
+          } else if (el.setSelectionRange) {
+            el.setSelectionRange(0, el.value?.length || 0);
+          }
+          el.dispatchEvent(new Event('select', { bubbles: true }));
+          return { success: true };
+        })()
+      `);
+      return { success: true };
+    }
+
+    // 无参数：直接全选当前焦点元素
+    await wc.executeJavaScript(`
+      (function() {
+        const el = document.activeElement;
+        if (!el) return { success: false, error: 'No focused element' };
         
-        // 聚焦元素
-        el.focus();
-        
-        // 全选
         if (el.select) {
           el.select();
         } else if (el.setSelectionRange) {
           el.setSelectionRange(0, el.value?.length || 0);
         }
-        
-        // 触发事件
         el.dispatchEvent(new Event('select', { bubbles: true }));
-        
         return { success: true };
       })()
     `);

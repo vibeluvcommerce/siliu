@@ -55,6 +55,9 @@ class WindowCopilot {
 
     // 跟踪上一步是否是 hover（用于 hover 后的点击保持 hover 状态）
     this._lastActionWasHover = false;
+    
+    // 跟踪上一步动作名称（用于优化连续操作）
+    this._lastAction = null;
 
     // 初始化视觉上下文管理器（配置延迟到 activate 时）
     this.visualContext = null;
@@ -1237,6 +1240,27 @@ ${this.isExecuting ? `当前任务: ${this.currentTask}` : ''}
             await this._smartWait('select');
             break;
           }
+          case 'selectAll': {
+            const selectAllTarget = decision.target || decision.selector;
+            console.log(`[WindowCopilot:${this.windowId}] selectAll: target=${JSON.stringify(selectAllTarget)}`);
+            
+            try {
+              // 直接调用 controller.selectAll，它会处理点击和全选
+              const result = await this.controller.selectAll(selectAllTarget);
+              stepResult = result;
+              actualMode = result?.mode || 'CDP';
+              
+              // 标记上一步是全选，这样下一步 type 会跳过点击和清空
+              this._lastAction = 'selectAll';
+            } catch (err) {
+              console.error(`[WindowCopilot:${this.windowId}] selectAll failed:`, err.message);
+              stepResult = { success: false, error: err.message };
+              actualMode = 'JS';
+            }
+            
+            await this._smartWait('press');
+            break;
+          }
           case 'type': {
             console.log(`[WindowCopilot:${this.windowId}] Calling controller.type...`);
 
@@ -1287,32 +1311,53 @@ ${this.isExecuting ? `当前任务: ${this.currentTask}` : ''}
               }
             } else if (decision.target?.type === 'coordinate') {
               // 使用坐标点击输入框获取焦点，然后输入
-              // 先让 shell 输入框失焦，避免焦点冲突
-              await this._blurShellInput();
+              
+              // 检查上一步是否全选，如果是则跳过点击
+              const skipClick = this._lastAction === 'selectAll';
+              console.log(`[WindowCopilot:${this.windowId}] Type at coordinate, skipClick=${skipClick}`);
+              
+              if (!skipClick) {
+                // 先让 shell 输入框失焦，避免焦点冲突
+                await this._blurShellInput();
 
-              const { x, y } = decision.target;
-              console.log(`[WindowCopilot:${this.windowId}] Type at coordinate: (${x}, ${y})`);
-              const { result: clickResult, mode: clickMode } = await this.controller.clickAt(x, y);
-              if (clickResult.success) {
+                const { x, y } = decision.target;
+                const { result: clickResult, mode: clickMode } = await this.controller.clickAt(x, y);
+                if (!clickResult.success) {
+                  stepResult = { success: false, error: '坐标点击失败' };
+                  actualMode = 'JS';
+                  await this._smartWait('type');
+                  break;
+                }
                 // 等待一下确保焦点已获取
                 await this._sleep(100);
-                // 使用 activeElement 输入（不依赖 selector）
-                const { result: typeResult, mode: typeMode } = await this.controller.typeActive(decision.text);
-                stepResult = typeResult;
-                actualMode = clickMode === 'CDP' && typeMode === 'CDP' ? 'CDP' : 'JS';
-              } else {
-                stepResult = { success: false, error: '坐标点击失败' };
-                actualMode = 'JS';
               }
+              
+              // 使用 activeElement 输入（不依赖 selector）
+              const { result: typeResult, mode: typeMode } = await this.controller.typeActive(decision.text);
+              stepResult = typeResult;
+              actualMode = typeMode;
+              
+              // 重置标志
+              this._lastAction = null;
             } else {
               // 普通网页输入框（使用 selector）
               // 先让 shell 输入框失焦
               await this._blurShellInput();
 
-              const { result, mode } = await this.controller.type(decision.selector, decision.text);
+              // 检查上一步是否全选，如果是则跳过点击和清空
+              const skipClick = this._lastAction === 'selectAll';
+              console.log(`[WindowCopilot:${this.windowId}] Type with selector, skipClick=${skipClick}`);
+              
+              const { result, mode } = await this.controller.type(decision.selector, decision.text, { 
+                skipClick, 
+                clear: !skipClick // 如果跳过了全选，则不清空（因为已经全选了）
+              });
               console.log(`[WindowCopilot:${this.windowId}] type returned mode: ${mode}`);
               stepResult = result;
               actualMode = mode;
+              
+              // 重置标志
+              this._lastAction = null;
             }
             // 智能等待输入完成
             await this._smartWait('type');
@@ -1450,6 +1495,7 @@ ${this.isExecuting ? `当前任务: ${this.currentTask}` : ''}
       navigate: '正在导航到网站页面',
       click: '点击页面元素',
       type: '正在输入文本',
+      selectAll: '全选文本',
       scroll: '正在滚动查看页面',
       wheel: '正在滚动滚轮',
       wait: '等待中',
@@ -1508,6 +1554,26 @@ ${this.isExecuting ? `当前任务: ${this.currentTask}` : ''}
             })()
           `);
           return selectResult || { success: false };
+
+        case 'selectAll':
+          await webContents.executeJavaScript(`
+            (function() {
+              const el = document.activeElement;
+              if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
+                el.select();
+              } else if (el && el.isContentEditable) {
+                const range = document.createRange();
+                range.selectNodeContents(el);
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(range);
+              } else {
+                document.execCommand('selectAll');
+              }
+              return true;
+            })()
+          `);
+          return { success: true };
 
         case 'type':
           await webContents.executeJavaScript(`

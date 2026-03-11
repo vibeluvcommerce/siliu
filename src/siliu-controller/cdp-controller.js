@@ -825,42 +825,61 @@ class CDPController {
   async selectAll(selectorOrText) {
     await this.randomDelay(200, 400);
 
-    // 查找元素
-    let nodeId = await this.smartFind(selectorOrText);
-    if (!nodeId) {
-      await this.sleep(500);
-      nodeId = await this.smartFind(selectorOrText);
-      if (!nodeId) {
-        throw new Error(`Element not found: ${selectorOrText}`);
+    // 如果提供了选择器，先找到并聚焦元素
+    if (selectorOrText) {
+      // 处理坐标对象
+      if (typeof selectorOrText === 'object' && selectorOrText.x !== undefined) {
+        // 坐标方式：直接点击获取焦点
+        await this.clickAt(selectorOrText.x, selectorOrText.y);
+        await this.sleep(100);
+      } else if (typeof selectorOrText === 'string') {
+        // 字符串选择器方式
+        // 查找元素
+        let nodeId = await this.smartFind(selectorOrText);
+        if (!nodeId) {
+          await this.sleep(500);
+          nodeId = await this.smartFind(selectorOrText);
+          if (!nodeId) {
+            throw new Error(`Element not found: ${selectorOrText}`);
+          }
+        }
+
+        // 滚动到元素可见
+        try {
+          await this.cdp.send('DOM.scrollIntoViewIfNeeded', { nodeId });
+          await this.sleep(200);
+        } catch (e) {
+          // 忽略
+        }
+
+        // 点击聚焦
+        await this.click(selectorOrText, { fast: true });
+        await this.sleep(100);
       }
     }
 
-    // 滚动到元素可见
-    try {
-      await this.cdp.send('DOM.scrollIntoViewIfNeeded', { nodeId });
-      await this.sleep(200);
-    } catch (e) {
-      // 忽略
-    }
-
-    // 点击聚焦
-    await this.click(selectorOrText, { fast: true });
-    await this.sleep(100);
-
-    // 发送 Ctrl+A 全选
-    await this.cdp.send('Input.dispatchKeyEvent', {
-      type: 'keyDown',
-      key: 'a',
-      code: 'KeyA',
-      modifiers: 2 // Ctrl
-    });
-    await this.sleep(30);
-    await this.cdp.send('Input.dispatchKeyEvent', {
-      type: 'keyUp',
-      key: 'a',
-      code: 'KeyA',
-      modifiers: 2
-    });
+    // 使用 JS 方式全选（比 CDP 键盘事件更可靠）
+    await this.cdp.evaluate(`
+      (function() {
+        const el = document.activeElement;
+        if (!el) return { success: false, error: 'No focused element' };
+        
+        if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+          el.select();
+          // 触发 select 事件
+          el.dispatchEvent(new Event('select', { bubbles: true }));
+          return { success: true, method: 'select', tagName: el.tagName };
+        } else if (el.isContentEditable) {
+          const range = document.createRange();
+          range.selectNodeContents(el);
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(range);
+          return { success: true, method: 'contenteditable' };
+        }
+        return { success: false, error: 'Element not selectable' };
+      })()
+    `);
 
     await this.sleep(100);
 
@@ -896,13 +915,15 @@ class CDPController {
       throw new Error(`Element not found: ${selectorOrText}`);
     }
 
-    // 使用自然的点击来获取焦点
-    await this.click(selectorOrText, options);
-
-    // 停顿一下再输入
-    await this.humanPause('hesitate');
+    // 使用自然的点击来获取焦点（如果未指定 skipClick）
+    if (!options.skipClick) {
+      await this.click(selectorOrText, options);
+      // 停顿一下再输入
+      await this.humanPause('hesitate');
+    }
 
     // 清空现有内容（模拟人类行为：Ctrl+A 然后 Delete）
+    // 注意：如果之前已经执行了 selectAll，应该设置 clear: false 避免重复操作
     if (options.clear !== false) {
       // Ctrl+A 全选
       await this.cdp.send('Input.dispatchKeyEvent', {
