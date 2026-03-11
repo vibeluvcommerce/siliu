@@ -1480,60 +1480,87 @@ class CDPController {
         }
         
         // 【策略2】React Select / 自定义下拉组件
-        // 尝试找到输入框并输入文本来搜索选项
-        const input = select.querySelector('input') || select;
-        
         // 1. 先点击展开下拉菜单
         select.click();
         select.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
         
-        // 2. 等待下拉菜单展开
-        setTimeout(() => {
-          // 3. 尝试直接在下拉菜单中查找选项
-          const dropdown = document.querySelector('[class*="menu"], [class*="dropdown"], [class*="options"]');
+        // 2. 尝试找到输入框并输入文本来过滤（React Select 支持）
+        const input = select.querySelector('input');
+        if (input) {
+          input.focus();
+          // 清空现有内容
+          input.value = '';
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          // 输入目标值
+          input.value = optionValue;
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          input.dispatchEvent(new KeyboardEvent('keydown', { key: optionValue[0], bubbles: true }));
+        }
+        
+        // 3. 查找并点击匹配的选项（同步执行）
+        const findAndClickOption = () => {
+          // 查找下拉菜单（React Select 通常使用这些类名）
+          const dropdownSelectors = [
+            '.css-*-menu',  // React Select 默认类名
+            '[class*="-menu"]',
+            '[class*="dropdown"]',
+            '[class*="options"]', 
+            '#react-select-*-listbox'
+          ];
           
-          if (dropdown) {
-            // 在下拉菜单中查找匹配的选项
-            const options = dropdown.querySelectorAll('[class*="option"], [role="option"]');
-            let found = false;
-            
-            for (const opt of options) {
-              const text = opt.textContent || opt.innerText || '';
-              if (text.toLowerCase().includes(optionValue.toLowerCase())) {
+          let dropdown = null;
+          for (const ds of dropdownSelectors) {
+            dropdown = document.querySelector(ds);
+            if (dropdown) break;
+          }
+          
+          // 如果没找到特定下拉菜单，查找页面上所有可能的选项元素
+          if (!dropdown) {
+            const allOptions = document.querySelectorAll('[role="option"], [class*="option"]');
+            for (const opt of allOptions) {
+              const text = (opt.textContent || opt.innerText || '').trim();
+              if (text.toLowerCase() === optionValue.toLowerCase()) {
                 opt.click();
                 opt.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-                found = true;
-                break;
+                return { success: true, type: 'custom-select', method: 'click-exact', text };
               }
             }
-            
-            if (found) {
-              return { success: true, type: 'custom-select', method: 'click-option' };
+            return { success: false, error: 'Option not found in page', searched: optionValue };
+          }
+          
+          // 在下拉菜单中查找
+          const options = dropdown.querySelectorAll('[role="option"], [class*="option"]');
+          
+          for (const opt of options) {
+            const text = (opt.textContent || opt.innerText || '').trim();
+            // 精确匹配
+            if (text.toLowerCase() === optionValue.toLowerCase()) {
+              opt.click();
+              opt.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+              return { success: true, type: 'custom-select', method: 'click-exact', text };
             }
-            
-            // 如果没找到，尝试输入文本来过滤
-            if (input && input.tagName === 'INPUT') {
-              input.focus();
-              input.value = optionValue;
-              input.dispatchEvent(new Event('input', { bubbles: true }));
-              
-              // 等待过滤结果
-              setTimeout(() => {
-                const filteredOptions = dropdown.querySelectorAll('[class*="option"], [role="option"]');
-                if (filteredOptions.length > 0) {
-                  filteredOptions[0].click();
-                  return { success: true, type: 'custom-select', method: 'type-filter' };
-                }
-              }, 200);
+            // 包含匹配
+            if (text.toLowerCase().includes(optionValue.toLowerCase())) {
+              opt.click();
+              opt.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+              return { success: true, type: 'custom-select', method: 'click-contains', text };
             }
           }
-        }, 100);
-        
-        return { 
-          success: true, 
-          type: 'custom-select',
-          message: 'Clicked to open dropdown, attempting to select: ' + optionValue 
+          
+          return { 
+            success: false, 
+            error: 'Option not found in dropdown', 
+            searched: optionValue,
+            availableOptions: Array.from(options).map(o => o.textContent?.trim()).slice(0, 10)
+          };
         };
+        
+        // 立即执行查找（给 React 一点时间渲染）
+        // 使用 Date.now 来强制浏览器刷新
+        const start = Date.now();
+        while (Date.now() - start < 50) { /* 短暂等待渲染 */ }
+        
+        return findAndClickOption();
       })()
     `, { returnByValue: true });
 
