@@ -1219,6 +1219,7 @@ class CDPController {
 
   /**
    * 鼠标悬停（hover）- 支持 CSS 选择器、文本内容、XPath、坐标
+   * 【注意】CDP 合成鼠标事件无法触发 CSS :hover，需要主动触发 JS 事件
    */
   async hover(selectorOrText, options = {}) {
     await this.randomDelay(200, 400);
@@ -1227,19 +1228,78 @@ class CDPController {
     if (options.coordinate || (typeof selectorOrText === 'object' && selectorOrText.x !== undefined)) {
       const { x, y } = options.coordinate || selectorOrText;
       
-      // 获取当前鼠标位置
+      // 将百分比坐标转换为像素坐标
+      const metrics = await this.cdp.send('Page.getLayoutMetrics');
+      const cssWidth = metrics.cssVisualViewport?.clientWidth || 1920;
+      const cssHeight = metrics.cssVisualViewport?.clientHeight || 1080;
+      const pixelX = Math.round(x * cssWidth);
+      const pixelY = Math.round(y * cssHeight);
+
+      // 移动鼠标（视觉反馈）
       const startPos = await this.getMousePosition();
-      const startX = startPos.x || 100;
-      const startY = startPos.y || 100;
+      await this.humanLikeMouseMove(startPos.x || 100, startPos.y || 100, pixelX, pixelY, 300);
 
-      // 模拟人类鼠标移动到目标位置（贝塞尔曲线）
-      const moveDuration = 200 + Math.random() * 300;
-      await this.humanLikeMouseMove(startX, startY, x, y, moveDuration);
+      // 【关键】在对应坐标位置触发 hover 效果
+      await this.cdp.evaluate(`
+        (function() {
+          const x = ${pixelX};
+          const y = ${pixelY};
+          
+          // 获取该位置的元素
+          const el = document.elementFromPoint(x, y);
+          if (!el) return { success: false, error: 'No element at position' };
+          
+          // 触发 mouseenter 和 mouseover 事件
+          const mouseenterEvent = new MouseEvent('mouseenter', {
+            bubbles: true,
+            cancelable: true,
+            clientX: x,
+            clientY: y
+          });
+          el.dispatchEvent(mouseenterEvent);
+          
+          const mouseoverEvent = new MouseEvent('mouseover', {
+            bubbles: true,
+            cancelable: true,
+            clientX: x,
+            clientY: y
+          });
+          el.dispatchEvent(mouseoverEvent);
+          
+          // 触发 mousemove（某些框架依赖）
+          const mousemoveEvent = new MouseEvent('mousemove', {
+            bubbles: true,
+            cancelable: true,
+            clientX: x,
+            clientY: y
+          });
+          el.dispatchEvent(mousemoveEvent);
+          
+          // 添加 hover 类（兼容某些 CSS 框架）
+          el.classList.add('hover');
+          
+          // 向上冒泡，触发父元素的 hover
+          let parent = el.parentElement;
+          while (parent) {
+            parent.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+            parent.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+            parent.classList.add('hover');
+            parent = parent.parentElement;
+          }
+          
+          return { 
+            success: true, 
+            element: el.tagName,
+            className: el.className,
+            id: el.id
+          };
+        })()
+      `, { returnByValue: true });
 
-      // 悬停一段时间（触发 hover 效果）
+      // 悬停一段时间（保持 hover 状态）
       await this.humanPause('normal');
 
-      return { success: true, position: { x, y }, mode: 'CDP' };
+      return { success: true, position: { x: pixelX, y: pixelY }, mode: 'CDP' };
     }
 
     // 查找元素
@@ -1261,25 +1321,53 @@ class CDPController {
       // 忽略
     }
 
-    // 获取元素中心位置
+    // 获取元素信息
     const boxModel = await this.cdp.send('DOM.getBoxModel', { nodeId });
     const { content } = boxModel.model;
     const targetX = (content[0] + content[4]) / 2;
     const targetY = (content[1] + content[5]) / 2;
 
-    // 获取当前鼠标位置
+    // 移动鼠标到元素位置
     const startPos = await this.getMousePosition();
-    const startX = startPos.x || 100;
-    const startY = startPos.y || 100;
+    await this.humanLikeMouseMove(startPos.x || 100, startPos.y || 100, targetX, targetY, 300);
 
-    // 模拟人类鼠标移动到目标位置（贝塞尔曲线）
-    const moveDuration = 200 + Math.random() * 300;
-    await this.humanLikeMouseMove(startX, startY, targetX, targetY, moveDuration);
+    // 【关键】在元素上触发 hover 事件
+    const objectId = (await this.cdp.send('DOM.resolveNode', { nodeId })).object.objectId;
+    await this.cdp.evaluate(`
+      (function() {
+        const el = ${objectId};
+        if (!el) return { success: false, error: 'Element not found' };
+        
+        // 触发 mouseenter 和 mouseover
+        el.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true, cancelable: true }));
+        el.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, cancelable: true }));
+        el.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, cancelable: true }));
+        
+        // 添加 hover 类
+        el.classList.add('hover');
+        
+        // 向上冒泡
+        let parent = el.parentElement;
+        while (parent) {
+          parent.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+          parent.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+          parent.classList.add('hover');
+          parent = parent.parentElement;
+        }
+        
+        return { 
+          success: true, 
+          element: el.tagName,
+          className: el.className,
+          id: el.id
+        };
+      })()
+    `, { returnByValue: true });
 
-    // 悬停一段时间（触发 hover 效果）
+    // 悬停一段时间
     await this.humanPause('normal');
 
-    return { success: true, position: { x: targetX, y: targetY } };
+    return { success: true, position: { x: targetX, y: targetY }, mode: 'CDP' };
   }
 
   /**

@@ -725,7 +725,7 @@ class SiliuController {
     const wc = this._getActiveWebContents();
     if (!wc) throw new Error('无法获取页面');
 
-    await wc.executeJavaScript(`
+    const result = await wc.executeJavaScript(`
       (function() {
         let el;
         if ('${selectorOrText}'.startsWith('.') || '${selectorOrText}'.startsWith('#') || '${selectorOrText}'.startsWith('[')) {
@@ -747,13 +747,23 @@ class SiliuController {
           el.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, cancelable: true }));
           // 添加 hover class（某些框架依赖）
           el.classList.add('hover');
-          return true;
+          
+          // 向上冒泡，触发父元素的 hover
+          let parent = el.parentElement;
+          while (parent) {
+            parent.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+            parent.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+            parent.classList.add('hover');
+            parent = parent.parentElement;
+          }
+          
+          return { success: true, element: el.tagName, className: el.className };
         }
-        return false;
+        return { success: false, error: 'Element not found' };
       })()
     `);
 
-    return { success: true };
+    return result;
   }
 
   /**
