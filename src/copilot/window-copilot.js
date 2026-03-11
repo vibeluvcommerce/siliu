@@ -1142,7 +1142,21 @@ ${this.isExecuting ? `当前任务: ${this.currentTask}` : ''}
 
             // 支持坐标点击（视觉驱动）
             if (isCoordinateClick) {
-              const { x, y } = decision.target;
+              let { x, y } = decision.target;
+              
+              // 【安全检查】下拉菜单点击的 y 坐标必须在合理范围
+              if (y > 0.25) {
+                console.warn(`[WindowCopilot:${this.windowId}] WARNING: Click y=${y} is too low for dropdown menu. Dropdown items should be in y: 0.08-0.18`);
+                // 返回失败，让 AI 重新估计
+                stepResult = { 
+                  success: false, 
+                  error: `点击 y 坐标 ${y} 超出下拉菜单范围。下拉菜单项通常在 y: 0.08-0.18 范围内。请重新 screenshot 确认位置。`,
+                  needRetry: true
+                };
+                actualMode = 'JS';
+                break;
+              }
+              
               console.log(`[WindowCopilot:${this.windowId}] Clicking at coordinate: (${x}, ${y})`);
               // 【关键】传递视口信息用于坐标校准
               const viewportInfo = this.executionContext?.lastObservation?.viewport;
