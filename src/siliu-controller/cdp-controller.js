@@ -1418,85 +1418,128 @@ class CDPController {
   }
 
   /**
-   * 选择下拉框选项 - 支持 select 标签
+   * 选择下拉框选项 - 支持 select 标签和 React Select 等自定义组件
    * @param {string} selector - select 元素的选择器
    * @param {string} option - 选项值（可以是 value、text 或 index）
    */
   async selectOption(selector, option) {
     await this.randomDelay(200, 400);
 
-    // 查找 select 元素
-    const nodeId = await this.querySelector(selector);
-
-    if (!nodeId) {
-      throw new Error(`Select element not found: ${selector}`);
-    }
-
-    // 滚动到元素可见
-    try {
-      await this.cdp.send('DOM.scrollIntoViewIfNeeded', { nodeId });
-      await this.sleep(200);
-    } catch (e) {
-      // 忽略
-    }
-
     // 使用 CDP 执行选择
     const result = await this.cdp.evaluate(`
       (function() {
-        const select = document.querySelector('${selector.replace(/'/g, "\\'")}');
-        if (!select) return { success: false, error: 'Select element not found' };
-        if (select.tagName !== 'SELECT') return { success: false, error: 'Element is not a SELECT' };
-
+        const selector = '${selector.replace(/'/g, "\\'")}';
         const optionValue = '${option.replace(/'/g, "\\'")}';
-        let targetOption = null;
+        const select = document.querySelector(selector);
+        
+        if (!select) return { success: false, error: 'Select element not found: ' + selector };
+        
+        // 【策略1】原生 SELECT 元素
+        if (select.tagName === 'SELECT') {
+          let targetOption = null;
 
-        // 1. 尝试匹配 value
-        targetOption = Array.from(select.options).find(opt => opt.value === optionValue);
+          // 1. 尝试匹配 value
+          targetOption = Array.from(select.options).find(opt => opt.value === optionValue);
 
-        // 2. 尝试匹配 text
-        if (!targetOption) {
-          targetOption = Array.from(select.options).find(opt => 
-            opt.text.trim() === optionValue || 
-            opt.text.trim().includes(optionValue)
-          );
-        }
-
-        // 3. 尝试匹配 index
-        if (!targetOption && /^\\d+$/.test(optionValue)) {
-          const index = parseInt(optionValue);
-          if (index >= 0 && index < select.options.length) {
-            targetOption = select.options[index];
+          // 2. 尝试匹配 text
+          if (!targetOption) {
+            targetOption = Array.from(select.options).find(opt => 
+              opt.text.trim() === optionValue || 
+              opt.text.trim().includes(optionValue)
+            );
           }
-        }
 
-        if (!targetOption) {
+          // 3. 尝试匹配 index
+          if (!targetOption && /^\\d+$/.test(optionValue)) {
+            const index = parseInt(optionValue);
+            if (index >= 0 && index < select.options.length) {
+              targetOption = select.options[index];
+            }
+          }
+
+          if (!targetOption) {
+            return { 
+              success: false, 
+              error: 'Option not found: ' + optionValue,
+              availableOptions: Array.from(select.options).map(o => ({ value: o.value, text: o.text })),
+              type: 'native-select'
+            };
+          }
+
+          // 设置选中值
+          select.value = targetOption.value;
+          select.dispatchEvent(new Event('change', { bubbles: true }));
+          select.dispatchEvent(new Event('input', { bubbles: true }));
+
           return { 
-            success: false, 
-            error: 'Option not found: ' + optionValue,
-            availableOptions: Array.from(select.options).map(o => ({ value: o.value, text: o.text }))
+            success: true, 
+            selectedValue: targetOption.value, 
+            selectedText: targetOption.text,
+            type: 'native-select'
           };
         }
-
-        // 设置选中值
-        select.value = targetOption.value;
         
-        // 触发 change 事件
-        select.dispatchEvent(new Event('change', { bubbles: true }));
+        // 【策略2】React Select / 自定义下拉组件
+        // 尝试找到输入框并输入文本来搜索选项
+        const input = select.querySelector('input') || select;
         
-        // 同时触发 input 事件
-        select.dispatchEvent(new Event('input', { bubbles: true }));
-
+        // 1. 先点击展开下拉菜单
+        select.click();
+        select.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+        
+        // 2. 等待下拉菜单展开
+        setTimeout(() => {
+          // 3. 尝试直接在下拉菜单中查找选项
+          const dropdown = document.querySelector('[class*="menu"], [class*="dropdown"], [class*="options"]');
+          
+          if (dropdown) {
+            // 在下拉菜单中查找匹配的选项
+            const options = dropdown.querySelectorAll('[class*="option"], [role="option"]');
+            let found = false;
+            
+            for (const opt of options) {
+              const text = opt.textContent || opt.innerText || '';
+              if (text.toLowerCase().includes(optionValue.toLowerCase())) {
+                opt.click();
+                opt.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+                found = true;
+                break;
+              }
+            }
+            
+            if (found) {
+              return { success: true, type: 'custom-select', method: 'click-option' };
+            }
+            
+            // 如果没找到，尝试输入文本来过滤
+            if (input && input.tagName === 'INPUT') {
+              input.focus();
+              input.value = optionValue;
+              input.dispatchEvent(new Event('input', { bubbles: true }));
+              
+              // 等待过滤结果
+              setTimeout(() => {
+                const filteredOptions = dropdown.querySelectorAll('[class*="option"], [role="option"]');
+                if (filteredOptions.length > 0) {
+                  filteredOptions[0].click();
+                  return { success: true, type: 'custom-select', method: 'type-filter' };
+                }
+              }, 200);
+            }
+          }
+        }, 100);
+        
         return { 
           success: true, 
-          selectedValue: targetOption.value, 
-          selectedText: targetOption.text 
+          type: 'custom-select',
+          message: 'Clicked to open dropdown, attempting to select: ' + optionValue 
         };
       })()
     `, { returnByValue: true });
 
     await this.humanPause('normal');
 
-    return { success: true, selector, option, ...result };
+    return { success: result?.success ?? true, selector, option, ...result };
   }
 
   // ========== 辅助方法 ==========

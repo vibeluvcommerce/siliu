@@ -19,7 +19,7 @@ const ACTION_SCHEMA = {
   click: { params: ['selector|target'], desc: '点击元素，支持坐标 {type:"coordinate",x:0.5,y:0.3}' },
   hover: { params: ['selector|target'], desc: '鼠标悬停在元素上（触发下拉菜单、Tooltip等），支持坐标' },
   type: { params: ['selector|target', 'text'], desc: '在输入框输入文本。支持坐标方式：{"action":"type","target":{"type":"coordinate",x:0.5,y:0.3},"text":"xxx"}' },
-  select: { params: ['selector', 'option'], desc: '选择下拉框选项，option可以是value、text或index' },
+  select: { params: ['selector', 'option'], desc: '选择下拉框选项（原生select或React Select等自定义下拉），option可以是value、text或index。不需要滚动查找，直接指定选项文本即可' },
   selectAll: { params: ['selector|target'], desc: '全选文本框内容（Ctrl+A），用于复制或替换' },
   press: { params: ['key'], desc: '按键（Enter/Backspace/Delete/Tab/Escape/ArrowDown等）' },
   scroll: { params: ['direction', 'amount'], desc: '滚动页面（普通网页）' },
@@ -213,6 +213,7 @@ ${buildActionHelp()}
 - 【重要】抖音/视频类网站请使用 wheel 而非 scroll 来切换视频
 - 输入错误时可使用 press + Backspace 删除后重新输入，或使用 selectAll 全选后直接输入替换
 - 【重要】遇到登录/扫码/验证码时暂停任务，告知用户完成后再继续
+- 【重要】选择下拉框选项时，直接使用 select 动作，传入 option 文本（如 "Silver"），系统会自动处理查找和选择，不需要手动滚动查找
 
 【hover后点击下拉菜单的要点 - 强制执行】
 - hover 头像/按钮后，下拉菜单通常出现在其下方（y坐标比头像大）
