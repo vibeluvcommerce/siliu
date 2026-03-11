@@ -381,110 +381,182 @@ class SiliuController {
 
   /**
    * 选择下拉框选项
+   * 策略：
+   * 1. 传统 <select> 元素 → 使用原生 selectOption
+   * 2. 带输入框的自定义下拉（React Select）→ 使用输入+点击模式
    * @param {string|object} selector - CSS选择器或坐标对象 {type: 'coordinate', x, y}
    * @param {string} option - 选项值
    */
   async select(selector, option) {
-    // 支持坐标方式（React Select 等自定义下拉）
+    // 如果是坐标方式，使用输入+点击模式
     if (selector && typeof selector === 'object' && selector.x !== undefined) {
-      // 坐标方式：先点击坐标展开下拉，然后选择选项
-      return this._selectByCoordinate(selector, option);
+      return this._selectByInput(selector, option);
     }
     
-    return this._executeWithFallback(
-      'select',
-      async (ctrl) => ctrl.selectOption(selector, option),
-      async () => this._nativeSelect(selector, option)
-    );
+    // 如果是字符串选择器，先检测元素类型
+    if (typeof selector === 'string') {
+      // 检测是否是原生 select
+      const isNativeSelect = await this._isNativeSelect(selector);
+      
+      if (isNativeSelect) {
+        // 原生 select 使用传统方式
+        return this._executeWithFallback(
+          'select',
+          async (ctrl) => ctrl.selectOption(selector, option),
+          async () => this._nativeSelect(selector, option)
+        );
+      } else {
+        // 自定义下拉使用输入+点击模式
+        return this._selectByInput(null, option, selector);
+      }
+    }
+    
+    // 默认使用输入+点击模式
+    return this._selectByInput(selector, option);
   }
 
   /**
-   * 通过坐标选择下拉框选项（用于 React Select 等自定义组件）
-   * @param {object} coordinate - 坐标 {x, y}
-   * @param {string} option - 选项文本
+   * 检测是否是原生 <select> 元素
    */
-  async _selectByCoordinate(coordinate, option) {
-    const { x, y } = coordinate;
-    console.log(`[SiliuController] Select by coordinate: (${x}, ${y}), option=${option}`);
-    
+  async _isNativeSelect(selector) {
     if (!this.cdpController?.isConnected) {
-      return { success: false, error: 'CDP not connected for coordinate select', mode: 'JS' };
+      return false;
     }
     
     try {
-      // 使用 CDP 执行选择
+      const result = await this.cdpController.cdp.evaluate(`
+        (function() {
+          const el = document.querySelector('${selector.replace(/'/g, "\\'")}');
+          if (!el) return false;
+          return el.tagName === 'SELECT';
+        })()
+      `, { returnByValue: true });
+      
+      return result === true;
+    } catch (err) {
+      return false;
+    }
+  }
+
+  /**
+   * 通过输入+点击模式选择选项（用于 React Select 等带输入框的自定义下拉）
+   * 流程：点击展开 → 输入过滤 → 点击选项
+   * @param {object} coordinate - 可选，坐标 {x, y}
+   * @param {string} option - 选项文本
+   * @param {string} selector - 可选，CSS选择器
+   */
+  async _selectByInput(coordinate, option, selector = null) {
+    console.log(`[SiliuController] Select by input: coordinate=${JSON.stringify(coordinate)}, selector=${selector}, option=${option}`);
+    
+    if (!this.cdpController?.isConnected) {
+      return { success: false, error: 'CDP not connected', mode: 'JS' };
+    }
+    
+    try {
       const evalResult = await this.cdpController.cdp.evaluate(`
         (function() {
-          const x = ${x};
-          const y = ${y};
           const optionText = '${option.replace(/'/g, "\\'")}';
+          let container = null;
           
-          // 1. 点击坐标展开下拉菜单
-          const el = document.elementFromPoint(x * window.innerWidth, y * window.innerHeight);
-          if (!el) return { success: false, error: 'No element at coordinate' };
+          // 1. 找到下拉框容器
+          ${coordinate ? `
+            // 通过坐标找
+            const x = ${coordinate.x};
+            const y = ${coordinate.y};
+            container = document.elementFromPoint(x * window.innerWidth, y * window.innerHeight);
+          ` : selector ? `
+            // 通过选择器找
+            container = document.querySelector('${selector.replace(/'/g, "\\'")}');
+          ` : `
+            return { success: false, error: 'No coordinate or selector provided' };
+          `}
           
-          el.click();
-          el.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+          if (!container) {
+            return { success: false, error: 'Dropdown container not found' };
+          }
           
-          // 2. 等待下拉菜单展开
-          let attempts = 0;
-          const maxAttempts = 10;
+          // 2. 点击展开下拉菜单
+          container.click();
+          container.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
           
-          while (attempts < maxAttempts) {
-            // 查找下拉菜单中的选项
-            const allOptions = document.querySelectorAll('[role="option"], [class*="option"]');
+          // 3. 找到输入框并输入过滤文本
+          let input = null;
+          const start = Date.now();
+          
+          // 等待输入框出现（可能在容器内或body上）
+          while (Date.now() - start < 500) {
+            input = container.querySelector('input') || 
+                    document.querySelector('input[class*="input"]') ||
+                    document.querySelector('[class*="menu"] input');
+            if (input) break;
+          }
+          
+          if (!input) {
+            return { success: false, error: 'No input found in dropdown' };
+          }
+          
+          // 聚焦并输入文本
+          input.focus();
+          input.click();
+          
+          // 清空并输入
+          input.value = '';
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          
+          // 逐个字符输入
+          for (const char of optionText) {
+            input.value += char;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.dispatchEvent(new KeyboardEvent('keydown', { key: char, bubbles: true }));
+            input.dispatchEvent(new KeyboardEvent('keyup', { key: char, bubbles: true }));
+          }
+          
+          // 4. 等待过滤结果并点击匹配选项
+          const searchStart = Date.now();
+          while (Date.now() - searchStart < 500) {
+            const options = document.querySelectorAll('[role="option"], [class*="option"]');
             
-            for (const opt of allOptions) {
+            // 优先精确匹配
+            for (const opt of options) {
               const text = (opt.textContent || opt.innerText || '').trim();
               if (text.toLowerCase() === optionText.toLowerCase()) {
                 opt.click();
                 opt.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-                return { success: true, method: 'click-exact', selected: text };
+                return { success: true, method: 'input-click-exact', selected: text };
               }
             }
             
-            // 如果没找到，等待一下再试
-            attempts++;
-            const start = Date.now();
-            while (Date.now() - start < 50) {}
-          }
-          
-          // 3. 如果没找到，尝试输入过滤
-          const input = el.querySelector('input') || document.querySelector('input:focus');
-          if (input) {
-            input.value = optionText;
-            input.dispatchEvent(new Event('input', { bubbles: true }));
-            
-            // 再次查找
-            const start = Date.now();
-            while (Date.now() - start < 200) {}
-            
-            const filteredOptions = document.querySelectorAll('[role="option"], [class*="option"]');
-            for (const opt of filteredOptions) {
+            // 其次包含匹配
+            for (const opt of options) {
               const text = (opt.textContent || opt.innerText || '').trim();
               if (text.toLowerCase().includes(optionText.toLowerCase())) {
                 opt.click();
-                return { success: true, method: 'type-filter', selected: text };
+                opt.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+                return { success: true, method: 'input-click-contains', selected: text };
               }
             }
           }
           
+          // 如果没找到，返回可用选项
+          const allOptions = Array.from(document.querySelectorAll('[role="option"], [class*="option"]'))
+            .map(o => o.textContent?.trim())
+            .filter(Boolean)
+            .slice(0, 10);
+            
           return { 
             success: false, 
-            error: 'Option not found: ' + optionText,
-            foundOptions: Array.from(document.querySelectorAll('[role="option"], [class*="option"]'))
-              .map(o => o.textContent?.trim()).slice(0, 10)
+            error: 'Option not found after input: ' + optionText,
+            availableOptions: allOptions
           };
         })()
       `, { returnByValue: true });
       
-      console.log(`[SiliuController] evaluate result:`, evalResult);
+      console.log(`[SiliuController] Input select result:`, evalResult);
       
-      // 确保有返回值
       const result = evalResult || { success: false, error: 'No result from evaluate' };
       return { ...result, mode: 'CDP' };
     } catch (err) {
-      console.error('[SiliuController] Coordinate select failed:', err.message);
+      console.error('[SiliuController] Input select failed:', err.message);
       return { success: false, error: err.message, mode: 'JS' };
     }
   }
