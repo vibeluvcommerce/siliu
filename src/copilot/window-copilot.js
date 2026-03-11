@@ -1209,22 +1209,29 @@ ${this.isExecuting ? `当前任务: ${this.currentTask}` : ''}
             const selector = decision.selector || decision.target;
             const option = decision.option;
             
-            console.log(`[WindowCopilot:${this.windowId}] Calling controller.select: selector/target=${JSON.stringify(selector)}, option=${option}`);
+            console.error(`[SELECT_DEBUG] selector=${JSON.stringify(selector)}, option=${option}`);
             
             if (!selector) {
+              console.error(`[SELECT_DEBUG] Missing selector/target`);
               stepResult = { success: false, error: 'Missing selector or target for select action' };
               actualMode = 'JS';
               break;
             }
             
-            const { result, mode } = await this.controller.select(selector, option);
-            console.log(`[WindowCopilot:${this.windowId}] select returned: mode=${mode}, result=`, result);
-            stepResult = result;
-            actualMode = mode;
-            
-            // 如果失败，给 AI 提示
-            if (!result?.success) {
-              stepResult.message = `选择失败: ${result?.error || '未知错误'}。可用选项: ${result?.availableOptions?.map(o => o.text || o.value).join(', ') || '无法获取'}`;
+            try {
+              const { result, mode } = await this.controller.select(selector, option);
+              console.error(`[SELECT_DEBUG] Result: ${JSON.stringify(result)}, mode=${mode}`);
+              stepResult = result;
+              actualMode = mode;
+              
+              // 如果失败，给 AI 提示
+              if (!result?.success) {
+                stepResult.message = `选择失败: ${result?.error || '未知错误'}。可用选项: ${result?.availableOptions?.map(o => o.text || o.value).join(', ') || '无法获取'}`;
+              }
+            } catch (err) {
+              console.error(`[SELECT_DEBUG] Exception: ${err.message}`);
+              stepResult = { success: false, error: err.message };
+              actualMode = 'JS';
             }
             
             await this._smartWait('select');

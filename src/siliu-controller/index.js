@@ -478,10 +478,10 @@ class SiliuController {
         })()
       `, { returnByValue: true });
       
-      return { result, mode: 'CDP' };
+      return { ...result, mode: 'CDP' };
     } catch (err) {
       console.error('[SiliuController] Coordinate select failed:', err.message);
-      return { result: { success: false, error: err.message }, mode: 'JS' };
+      return { success: false, error: err.message, mode: 'JS' };
     }
   }
 
