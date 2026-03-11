@@ -413,7 +413,7 @@ class SiliuController {
     
     try {
       // 使用 CDP 执行选择
-      const result = await this.cdpController.evaluate(`
+      const result = await this.cdpController.cdp.evaluate(`
         (function() {
           const x = ${x};
           const y = ${y};
