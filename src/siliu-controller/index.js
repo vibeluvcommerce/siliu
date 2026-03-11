@@ -381,13 +381,108 @@ class SiliuController {
 
   /**
    * 选择下拉框选项
+   * @param {string|object} selector - CSS选择器或坐标对象 {type: 'coordinate', x, y}
+   * @param {string} option - 选项值
    */
   async select(selector, option) {
+    // 支持坐标方式（React Select 等自定义下拉）
+    if (selector && typeof selector === 'object' && selector.x !== undefined) {
+      // 坐标方式：先点击坐标展开下拉，然后选择选项
+      return this._selectByCoordinate(selector, option);
+    }
+    
     return this._executeWithFallback(
       'select',
       async (ctrl) => ctrl.selectOption(selector, option),
       async () => this._nativeSelect(selector, option)
     );
+  }
+
+  /**
+   * 通过坐标选择下拉框选项（用于 React Select 等自定义组件）
+   * @param {object} coordinate - 坐标 {x, y}
+   * @param {string} option - 选项文本
+   */
+  async _selectByCoordinate(coordinate, option) {
+    const { x, y } = coordinate;
+    console.log(`[SiliuController] Select by coordinate: (${x}, ${y}), option=${option}`);
+    
+    if (!this.cdpController?.isConnected) {
+      return { result: { success: false, error: 'CDP not connected for coordinate select' }, mode: 'JS' };
+    }
+    
+    try {
+      // 使用 CDP 执行选择
+      const result = await this.cdpController.evaluate(`
+        (function() {
+          const x = ${x};
+          const y = ${y};
+          const optionText = '${option.replace(/'/g, "\\'")}';
+          
+          // 1. 点击坐标展开下拉菜单
+          const el = document.elementFromPoint(x * window.innerWidth, y * window.innerHeight);
+          if (!el) return { success: false, error: 'No element at coordinate' };
+          
+          el.click();
+          el.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+          
+          // 2. 等待下拉菜单展开
+          let attempts = 0;
+          const maxAttempts = 10;
+          
+          while (attempts < maxAttempts) {
+            // 查找下拉菜单中的选项
+            const allOptions = document.querySelectorAll('[role="option"], [class*="option"]');
+            
+            for (const opt of allOptions) {
+              const text = (opt.textContent || opt.innerText || '').trim();
+              if (text.toLowerCase() === optionText.toLowerCase()) {
+                opt.click();
+                opt.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+                return { success: true, method: 'click-exact', selected: text };
+              }
+            }
+            
+            // 如果没找到，等待一下再试
+            attempts++;
+            const start = Date.now();
+            while (Date.now() - start < 50) {}
+          }
+          
+          // 3. 如果没找到，尝试输入过滤
+          const input = el.querySelector('input') || document.querySelector('input:focus');
+          if (input) {
+            input.value = optionText;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            
+            // 再次查找
+            const start = Date.now();
+            while (Date.now() - start < 200) {}
+            
+            const filteredOptions = document.querySelectorAll('[role="option"], [class*="option"]');
+            for (const opt of filteredOptions) {
+              const text = (opt.textContent || opt.innerText || '').trim();
+              if (text.toLowerCase().includes(optionText.toLowerCase())) {
+                opt.click();
+                return { success: true, method: 'type-filter', selected: text };
+              }
+            }
+          }
+          
+          return { 
+            success: false, 
+            error: 'Option not found: ' + optionText,
+            foundOptions: Array.from(document.querySelectorAll('[role="option"], [class*="option"]'))
+              .map(o => o.textContent?.trim()).slice(0, 10)
+          };
+        })()
+      `, { returnByValue: true });
+      
+      return { result, mode: 'CDP' };
+    } catch (err) {
+      console.error('[SiliuController] Coordinate select failed:', err.message);
+      return { result: { success: false, error: err.message }, mode: 'JS' };
+    }
   }
 
   /**

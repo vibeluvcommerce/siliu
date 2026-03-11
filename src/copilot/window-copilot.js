@@ -1205,8 +1205,19 @@ ${this.isExecuting ? `当前任务: ${this.currentTask}` : ''}
             break;
           }
           case 'select': {
-            console.log(`[WindowCopilot:${this.windowId}] Calling controller.select: selector=${decision.selector}, option=${decision.option}`);
-            const { result, mode } = await this.controller.select(decision.selector, decision.option);
+            // 支持 selector 或 target（坐标）方式
+            const selector = decision.selector || decision.target;
+            const option = decision.option;
+            
+            console.log(`[WindowCopilot:${this.windowId}] Calling controller.select: selector/target=${JSON.stringify(selector)}, option=${option}`);
+            
+            if (!selector) {
+              stepResult = { success: false, error: 'Missing selector or target for select action' };
+              actualMode = 'JS';
+              break;
+            }
+            
+            const { result, mode } = await this.controller.select(selector, option);
             console.log(`[WindowCopilot:${this.windowId}] select returned: mode=${mode}, result=`, result);
             stepResult = result;
             actualMode = mode;
