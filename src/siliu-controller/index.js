@@ -408,12 +408,12 @@ class SiliuController {
     console.log(`[SiliuController] Select by coordinate: (${x}, ${y}), option=${option}`);
     
     if (!this.cdpController?.isConnected) {
-      return { result: { success: false, error: 'CDP not connected for coordinate select' }, mode: 'JS' };
+      return { success: false, error: 'CDP not connected for coordinate select', mode: 'JS' };
     }
     
     try {
       // 使用 CDP 执行选择
-      const result = await this.cdpController.cdp.evaluate(`
+      const evalResult = await this.cdpController.cdp.evaluate(`
         (function() {
           const x = ${x};
           const y = ${y};
@@ -478,6 +478,10 @@ class SiliuController {
         })()
       `, { returnByValue: true });
       
+      console.log(`[SiliuController] evaluate result:`, evalResult);
+      
+      // 确保有返回值
+      const result = evalResult || { success: false, error: 'No result from evaluate' };
       return { ...result, mode: 'CDP' };
     } catch (err) {
       console.error('[SiliuController] Coordinate select failed:', err.message);
