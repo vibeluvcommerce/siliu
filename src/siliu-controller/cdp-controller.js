@@ -713,8 +713,14 @@ class CDPController {
     // 【调试】在页面上显示点击位置的视觉标记
     await this.showClickMarker(targetX, targetY, cssWidth, cssHeight);
 
-    // 【快速模式】直接点击，不移动鼠标
-    if (!this.humanize.enabled) {
+    // 【关键】如果点击的是下拉菜单区域（y 较小），使用快速模式避免移动鼠标导致 hover 丢失
+    const isDropdownMenu = yPercent <= 0.20 && yPercent >= 0.05;
+    
+    if (!this.humanize.enabled || isDropdownMenu) {
+      if (isDropdownMenu) {
+        console.log(`[CDPController] Using fast click for dropdown menu to preserve hover state`);
+      }
+      // 【快速模式】直接点击，不移动鼠标
       await this.cdp.send('Input.dispatchMouseEvent', {
         type: 'mousePressed',
         x: targetX,

@@ -1158,6 +1158,15 @@ ${this.isExecuting ? `当前任务: ${this.currentTask}` : ''}
               }
               
               console.log(`[WindowCopilot:${this.windowId}] Clicking at coordinate: (${x}, ${y})`);
+              
+              // 【关键】如果点击下拉菜单项（y 在 0.08-0.20 范围），先重新 hover 头像保持菜单展开
+              if (y >= 0.08 && y <= 0.20 && x >= 0.70) {
+                console.log(`[WindowCopilot:${this.windowId}] Dropdown menu click detected, re-hovering avatar first to keep menu open`);
+                // 重新 hover 头像位置（通常在 x: 0.82-0.88, y: 0.04-0.06）
+                await this.controller.hoverAt(0.85, 0.05);
+                await this._sleep(100); // 短暂等待菜单展开
+              }
+              
               // 【关键】传递视口信息用于坐标校准
               const viewportInfo = this.executionContext?.lastObservation?.viewport;
               if (viewportInfo) {
