@@ -1205,11 +1205,17 @@ ${this.isExecuting ? `当前任务: ${this.currentTask}` : ''}
             break;
           }
           case 'select': {
-            console.log(`[WindowCopilot:${this.windowId}] Calling controller.select...`);
+            console.log(`[WindowCopilot:${this.windowId}] Calling controller.select: selector=${decision.selector}, option=${decision.option}`);
             const { result, mode } = await this.controller.select(decision.selector, decision.option);
-            console.log(`[WindowCopilot:${this.windowId}] select returned mode: ${mode}`);
+            console.log(`[WindowCopilot:${this.windowId}] select returned: mode=${mode}, result=`, result);
             stepResult = result;
             actualMode = mode;
+            
+            // 如果失败，给 AI 提示
+            if (!result?.success) {
+              stepResult.message = `选择失败: ${result?.error || '未知错误'}。可用选项: ${result?.availableOptions?.map(o => o.text || o.value).join(', ') || '无法获取'}`;
+            }
+            
             await this._smartWait('select');
             break;
           }

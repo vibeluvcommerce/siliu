@@ -1566,7 +1566,7 @@ class CDPController {
 
     await this.humanPause('normal');
 
-    return { success: result?.success ?? true, selector, option, ...result };
+    return { success: result?.success ?? false, selector, option, ...result };
   }
 
   // ========== 辅助方法 ==========
