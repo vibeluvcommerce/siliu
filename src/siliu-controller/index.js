@@ -181,20 +181,70 @@ class SiliuController {
    * 坐标点击（视觉驱动）
    * @param {number} xPercent - 百分比坐标 (0-1)
    * @param {number} yPercent - 百分比坐标 (0-1)
+   * @param {boolean} preserveHover - 是否保持 hover 状态（hover 后的点击使用 JS 点击）
    * @returns { result, mode }
    */
-  async clickAt(xPercent, yPercent) {
-    if (!this.cdpController?.isConnected) {
-      return { result: { success: false, error: 'CDP not connected' }, mode: 'JS' };
+  async clickAt(xPercent, yPercent, preserveHover = false) {
+    // 如果 CDP 已连接，优先使用 CDP
+    if (this.cdpController?.isConnected) {
+      try {
+        const result = await this.cdpController.clickAt(xPercent, yPercent, null, preserveHover);
+        return { result, mode: preserveHover ? 'JS' : 'CDP' };
+      } catch (err) {
+        console.error('[SiliuController] CDP clickAt failed, falling back to native JS:', err.message);
+        // CDP 失败，降级到原生 JS 点击
+      }
     }
     
+    // CDP 未连接或失败，使用原生 JS 点击（降级）
     try {
-      const result = await this.cdpController.clickAt(xPercent, yPercent);
-      return { result, mode: 'CDP' };
+      const result = await this._nativeClickAt(xPercent, yPercent);
+      return { result, mode: 'JS' };
     } catch (err) {
-      console.error('[SiliuController] clickAt failed:', err.message);
+      console.error('[SiliuController] Native clickAt failed:', err.message);
       return { result: { success: false, error: err.message }, mode: 'JS' };
     }
+  }
+
+  /**
+   * 原生 JS 坐标点击（CDP 断开时的降级）
+   */
+  async _nativeClickAt(xPercent, yPercent) {
+    const view = this.getView();
+    if (!view) {
+      throw new Error('No active view for native click');
+    }
+
+    const rect = await this._getViewRect();
+    const targetX = Math.round(xPercent * rect.width);
+    const targetY = Math.round(yPercent * rect.height);
+
+    console.log(`[SiliuController] Native JS click at: (${targetX}, ${targetY})`);
+
+    const result = await view.webContents.executeJavaScript(`
+      (function() {
+        const el = document.elementFromPoint(${targetX}, ${targetY});
+        if (!el) return { success: false, error: 'No element found' };
+        
+        const clickTarget = el.tagName === 'A' ? el : (el.closest('a') || el);
+        
+        // 触发点击
+        clickTarget.click();
+        clickTarget.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        
+        if (clickTarget.href) {
+          window.location.assign(clickTarget.href);
+        }
+        
+        return { 
+          success: true, 
+          element: clickTarget.tagName,
+          text: clickTarget.textContent?.substring(0, 30)
+        };
+      })()
+    `);
+
+    return result;
   }
 
   /**

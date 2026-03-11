@@ -668,8 +668,10 @@ class CDPController {
    * 坐标点击（视觉驱动）
    * @param {number} xPercent - 百分比坐标 (0-1)
    * @param {number} yPercent - 百分比坐标 (0-1)
+   * @param {object} viewportInfo - 视口信息
+   * @param {boolean} preserveHover - 是否保持 hover 状态（使用 JS 点击）
    */
-  async clickAt(xPercent, yPercent, viewportInfo = null) {
+  async clickAt(xPercent, yPercent, viewportInfo = null, preserveHover = false) {
     let width, height, dpr = 1;
     
     if (viewportInfo) {
@@ -708,18 +710,57 @@ class CDPController {
     const targetX = Math.round(xPercent * cssWidth);
     const targetY = Math.round(yPercent * cssHeight);
 
-    console.log(`[CDPController] Clicking at: (${targetX}, ${targetY}) [${xPercent}, ${yPercent}] CSS pixels`);
+    console.log(`[CDPController] Clicking at: (${targetX}, ${targetY}) [${xPercent}, ${yPercent}] preserveHover=${preserveHover}`);
     
     // 【调试】在页面上显示点击位置的视觉标记
     await this.showClickMarker(targetX, targetY, cssWidth, cssHeight);
 
-    // 【关键】如果点击的是下拉菜单区域（y 较小），使用快速模式避免移动鼠标导致 hover 丢失
-    const isDropdownMenu = yPercent <= 0.20 && yPercent >= 0.05;
+    // 【关键】hover 后的点击使用 JS 点击，不移动鼠标，保持 hover 状态
+    if (preserveHover) {
+      console.log(`[CDPController] Using JS click to preserve hover state`);
+      
+      const clickResult = await this.cdp.evaluate(`
+        (function() {
+          const x = ${targetX};
+          const y = ${targetY};
+          
+          const el = document.elementFromPoint(x, y);
+          if (!el) return { success: false, error: 'No element found' };
+          
+          let clickTarget = el;
+          let link = el.tagName === 'A' ? el : el.closest('a');
+          
+          if (!link && el.querySelector) {
+            const innerLink = el.querySelector('a');
+            if (innerLink) {
+              link = innerLink;
+              clickTarget = innerLink;
+            }
+          }
+          
+          clickTarget.click();
+          clickTarget.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+          
+          if (link && link.href) {
+            window.location.assign(link.href);
+          }
+          
+          return { 
+            success: true, 
+            element: clickTarget.tagName,
+            className: clickTarget.className,
+            text: clickTarget.textContent?.substring(0, 50),
+            href: link?.href || null
+          };
+        })()
+      `, { returnByValue: true });
+      
+      console.log(`[CDPController] JS click result:`, clickResult);
+      return { success: clickResult?.success ?? true, position: { x: targetX, y: targetY }, jsClick: true };
+    }
     
-    if (!this.humanize.enabled || isDropdownMenu) {
-      if (isDropdownMenu) {
-        console.log(`[CDPController] Using fast click for dropdown menu to preserve hover state`);
-      }
+    // 【普通点击】使用 CDP 鼠标点击，有视觉反馈
+    if (!this.humanize.enabled) {
       // 【快速模式】直接点击，不移动鼠标
       await this.cdp.send('Input.dispatchMouseEvent', {
         type: 'mousePressed',

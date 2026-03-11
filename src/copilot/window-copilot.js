@@ -53,6 +53,9 @@ class WindowCopilot {
     // 登录等待计数
     this.loginWaitCount = 0;
 
+    // 跟踪上一步是否是 hover（用于 hover 后的点击保持 hover 状态）
+    this._lastActionWasHover = false;
+
     // 初始化视觉上下文管理器（配置延迟到 activate 时）
     this.visualContext = null;
 
@@ -1142,39 +1145,22 @@ ${this.isExecuting ? `当前任务: ${this.currentTask}` : ''}
 
             // 支持坐标点击（视觉驱动）
             if (isCoordinateClick) {
-              let { x, y } = decision.target;
-              
-              // 【安全检查】下拉菜单点击的 y 坐标必须在合理范围
-              if (y > 0.25) {
-                console.warn(`[WindowCopilot:${this.windowId}] WARNING: Click y=${y} is too low for dropdown menu. Dropdown items should be in y: 0.08-0.18`);
-                // 返回失败，让 AI 重新估计
-                stepResult = { 
-                  success: false, 
-                  error: `点击 y 坐标 ${y} 超出下拉菜单范围。下拉菜单项通常在 y: 0.08-0.18 范围内。请重新 screenshot 确认位置。`,
-                  needRetry: true
-                };
-                actualMode = 'JS';
-                break;
-              }
+              const { x, y } = decision.target;
               
               console.log(`[WindowCopilot:${this.windowId}] Clicking at coordinate: (${x}, ${y})`);
               
-              // 【关键】如果点击下拉菜单项（y 在 0.08-0.20 范围），先重新 hover 头像保持菜单展开
-              if (y >= 0.08 && y <= 0.20 && x >= 0.70) {
-                console.log(`[WindowCopilot:${this.windowId}] Dropdown menu click detected, re-hovering avatar first to keep menu open`);
-                // 重新 hover 头像位置（通常在 x: 0.82-0.88, y: 0.04-0.06）
-                await this.controller.hoverAt(0.85, 0.05);
-                await this._sleep(100); // 短暂等待菜单展开
+              // 【关键】如果上一步是 hover，这一步点击要保持 hover 状态（使用 JS 点击）
+              const preserveHover = this._lastActionWasHover;
+              if (preserveHover) {
+                console.log(`[WindowCopilot:${this.windowId}] Preserving hover state for dropdown click`);
               }
               
-              // 【关键】传递视口信息用于坐标校准
-              const viewportInfo = this.executionContext?.lastObservation?.viewport;
-              if (viewportInfo) {
-                console.log(`[WindowCopilot:${this.windowId}] Using viewport for calibration: ${viewportInfo.width}x${viewportInfo.height}`);
-              }
-              const { result, mode } = await this.controller.clickAt(x, y, viewportInfo);
+              const { result, mode } = await this.controller.clickAt(x, y, preserveHover);
               stepResult = result;
               actualMode = mode;
+              
+              // 重置 hover 标志
+              this._lastActionWasHover = false;
             } else {
               // 传统 selector 点击
               const selector = decision.target?.selector || decision.selector;
@@ -1208,6 +1194,9 @@ ${this.isExecuting ? `当前任务: ${this.currentTask}` : ''}
               actualMode = mode;
             }
             await this._smartWait('hover');
+            
+            // 【关键】标记上一步是 hover，这样下一步点击会保持 hover 状态
+            this._lastActionWasHover = true;
             
             // 【关键】hover 后给 AI 提示下拉菜单的位置
             if (stepResult.success) {
