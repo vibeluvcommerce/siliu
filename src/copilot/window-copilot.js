@@ -1219,14 +1219,14 @@ ${this.isExecuting ? `当前任务: ${this.currentTask}` : ''}
             }
             
             try {
-              const { result, mode } = await this.controller.select(selector, option);
-              console.error(`[SELECT_DEBUG] Result: ${JSON.stringify(result)}, mode=${mode}`);
-              stepResult = result;
-              actualMode = mode;
+              const selectResult = await this.controller.select(selector, option);
+              console.error(`[SELECT_DEBUG] Result: ${JSON.stringify(selectResult)}`);
+              stepResult = selectResult;
+              actualMode = selectResult?.mode || 'CDP';
               
               // 如果失败，给 AI 提示
-              if (!result?.success) {
-                stepResult.message = `选择失败: ${result?.error || '未知错误'}。可用选项: ${result?.availableOptions?.map(o => o.text || o.value).join(', ') || '无法获取'}`;
+              if (!selectResult?.success) {
+                stepResult.message = `选择失败: ${selectResult?.error || '未知错误'}。可用选项: ${selectResult?.availableOptions?.map(o => o.text || o.value).join(', ') || '无法获取'}`;
               }
             } catch (err) {
               console.error(`[SELECT_DEBUG] Exception: ${err.message}`);

@@ -388,17 +388,23 @@ class SiliuController {
    * @param {string} option - 选项值
    */
   async select(selector, option) {
+    console.error(`[SELECT_MODE] selector type=${typeof selector}, has x=${selector?.x !== undefined}`);
+    
     // 如果是坐标方式，使用输入+点击模式
     if (selector && typeof selector === 'object' && selector.x !== undefined) {
+      console.error(`[SELECT_MODE] Using INPUT+CLICK mode (coordinate)`);
       return this._selectByInput(selector, option);
     }
     
     // 如果是字符串选择器，先检测元素类型
     if (typeof selector === 'string') {
+      console.error(`[SELECT_MODE] String selector, detecting element type...`);
       // 检测是否是原生 select
       const isNativeSelect = await this._isNativeSelect(selector);
+      console.error(`[SELECT_MODE] isNativeSelect=${isNativeSelect}`);
       
       if (isNativeSelect) {
+        console.error(`[SELECT_MODE] Using TRADITIONAL mode (native select)`);
         // 原生 select 使用传统方式
         return this._executeWithFallback(
           'select',
@@ -406,11 +412,13 @@ class SiliuController {
           async () => this._nativeSelect(selector, option)
         );
       } else {
+        console.error(`[SELECT_MODE] Using INPUT+CLICK mode (custom dropdown)`);
         // 自定义下拉使用输入+点击模式
         return this._selectByInput(null, option, selector);
       }
     }
     
+    console.error(`[SELECT_MODE] Using INPUT+CLICK mode (default)`);
     // 默认使用输入+点击模式
     return this._selectByInput(selector, option);
   }
@@ -459,7 +467,7 @@ class SiliuController {
           let container = null;
           
           // 1. 找到下拉框容器
-          ${coordinate ? `
+          ${coordinate && coordinate.x !== undefined ? `
             // 通过坐标找
             const x = ${coordinate.x};
             const y = ${coordinate.y};
@@ -553,7 +561,8 @@ class SiliuController {
       
       console.log(`[SiliuController] Input select result:`, evalResult);
       
-      const result = evalResult || { success: false, error: 'No result from evaluate' };
+      // cdp.evaluate 返回的结果在 .value 属性中
+      const result = evalResult?.value || { success: false, error: 'No result from evaluate' };
       return { ...result, mode: 'CDP' };
     } catch (err) {
       console.error('[SiliuController] Input select failed:', err.message);
