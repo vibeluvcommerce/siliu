@@ -1217,16 +1217,6 @@ class CDPController {
     return Buffer.from(result.data, 'base64');
   }
 
-  // ========== 辅助方法 ==========
-
-  _isCSSSelector(str) {
-    return /^[.#\[\w]/.test(str) || str.includes(' ') || str.includes('>') || str.includes(':');
-  }
-}
-
-module.exports = CDPController;
-
-
   /**
    * 鼠标悬停（hover）- 支持 CSS 选择器、文本内容、XPath、坐标
    */
@@ -1373,3 +1363,12 @@ module.exports = CDPController;
 
     return { success: true, selector, option, ...result };
   }
+
+  // ========== 辅助方法 ==========
+
+  _isCSSSelector(str) {
+    return /^[.#\[\w]/.test(str) || str.includes(' ') || str.includes('>') || str.includes(':');
+  }
+}
+
+module.exports = CDPController;
