@@ -1,6 +1,6 @@
 /**
  * Dialog Interceptor - 系统级文件选择对话框拦截器
- * 使用 Windows API 监听和自动化文件选择对话框
+ * 使用轮询检测 + Windows API 自动化文件选择对话框
  */
 
 const { EventEmitter } = require('events');
@@ -9,11 +9,11 @@ class DialogInterceptor extends EventEmitter {
   constructor() {
     super();
     this.isRunning = false;
-    this.pendingFile = null;  // 等待选择的文件路径
-    this.hook = null;
+    this.pendingFile = null;
+    this.pollInterval = null;
     this.koffi = null;
     this.user32 = null;
-    this.ole32 = null;
+    this.kernel32 = null;
     
     // 尝试加载 koffi
     try {
@@ -34,107 +34,63 @@ class DialogInterceptor extends EventEmitter {
       // 加载 user32.dll
       this.user32 = this.koffi.load('user32.dll');
       
-      // koffi 2.x 使用新的 API 定义方式
-      // 定义回调函数类型
-      this.WineventProc = this.koffi.proto('void WineventProc(void *hook, uint32 event, void *hwnd, int32 idObject, int32 idChild, uint32 eventThread, uint32 eventTime)');
+      // 加载 kernel32.dll
+      this.kernel32 = this.koffi.load('kernel32.dll');
       
-      // 定义 Windows API 函数（koffi 2.x 语法）
-      this.user32.SetWinEventHook = this.user32.func('SetWinEventHook@28', 
-        this.koffi.pointer(this.koffi.types.void),
-        [this.koffi.types.uint32, this.koffi.types.uint32, this.koffi.pointer(this.koffi.types.void), 
-         this.koffi.pointer(this.WineventProc), this.koffi.types.uint32, this.koffi.types.uint32, this.koffi.types.uint32]);
+      // 定义函数原型（使用 @decorated 格式）
+      // FindWindow 系列
+      this.user32.FindWindowW = this.user32.func('FindWindowW@8', 'void *', ['const char16 *', 'const char16 *']);
+      this.user32.FindWindowExW = this.user32.func('FindWindowExW@16', 'void *', ['void *', 'void *', 'const char16 *', 'const char16 *']);
       
-      this.user32.UnhookWinEvent = this.user32.func('UnhookWinEvent@4',
-        this.koffi.types.bool,
-        [this.koffi.pointer(this.koffi.types.void)]);
+      // 窗口操作
+      this.user32.GetClassNameW = this.user32.func('GetClassNameW@12', 'int', ['void *', 'void *', 'int']);
+      this.user32.SetWindowTextW = this.user32.func('SetWindowTextW@8', 'bool', ['void *', 'const char16 *']);
+      this.user32.GetWindowTextW = this.user32.func('GetWindowTextW@12', 'int', ['void *', 'void *', 'int']);
+      this.user32.IsWindow = this.user32.func('IsWindow@4', 'bool', ['void *']);
+      this.user32.IsWindowVisible = this.user32.func('IsWindowVisible@4', 'bool', ['void *']);
+      this.user32.GetForegroundWindow = this.user32.func('GetForegroundWindow@0', 'void *', []);
+      this.user32.EnumWindows = this.user32.func('EnumWindows@8', 'bool', ['void *', 'int64']);
+      this.user32.GetWindowThreadProcessId = this.user32.func('GetWindowThreadProcessId@8', 'uint32', ['void *', 'void *']);
       
-      this.user32.GetClassNameW = this.user32.func('GetClassNameW@12',
-        this.koffi.types.int32,
-        [this.koffi.pointer(this.koffi.types.void), this.koffi.pointer(this.koffi.types.char), this.koffi.types.int32]);
+      // 消息发送
+      this.user32.PostMessageW = this.user32.func('PostMessageW@16', 'bool', ['void *', 'uint32', 'uint64', 'int64']);
+      this.user32.SendMessageW = this.user32.func('SendMessageW@16', 'int64', ['void *', 'uint32', 'uint64', 'int64']);
       
-      this.user32.FindWindowExW = this.user32.func('FindWindowExW@16',
-        this.koffi.pointer(this.koffi.types.void),
-        [this.koffi.pointer(this.koffi.types.void), this.koffi.pointer(this.koffi.types.void), 
-         this.koffi.pointer(this.koffi.types.char), this.koffi.pointer(this.koffi.types.char)]);
-      
-      this.user32.SetWindowTextW = this.user32.func('SetWindowTextW@8',
-        this.koffi.types.bool,
-        [this.koffi.pointer(this.koffi.types.void), this.koffi.pointer(this.koffi.types.char)]);
-      
-      this.user32.PostMessageW = this.user32.func('PostMessageW@16',
-        this.koffi.types.bool,
-        [this.koffi.pointer(this.koffi.types.void), this.koffi.types.uint32, 
-         this.koffi.types.uint64, this.koffi.types.int64]);
-      
-      this.user32.SendMessageW = this.user32.func('SendMessageW@16',
-        this.koffi.types.int64,
-        [this.koffi.pointer(this.koffi.types.void), this.koffi.types.uint32, 
-         this.koffi.types.uint64, this.koffi.types.int64]);
-      
-      // 加载 ole32.dll（用于 COM）
-      this.ole32 = this.koffi.load('ole32.dll');
-      this.ole32.CoInitialize = this.ole32.func('CoInitialize@4', 
-        this.koffi.types.int32,
-        [this.koffi.pointer(this.koffi.types.void)]);
-      
-      // 初始化 COM
-      this.ole32.CoInitialize(null);
+      // 进程相关
+      this.kernel32.GetCurrentProcessId = this.kernel32.func('GetCurrentProcessId@0', 'uint32', []);
       
       console.log('[DialogInterceptor] Win32 API initialized');
     } catch (err) {
       console.error('[DialogInterceptor] Failed to init Win32 API:', err.message);
       this.koffi = null;
       this.user32 = null;
-      this.ole32 = null;
+      this.kernel32 = null;
     }
   }
 
   /**
-   * 开始拦截
+   * 开始拦截（轮询模式）
    */
   start() {
     if (this.isRunning || !this.user32) {
-      console.warn('[DialogInterceptor] Already running or Win32 not available');
+      console.warn('[DialogInterceptor] Already running or Win32 not available, user32:', !!this.user32);
       return false;
     }
 
     try {
-      // Windows 事件常量
-      const EVENT_OBJECT_CREATE = 0x8000;  // 0x8000 = OBJID_WINDOW
-      const EVENT_OBJECT_SHOW = 0x8002;
-      const EVENT_SYSTEM_DIALOGSTART = 0x0010;
-      
-      // WINEVENT 标志
-      const WINEVENT_OUTOFCONTEXT = 0x0000;
-      const WINEVENT_SKIPOWNPROCESS = 0x0002;
-
-      // 创建回调函数
-      this.callback = this.koffi.register((hook, event, hwnd, idObject, idChild, 
-                                           eventThread, eventTime) => {
-        this._onWindowEvent(event, hwnd);
-      }, 'void __stdcall(void *, uint32, void *, int32, int32, uint32, uint32)');
-
-      // 设置全局钩子
-      this.hook = this.user32.SetWinEventHook(
-        EVENT_OBJECT_CREATE,
-        EVENT_OBJECT_SHOW,
-        null,                    // 不注入 DLL
-        this.callback,           // 回调函数
-        0,                       // 所有进程
-        0,                       // 所有线程
-        WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS
-      );
-
-      if (!this.hook) {
-        throw new Error('SetWinEventHook failed');
-      }
-
       this.isRunning = true;
-      console.log('[DialogInterceptor] Started, hook:', this.hook);
+      
+      // 启动轮询检测（每 100ms 检查一次）
+      this.pollInterval = setInterval(() => {
+        this._pollForDialogs();
+      }, 100);
+      
+      console.log('[DialogInterceptor] Started in polling mode');
       return true;
 
     } catch (err) {
       console.error('[DialogInterceptor] Failed to start:', err.message);
+      this.isRunning = false;
       return false;
     }
   }
@@ -143,16 +99,15 @@ class DialogInterceptor extends EventEmitter {
    * 停止拦截
    */
   stop() {
-    if (!this.isRunning || !this.hook) return;
+    if (!this.isRunning) return;
 
-    try {
-      this.user32.UnhookWinEvent(this.hook);
-      this.hook = null;
-      this.isRunning = false;
-      console.log('[DialogInterceptor] Stopped');
-    } catch (err) {
-      console.error('[DialogInterceptor] Error stopping:', err.message);
+    if (this.pollInterval) {
+      clearInterval(this.pollInterval);
+      this.pollInterval = null;
     }
+    
+    this.isRunning = false;
+    console.log('[DialogInterceptor] Stopped');
   }
 
   /**
@@ -171,100 +126,214 @@ class DialogInterceptor extends EventEmitter {
   }
 
   /**
-   * 窗口事件回调
+   * 轮询检测对话框
    */
-  _onWindowEvent(event, hwnd) {
-    if (!this.pendingFile || !hwnd) return;
+  _pollForDialogs() {
+    if (!this.pendingFile || !this.user32) return;
 
     try {
+      // 获取当前前台窗口
+      const fgWindow = this.user32.GetForegroundWindow();
+      if (!fgWindow || fgWindow.isNull?.()) return;
+      
+      // 检查是否可见
+      if (!this.user32.IsWindowVisible(fgWindow)) return;
+      
       // 获取窗口类名
-      const buffer = Buffer.alloc(512);
-      const len = this.user32.GetClassNameW(hwnd, buffer, 256);
+      const classBuffer = Buffer.alloc(512);
+      const classLen = this.user32.GetClassNameW(fgWindow, classBuffer, 256);
       
-      if (len === 0) return;
+      if (classLen === 0) return;
       
-      const className = buffer.toString('ucs2', 0, len * 2).replace(/\0/g, '');
+      const className = classBuffer.toString('utf16le', 0, classLen * 2).replace(/\0/g, '');
       
-      // 检测是否是对话框
+      // 只处理对话框类
       if (className !== '#32770') return;
-
-      console.log('[DialogInterceptor] Dialog detected, hwnd:', hwnd.toString());
-
-      // 异步处理，避免阻塞钩子
-      setImmediate(() => {
-        this._handleFileDialog(hwnd);
-      });
+      
+      // 获取窗口标题
+      const titleBuffer = Buffer.alloc(1024);
+      const titleLen = this.user32.GetWindowTextW(fgWindow, titleBuffer, 512);
+      const title = titleBuffer.toString('utf16le', 0, titleLen * 2).replace(/\0/g, '');
+      
+      console.log('[DialogInterceptor] Dialog detected:', { className, title, hwnd: fgWindow.toString() });
+      
+      // 检查是否是文件选择对话框（通过标题关键词）
+      const isFileDialog = this._isFileDialog(title);
+      
+      if (isFileDialog) {
+        console.log('[DialogInterceptor] File dialog confirmed, auto-filling...');
+        this._autoFillDialog(fgWindow);
+      }
 
     } catch (err) {
-      console.error('[DialogInterceptor] Error in event handler:', err.message);
+      console.error('[DialogInterceptor] Error in poll:', err.message);
     }
   }
 
   /**
-   * 处理文件对话框
+   * 判断是否是文件选择对话框
    */
-  _handleFileDialog(hwnd) {
+  _isFileDialog(title) {
+    const keywords = [
+      '打开', '保存', '另存为',       // 中文
+      'Open', 'Save', 'Save As',     // 英文
+      '选择文件', 'File',            // 通用
+      '上传', 'Upload',              // 上传
+    ];
+    
+    return keywords.some(kw => title.includes(kw));
+  }
+
+  /**
+   * 自动填充对话框
+   */
+  _autoFillDialog(hwnd) {
     if (!this.pendingFile) return;
 
     try {
-      console.log('[DialogInterceptor] Handling file dialog for:', this.pendingFile);
-
-      // 方法1：尝试找到文件名输入框（Edit 控件）
-      // 类名可能是 "Edit" 或 "Chrome_WidgetWin_1"（Chrome 系）
-      let editBox = this.user32.FindWindowExW(hwnd, null, 'Edit', null);
+      console.log('[DialogInterceptor] Attempting to fill dialog with:', this.pendingFile);
       
-      if (!editBox) {
-        // 尝试其他可能的类名
-        editBox = this.user32.FindWindowExW(hwnd, null, 'Chrome_WidgetWin_1', null);
-      }
-
-      if (editBox) {
+      // 方法1: 尝试找到文件名输入框
+      // 类名可能是 "Edit" 或 "ComboBoxEx32"
+      const editBox = this._findFilenameEdit(hwnd);
+      
+      if (editBox && !editBox.isNull?.()) {
+        console.log('[DialogInterceptor] Found filename edit box:', editBox.toString());
+        
         // 设置文件路径
-        this.user32.SetWindowTextW(editBox, this.pendingFile);
-        console.log('[DialogInterceptor] File path set to edit box');
+        const filePathUtf16 = Buffer.from(this.pendingFile + '\0', 'utf16le');
+        const result = this.user32.SetWindowTextW(editBox, filePathUtf16);
         
-        // 模拟按下回车键（IDOK = 1）
-        const WM_COMMAND = 0x0111;
-        const IDOK = 1;
+        console.log('[DialogInterceptor] SetWindowText result:', result);
         
-        setTimeout(() => {
-          this.user32.PostMessageW(hwnd, WM_COMMAND, IDOK, 0);
-          console.log('[DialogInterceptor] Dialog confirmed');
+        if (result) {
+          // 延迟后点击确认按钮
+          setTimeout(() => {
+            this._clickConfirmButton(hwnd);
+          }, 200);
           
           // 触发事件
           this.emit('file:selected', {
             filePath: this.pendingFile,
-            hwnd: hwnd.toString()
+            hwnd: hwnd.toString(),
+            title: this._getWindowTitle(hwnd)
           });
           
-          // 清除待选文件（一次性使用）
+          // 清除待选文件
           this.pendingFile = null;
-        }, 100); // 稍微延迟确保路径已设置
-        
-        return;
+          return;
+        }
       }
-
-      // 方法2：如果找不到 Edit，尝试使用 UI Automation（更现代的方法）
-      this._handleWithUIAutomation(hwnd);
+      
+      // 如果找不到输入框，发出手动干预事件
+      console.warn('[DialogInterceptor] Could not find filename input, manual intervention needed');
+      this.emit('dialog:manual-required', {
+        hwnd: hwnd.toString(),
+        filePath: this.pendingFile,
+        title: this._getWindowTitle(hwnd)
+      });
 
     } catch (err) {
-      console.error('[DialogInterceptor] Error handling dialog:', err.message);
+      console.error('[DialogInterceptor] Error auto-filling dialog:', err.message);
     }
   }
 
   /**
-   * 使用 UI Automation 处理（备用方法）
+   * 查找文件名输入框
    */
-  _handleWithUIAutomation(hwnd) {
-    // UI Automation 需要更复杂的 COM 接口
-    // 这里简化处理，实际可以使用 @ Nut.js 或 windows-automation 包
-    console.log('[DialogInterceptor] Edit box not found, UI Automation not implemented yet');
-    
-    // 发出事件让上层知道需要手动处理
-    this.emit('dialog:manual-required', {
-      hwnd: hwnd.toString(),
-      filePath: this.pendingFile
-    });
+  _findFilenameEdit(parentHwnd) {
+    try {
+      // 常见的文件名输入框类名
+      const editClasses = ['Edit', 'ComboBoxEx32', 'ComboBox'];
+      
+      for (const className of editClasses) {
+        const classNameUtf16 = Buffer.from(className + '\0', 'utf16le');
+        
+        // 尝试直接查找
+        let edit = this.user32.FindWindowExW(parentHwnd, null, classNameUtf16, null);
+        
+        if (edit && !edit.isNull?.()) {
+          return edit;
+        }
+        
+        // 如果找不到，尝试遍历所有子窗口
+        // 这里简化处理，实际可能需要递归查找
+      }
+      
+      return null;
+    } catch (err) {
+      console.error('[DialogInterceptor] Error finding edit box:', err.message);
+      return null;
+    }
+  }
+
+  /**
+   * 点击确认按钮
+   */
+  _clickConfirmButton(hwnd) {
+    try {
+      // 尝试找到确认按钮（类名为 Button，标题为 "打开" 或 "保存" 或 "&Open" 等）
+      const buttonClasses = ['Button'];
+      const confirmTexts = ['打开', '保存', '确定', 'Open', 'Save', 'OK', '&Open', '&Save'];
+      
+      for (const btnClass of buttonClasses) {
+        let child = null;
+        const classNameUtf16 = Buffer.from(btnClass + '\0', 'utf16le');
+        
+        do {
+          child = this.user32.FindWindowExW(hwnd, child, classNameUtf16, null);
+          
+          if (child && !child.isNull?.()) {
+            // 获取按钮文字
+            const textBuffer = Buffer.alloc(256);
+            const textLen = this.user32.GetWindowTextW(child, textBuffer, 128);
+            const text = textBuffer.toString('utf16le', 0, textLen * 2).replace(/\0/g, '');
+            
+            // 检查是否是确认按钮
+            const isConfirm = confirmTexts.some(ct => text.includes(ct) || text === ct);
+            
+            if (isConfirm) {
+              console.log('[DialogInterceptor] Clicking confirm button:', text);
+              
+              // 发送点击消息
+              const WM_COMMAND = 0x0111;
+              const BN_CLICKED = 0;
+              
+              // 获取按钮 ID
+              const buttonId = this.user32.GetWindowThreadProcessId(child, null);
+              
+              // 发送点击消息到父窗口
+              this.user32.PostMessageW(hwnd, WM_COMMAND, (BN_CLICKED << 16) | 1, child);
+              
+              console.log('[DialogInterceptor] Confirm button clicked');
+              return;
+            }
+          }
+        } while (child && !child.isNull?.());
+      }
+      
+      // 如果没找到特定按钮，尝试直接发送 IDOK
+      console.log('[DialogInterceptor] Sending IDOK command');
+      const WM_COMMAND = 0x0111;
+      const IDOK = 1;
+      this.user32.PostMessageW(hwnd, WM_COMMAND, IDOK, 0);
+      
+    } catch (err) {
+      console.error('[DialogInterceptor] Error clicking confirm:', err.message);
+    }
+  }
+
+  /**
+   * 获取窗口标题
+   */
+  _getWindowTitle(hwnd) {
+    try {
+      const buffer = Buffer.alloc(1024);
+      const len = this.user32.GetWindowTextW(hwnd, buffer, 512);
+      return buffer.toString('utf16le', 0, len * 2).replace(/\0/g, '');
+    } catch (err) {
+      return '';
+    }
   }
 
   /**
