@@ -166,6 +166,18 @@ class SiliuController {
   }
 
   /**
+   * 上传文件
+   * 返回 { success, filePath, mode }
+   */
+  async upload(selectorOrText, filePath) {
+    return this._executeWithFallback(
+      'upload',
+      async (ctrl) => ctrl.upload(selectorOrText, filePath),
+      async () => this._nativeUpload(selectorOrText, filePath)
+    );
+  }
+
+  /**
    * 点击元素
    * 返回 { result, mode, attempts: [{mode, success, error}] }
    */
@@ -915,6 +927,15 @@ class SiliuController {
     `);
 
     return { success: true };
+  }
+
+  async _nativeUpload(selectorOrText, filePath) {
+    const wc = this._getActiveWebContents();
+    if (!wc) throw new Error('无法获取页面');
+
+    // JS 方式无法直接设置文件路径（安全限制）
+    // 只能返回错误，提示需要使用 CDP 模式
+    throw new Error('File upload requires CDP mode. Please ensure CDP is connected.');
   }
 
   async _nativePress(key) {

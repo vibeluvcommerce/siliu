@@ -887,6 +887,49 @@ class CDPController {
   }
 
   /**
+   * 上传文件到文件输入框
+   * 使用 CDP 直接设置文件路径，绕过系统文件选择对话框
+   * @param {string} selectorOrText - CSS选择器或文本
+   * @param {string} filePath - 本地文件绝对路径
+   */
+  async upload(selectorOrText, filePath) {
+    await this.randomDelay(300, 600);
+
+    // 查找文件输入框
+    let nodeId = await this.smartFind(selectorOrText);
+    if (!nodeId) {
+      await this.sleep(500);
+      nodeId = await this.smartFind(selectorOrText);
+      if (!nodeId) {
+        throw new Error(`File input not found: ${selectorOrText}`);
+      }
+    }
+
+    // 滚动到元素可见
+    try {
+      await this.cdp.send('DOM.scrollIntoViewIfNeeded', { nodeId });
+      await this.sleep(200);
+    } catch (e) {
+      // 忽略
+    }
+
+    // 使用 CDP 设置文件
+    try {
+      await this.cdp.send('DOM.setFileInputFiles', {
+        nodeId: nodeId,
+        files: [filePath]
+      });
+    } catch (err) {
+      console.error('[CDPController] setFileInputFiles failed:', err.message);
+      throw new Error(`Failed to upload file: ${err.message}`);
+    }
+
+    await this.sleep(300);
+
+    return { success: true, filePath };
+  }
+
+  /**
    * 输入文本（带反爬人类行为模拟）
    * 支持 CSS 选择器、文本内容、XPath
    */

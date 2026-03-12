@@ -1261,6 +1261,33 @@ ${this.isExecuting ? `当前任务: ${this.currentTask}` : ''}
             await this._smartWait('press');
             break;
           }
+          case 'upload': {
+            const uploadSelector = decision.selector || decision.target;
+            const filePath = decision.filePath || decision.file;
+            
+            console.log(`[WindowCopilot:${this.windowId}] upload: selector=${JSON.stringify(uploadSelector)}, file=${filePath}`);
+            
+            if (!uploadSelector) {
+              stepResult = { success: false, error: 'Missing selector or target for upload' };
+              actualMode = 'JS';
+            } else if (!filePath) {
+              stepResult = { success: false, error: 'Missing filePath for upload' };
+              actualMode = 'JS';
+            } else {
+              try {
+                const { result, mode } = await this.controller.upload(uploadSelector, filePath);
+                stepResult = result;
+                actualMode = mode;
+              } catch (err) {
+                console.error(`[WindowCopilot:${this.windowId}] upload failed:`, err.message);
+                stepResult = { success: false, error: err.message };
+                actualMode = 'JS';
+              }
+            }
+            
+            await this._smartWait('type');
+            break;
+          }
           case 'type': {
             console.log(`[WindowCopilot:${this.windowId}] Calling controller.type...`);
 
@@ -1495,6 +1522,7 @@ ${this.isExecuting ? `当前任务: ${this.currentTask}` : ''}
       navigate: '正在导航到网站页面',
       click: '点击页面元素',
       type: '正在输入文本',
+      upload: '上传文件',
       selectAll: '全选文本',
       scroll: '正在滚动查看页面',
       wheel: '正在滚动滚轮',
@@ -1574,6 +1602,10 @@ ${this.isExecuting ? `当前任务: ${this.currentTask}` : ''}
             })()
           `);
           return { success: true };
+
+        case 'upload':
+          // JS Fallback 无法直接上传文件，返回错误
+          return { success: false, error: 'File upload requires CDP mode' };
 
         case 'type':
           await webContents.executeJavaScript(`

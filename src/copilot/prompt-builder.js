@@ -19,6 +19,7 @@ const ACTION_SCHEMA = {
   click: { params: ['selector|target'], desc: '点击元素，支持坐标 {type:"coordinate",x:0.5,y:0.3}' },
   hover: { params: ['selector|target'], desc: '鼠标悬停在元素上（触发下拉菜单、Tooltip等），支持坐标' },
   type: { params: ['selector|target', 'text'], desc: '在输入框输入文本。支持坐标方式：{"action":"type","target":{"type":"coordinate",x:0.5,y:0.3},"text":"xxx"}' },
+  upload: { params: ['selector|target', 'filePath'], desc: '上传本地文件到文件输入框。示例：{"action":"upload","target":{"type":"coordinate",x:0.5,y:0.8},"filePath":"D:/images/photo.jpg"}' },
   select: { params: ['selector', 'option'], desc: '选择下拉框选项（原生select或React Select等自定义下拉），option可以是value、text或index。不需要滚动查找，直接指定选项文本即可' },
   selectAll: { params: ['selector|target'], desc: '全选文本框内容（Ctrl+A），用于复制或替换' },
   press: { params: ['key'], desc: '按键（Enter/Backspace/Delete/Tab/Escape/ArrowDown等）' },
@@ -191,6 +192,7 @@ ${buildActionHelp()}
 执行操作: {"action": "select", "selector": "select[name='country']", "option": "China", "description": "选择国家为中国"}
 执行操作: {"action": "type", "target": {"type": "coordinate", "x": 0.5, "y": 0.3}, "text": "iPhone", "description": "在搜索框输入iPhone"}
 执行操作: {"action": "selectAll", "target": {"type": "coordinate", "x": 0.5, "y": 0.3}, "description": "全选搜索框内容准备替换"}
+执行操作: {"action": "upload", "target": {"type": "coordinate", "x": 0.5, "y": 0.8}, "filePath": "D:/images/photo.jpg", "description": "上传本地图片到评论框"}
 执行操作: {"action": "press", "key": "Enter", "description": "按回车提交搜索"}
 执行操作: {"action": "press", "key": "Backspace", "description": "删除输入错误"}
 执行操作: {"action": "scroll", "direction": "down", "amount": 500, "description": "向下滚动页面"}
@@ -210,6 +212,7 @@ ${buildActionHelp()}
 - 如果不确定选择器，优先使用坐标点击输入框，然后输入文本
 - press 支持：Enter（回车）、Backspace（退格删除）、Delete（删除）、Tab（制表）、Escape（退出）、ArrowDown/ArrowUp/ArrowLeft/ArrowRight（方向键）
 - selectAll 支持：使用 Ctrl+A 全选文本框内容，配合 type 可替换原有内容
+- upload 支持上传本地文件到网页，filePath 使用绝对路径（如 "D:/images/photo.jpg"），配合 type 可在社媒评论时图文发布
 - 【重要】抖音/视频类网站请使用 wheel 而非 scroll 来切换视频
 - 输入错误时可使用 press + Backspace 删除后重新输入，或使用 selectAll 全选后直接输入替换
 - 【重要】遇到登录/扫码/验证码时暂停任务，告知用户完成后再继续
