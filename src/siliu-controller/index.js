@@ -168,13 +168,156 @@ class SiliuController {
   /**
    * 上传文件
    * 返回 { success, filePath, mode }
+   * 
+   * 流程：
+   * 1. 优先尝试 CDP 直接设置文件（标准 file input）
+   * 2. 如果 CDP 失败（无 file input），尝试系统级对话框拦截
+   * 3. 系统级拦截：先设置待选文件，再点击上传按钮，自动填充系统对话框
    */
   async upload(selectorOrText, filePath) {
-    return this._executeWithFallback(
-      'upload',
-      async (ctrl) => ctrl.upload(selectorOrText, filePath),
-      async () => this._nativeUpload(selectorOrText, filePath)
-    );
+    // 首先尝试 CDP 模式（标准 file input）
+    if (this.cdpController?.isConnected) {
+      try {
+        console.log('[SiliuController] upload: trying CDP mode...');
+        const result = await this.cdpController.upload(selectorOrText, filePath);
+        if (result.success) {
+          return { ...result, mode: 'CDP' };
+        }
+        console.log('[SiliuController] upload: CDP failed, trying system dialog interceptor...');
+      } catch (err) {
+        console.log('[SiliuController] upload: CDP error, falling back to system dialog:', err.message);
+      }
+    }
+    
+    // 尝试系统级对话框拦截（适用于 B站等自定义上传）
+    if (this.tabManager?.fileManager) {
+      try {
+        console.log('[SiliuController] upload: trying system dialog interceptor...');
+        return await this._uploadWithSystemInterceptor(selectorOrText, filePath);
+      } catch (err) {
+        console.error('[SiliuController] upload: system interceptor failed:', err.message);
+      }
+    }
+    
+    // 最后降级到原生 JS 上传
+    console.log('[SiliuController] upload: falling back to JS...');
+    return this._nativeUpload(selectorOrText, filePath);
+  }
+  
+  /**
+   * 使用系统级对话框拦截器上传
+   * 适用于 B站等自定义上传组件
+   */
+  async _uploadWithSystemInterceptor(selectorOrText, filePath) {
+    const fileManager = this.tabManager.fileManager;
+    
+    // 1. 准备上传（设置待选文件到拦截器）
+    console.log('[SiliuController] Preparing upload with system interceptor:', filePath);
+    const prepared = fileManager.prepareUpload(filePath);
+    if (!prepared) {
+      throw new Error('Failed to prepare upload');
+    }
+    
+    // 2. 检查拦截器是否可用
+    const interceptorAvailable = fileManager.interceptor?.isAvailable() || false;
+    const interceptorRunning = fileManager.interceptor?.isRunning || false;
+    
+    console.log('[SiliuController] Interceptor status:', { 
+      available: interceptorAvailable, 
+      running: interceptorRunning 
+    });
+    
+    // 3. 点击上传按钮（这会触发系统文件对话框）
+    console.log('[SiliuController] Clicking upload button to trigger dialog...');
+    let clickResult;
+    if (typeof selectorOrText === 'object' && selectorOrText.x !== undefined) {
+      clickResult = await this.clickAt(selectorOrText.x, selectorOrText.y);
+    } else if (typeof selectorOrText === 'string') {
+      clickResult = await this.click(selectorOrText);
+    } else {
+      // 如果没有提供选择器，尝试常见上传按钮选择器
+      const commonSelectors = [
+        '[class*="upload"]',
+        '[class*="image"]',
+        'button:has-text("上传")',
+        'button:has-text("图片")',
+        '.reply-box .upload-btn',
+        '.comment-box .upload-btn'
+      ];
+      
+      for (const selector of commonSelectors) {
+        try {
+          clickResult = await this.click(selector);
+          if (clickResult.result?.success) {
+            console.log('[SiliuController] Upload button clicked with selector:', selector);
+            break;
+          }
+        } catch (e) {
+          // 继续尝试下一个
+        }
+      }
+    }
+    
+    // 4. 等待拦截器完成或超时
+    console.log('[SiliuController] Waiting for dialog interception...');
+    
+    // 设置超时
+    const timeout = 10000; // 10秒
+    const startTime = Date.now();
+    
+    return new Promise((resolve) => {
+      const checkInterval = setInterval(() => {
+        // 检查是否超时
+        if (Date.now() - startTime > timeout) {
+          clearInterval(checkInterval);
+          fileManager.clearNextFile();
+          resolve({ 
+            success: false, 
+            error: 'Upload timeout - dialog not intercepted',
+            mode: 'SYSTEM_TIMEOUT'
+          });
+          return;
+        }
+        
+        // 检查文件是否已被选择（拦截器会清除 pendingFile）
+        if (!fileManager.pendingOperation) {
+          clearInterval(checkInterval);
+          console.log('[SiliuController] Upload completed via system interceptor');
+          resolve({ 
+            success: true, 
+            filePath, 
+            mode: 'SYSTEM_DIALOG' 
+          });
+        }
+      }, 100);
+      
+      // 监听事件
+      const onSelected = (data) => {
+        clearInterval(checkInterval);
+        fileManager.off('file:selected', onSelected);
+        console.log('[SiliuController] File selected via interceptor:', data);
+        resolve({ 
+          success: true, 
+          filePath: data.filePath, 
+          mode: 'SYSTEM_DIALOG' 
+        });
+      };
+      
+      const onManual = (data) => {
+        clearInterval(checkInterval);
+        fileManager.off('dialog:manual-required', onManual);
+        console.warn('[SiliuController] Manual intervention required:', data);
+        resolve({ 
+          success: false, 
+          error: 'Manual dialog intervention required',
+          mode: 'SYSTEM_MANUAL',
+          hwnd: data.hwnd
+        });
+      };
+      
+      fileManager.once('file:selected', onSelected);
+      fileManager.once('dialog:manual-required', onManual);
+    });
   }
 
   /**
