@@ -30,40 +30,63 @@ class DialogInterceptor extends EventEmitter {
   _initWin32() {
     if (!this.koffi) return;
 
-    // 加载 user32.dll
-    this.user32 = this.koffi.load('user32.dll');
-    
-    // 定义 Windows API 函数
-    this.user32.SetWinEventHook = this.user32.func('__stdcall', 'SetWinEventHook', 
-      'void *', ['uint32', 'uint32', 'void *', 'void *', 'uint32', 'uint32', 'uint32']);
-    
-    this.user32.UnhookWinEvent = this.user32.func('__stdcall', 'UnhookWinEvent',
-      'bool', ['void *']);
-    
-    this.user32.GetClassNameW = this.user32.func('__stdcall', 'GetClassNameW',
-      'int32', ['void *', 'void *', 'int32']);
-    
-    this.user32.FindWindowExW = this.user32.func('__stdcall', 'FindWindowExW',
-      'void *', ['void *', 'void *', 'str', 'str']);
-    
-    this.user32.SetWindowTextW = this.user32.func('__stdcall', 'SetWindowTextW',
-      'bool', ['void *', 'str']);
-    
-    this.user32.PostMessageW = this.user32.func('__stdcall', 'PostMessageW',
-      'bool', ['void *', 'uint32', 'uint64', 'int64']);
-    
-    this.user32.SendMessageW = this.user32.func('__stdcall', 'SendMessageW',
-      'int64', ['void *', 'uint32', 'uint64', 'int64']);
-    
-    // 加载 ole32.dll（用于 COM）
-    this.ole32 = this.koffi.load('ole32.dll');
-    this.ole32.CoInitialize = this.ole32.func('__stdcall', 'CoInitialize', 
-      'int32', ['void *']);
-    
-    // 初始化 COM
-    this.ole32.CoInitialize(null);
-    
-    console.log('[DialogInterceptor] Win32 API initialized');
+    try {
+      // 加载 user32.dll
+      this.user32 = this.koffi.load('user32.dll');
+      
+      // koffi 2.x 使用新的 API 定义方式
+      // 定义回调函数类型
+      this.WineventProc = this.koffi.proto('void WineventProc(void *hook, uint32 event, void *hwnd, int32 idObject, int32 idChild, uint32 eventThread, uint32 eventTime)');
+      
+      // 定义 Windows API 函数（koffi 2.x 语法）
+      this.user32.SetWinEventHook = this.user32.func('SetWinEventHook@28', 
+        this.koffi.pointer(this.koffi.types.void),
+        [this.koffi.types.uint32, this.koffi.types.uint32, this.koffi.pointer(this.koffi.types.void), 
+         this.koffi.pointer(this.WineventProc), this.koffi.types.uint32, this.koffi.types.uint32, this.koffi.types.uint32]);
+      
+      this.user32.UnhookWinEvent = this.user32.func('UnhookWinEvent@4',
+        this.koffi.types.bool,
+        [this.koffi.pointer(this.koffi.types.void)]);
+      
+      this.user32.GetClassNameW = this.user32.func('GetClassNameW@12',
+        this.koffi.types.int32,
+        [this.koffi.pointer(this.koffi.types.void), this.koffi.pointer(this.koffi.types.char), this.koffi.types.int32]);
+      
+      this.user32.FindWindowExW = this.user32.func('FindWindowExW@16',
+        this.koffi.pointer(this.koffi.types.void),
+        [this.koffi.pointer(this.koffi.types.void), this.koffi.pointer(this.koffi.types.void), 
+         this.koffi.pointer(this.koffi.types.char), this.koffi.pointer(this.koffi.types.char)]);
+      
+      this.user32.SetWindowTextW = this.user32.func('SetWindowTextW@8',
+        this.koffi.types.bool,
+        [this.koffi.pointer(this.koffi.types.void), this.koffi.pointer(this.koffi.types.char)]);
+      
+      this.user32.PostMessageW = this.user32.func('PostMessageW@16',
+        this.koffi.types.bool,
+        [this.koffi.pointer(this.koffi.types.void), this.koffi.types.uint32, 
+         this.koffi.types.uint64, this.koffi.types.int64]);
+      
+      this.user32.SendMessageW = this.user32.func('SendMessageW@16',
+        this.koffi.types.int64,
+        [this.koffi.pointer(this.koffi.types.void), this.koffi.types.uint32, 
+         this.koffi.types.uint64, this.koffi.types.int64]);
+      
+      // 加载 ole32.dll（用于 COM）
+      this.ole32 = this.koffi.load('ole32.dll');
+      this.ole32.CoInitialize = this.ole32.func('CoInitialize@4', 
+        this.koffi.types.int32,
+        [this.koffi.pointer(this.koffi.types.void)]);
+      
+      // 初始化 COM
+      this.ole32.CoInitialize(null);
+      
+      console.log('[DialogInterceptor] Win32 API initialized');
+    } catch (err) {
+      console.error('[DialogInterceptor] Failed to init Win32 API:', err.message);
+      this.koffi = null;
+      this.user32 = null;
+      this.ole32 = null;
+    }
   }
 
   /**
