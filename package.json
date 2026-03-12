@@ -66,6 +66,7 @@
   "dependencies": {
     "axios": "^1.13.6",
     "form-data": "^4.0.5",
+    "koffi": "^2.15.2",
     "puppeteer-core": "^24.37.3",
     "ws": "^8.14.2"
   },

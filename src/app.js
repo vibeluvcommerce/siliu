@@ -628,11 +628,19 @@ app.whenReady().then(startup);
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
+    // 停止文件管理器轮询循环（防止后台进程持续运行）
+    modules.core?.tabManager?.fileManager?.stop();
     modules.copilot?.deactivateAll();
     modules.adblock?.deactivate();
     modules.aiService?.disconnect();
     app.quit();
   }
+});
+
+// 应用退出前停止所有轮询循环（双重保障）
+app.on('before-quit', () => {
+  console.log('[Siliu] Stopping all polling loops before quit...');
+  modules.core?.tabManager?.fileManager?.stop();
 });
 
 app.on('activate', () => {

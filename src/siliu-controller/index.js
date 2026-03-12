@@ -214,14 +214,7 @@ class SiliuController {
   async _uploadWithSystemInterceptor(selectorOrText, filePath) {
     const fileManager = this.tabManager.fileManager;
     
-    // 1. 准备上传（设置待选文件到拦截器）
-    console.log('[SiliuController] Preparing upload with system interceptor:', filePath);
-    const prepared = fileManager.prepareUpload(filePath);
-    if (!prepared) {
-      throw new Error('Failed to prepare upload');
-    }
-    
-    // 2. 检查拦截器是否可用
+    // 1. 检查拦截器是否可用
     const interceptorAvailable = fileManager.interceptor?.isAvailable() || false;
     const interceptorRunning = fileManager.interceptor?.isRunning || false;
     
@@ -230,65 +223,19 @@ class SiliuController {
       running: interceptorRunning 
     });
     
-    // 3. 点击上传按钮（如果提供了选择器）
-    // 如果 selectorOrText 为 undefined，表示按钮已经被点击过了（AI 先 click 再 upload）
-    if (selectorOrText) {
-      console.log('[SiliuController] Clicking upload button to trigger dialog...');
-      let clickResult;
-      
-      if (typeof selectorOrText === 'object' && selectorOrText.x !== undefined) {
-        clickResult = await this.clickAt(selectorOrText.x, selectorOrText.y);
-        console.log('[SiliuController] Upload button clicked at coordinates:', selectorOrText);
-      } else if (typeof selectorOrText === 'string') {
-        clickResult = await this.click(selectorOrText);
-        console.log('[SiliuController] Upload button clicked with selector:', selectorOrText);
-      }
-      
-      // 等待对话框弹出
-      await new Promise(r => setTimeout(r, 500));
-    } else {
-      console.log('[SiliuController] No selector provided, assuming dialog already triggered');
-      // 给对话框一点时间来成为前台窗口
-      await new Promise(r => setTimeout(r, 1000));
-    }
+    // 2. 先设置 Promise 和事件监听器（确保在准备上传前监听就绪）
+    console.log('[SiliuController] Setting up upload promise for:', filePath);
     
-    // 4. 等待拦截器完成或超时
-    console.log('[SiliuController] Waiting for dialog interception...');
+    const timeout = 30000; // 30秒总超时
+    let resolved = false;
     
-    // 设置超时
-    const timeout = 10000; // 10秒
-    const startTime = Date.now();
-    
-    return new Promise((resolve) => {
-      const checkInterval = setInterval(() => {
-        // 检查是否超时
-        if (Date.now() - startTime > timeout) {
-          clearInterval(checkInterval);
-          fileManager.clearNextFile();
-          resolve({ 
-            success: false, 
-            error: 'Upload timeout - dialog not intercepted',
-            mode: 'SYSTEM_TIMEOUT'
-          });
-          return;
-        }
-        
-        // 检查文件是否已被选择（拦截器会清除 pendingFile）
-        if (!fileManager.pendingOperation) {
-          clearInterval(checkInterval);
-          console.log('[SiliuController] Upload completed via system interceptor');
-          resolve({ 
-            success: true, 
-            filePath, 
-            mode: 'SYSTEM_DIALOG' 
-          });
-        }
-      }, 100);
-      
-      // 监听事件
+    const uploadPromise = new Promise((resolve) => {
+      // 监听事件（事件触发时立即响应）
       const onSelected = (data) => {
-        clearInterval(checkInterval);
+        if (resolved) return;
+        resolved = true;
         fileManager.off('file:selected', onSelected);
+        fileManager.off('dialog:manual-required', onManual);
         console.log('[SiliuController] File selected via interceptor:', data);
         resolve({ 
           success: true, 
@@ -298,8 +245,10 @@ class SiliuController {
       };
       
       const onManual = (data) => {
-        clearInterval(checkInterval);
+        if (resolved) return;
+        resolved = true;
         fileManager.off('dialog:manual-required', onManual);
+        fileManager.off('file:selected', onSelected);
         console.warn('[SiliuController] Manual intervention required:', data);
         resolve({ 
           success: false, 
@@ -311,7 +260,51 @@ class SiliuController {
       
       fileManager.once('file:selected', onSelected);
       fileManager.once('dialog:manual-required', onManual);
+      
+      // 超时检查
+      setTimeout(() => {
+        if (resolved) return;
+        resolved = true;
+        fileManager.off('file:selected', onSelected);
+        fileManager.off('dialog:manual-required', onManual);
+        fileManager.clearNextFile();
+        console.error('[SiliuController] Upload timeout - dialog not intercepted');
+        resolve({ 
+          success: false, 
+          error: 'Upload timeout - dialog not intercepted',
+          mode: 'SYSTEM_TIMEOUT'
+        });
+      }, timeout);
     });
+    
+    // 3. 准备上传（设置待选文件到拦截器）
+    console.log('[SiliuController] Preparing upload:', filePath);
+    const prepared = fileManager.prepareUpload(filePath);
+    if (!prepared) {
+      throw new Error('Failed to prepare upload');
+    }
+    
+    // 4. 点击上传按钮（如果提供了选择器）
+    if (selectorOrText) {
+      console.log('[SiliuController] Clicking upload button to trigger dialog...');
+      
+      if (typeof selectorOrText === 'object' && selectorOrText.x !== undefined) {
+        await this.clickAt(selectorOrText.x, selectorOrText.y);
+        console.log('[SiliuController] Upload button clicked at coordinates:', selectorOrText);
+      } else if (typeof selectorOrText === 'string') {
+        await this.click(selectorOrText);
+        console.log('[SiliuController] Upload button clicked with selector:', selectorOrText);
+      }
+      
+      // 等待对话框弹出
+      await new Promise(r => setTimeout(r, 500));
+    } else {
+      console.log('[SiliuController] No selector provided, assuming dialog already triggered');
+    }
+    
+    // 5. 等待拦截器完成或超时
+    console.log('[SiliuController] Waiting for dialog interception...');
+    return uploadPromise;
   }
 
   /**
