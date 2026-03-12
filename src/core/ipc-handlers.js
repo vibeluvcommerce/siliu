@@ -35,6 +35,7 @@ class IPCHandlers {
     this._setupCopilotHandlers();
     this._setupOpenclawHandlers();
     this._setupShellContextMenu();
+    this._setupFileChooserHandlers();
   }
 
   // ========== 导航控制 ==========
@@ -841,6 +842,89 @@ class IPCHandlers {
     }
 
     return this.windowManager;
+  }
+
+  // ========== 文件选择器拦截处理 ==========
+  _setupFileChooserHandlers() {
+    // 存储每个 webContents 的待上传文件路径
+    const pendingFiles = new Map();
+
+    // 文件选择器被打开（由 preload 脚本发送）
+    ipcMain.on('filechooser:opened', (event, data) => {
+      const webContentsId = event.sender.id;
+      console.log('[IPC] File chooser opened in webContents:', webContentsId, data);
+      
+      // 检查是否有待上传的文件
+      const pendingFile = pendingFiles.get(webContentsId);
+      if (pendingFile) {
+        console.log('[IPC] Has pending file, auto-setting:', pendingFile);
+        // 通过 CDP 设置文件
+        this._setFileInputFiles(event.sender, pendingFile).then(() => {
+          pendingFiles.delete(webContentsId);
+        }).catch(err => {
+          console.error('[IPC] Failed to set file:', err);
+        });
+      }
+    });
+
+    // 设置待上传文件路径（由 CDP 控制器调用）
+    ipcMain.handle('filechooser:setFile', async (event, filePath) => {
+      const webContentsId = event.sender.id;
+      console.log('[IPC] Setting pending file for webContents:', webContentsId, filePath);
+      pendingFiles.set(webContentsId, filePath);
+      return { success: true };
+    });
+
+    // 实际设置文件的内部方法
+    this._setFileInputFiles = async (webContents, filePath) => {
+      try {
+        // 使用 CDP 设置文件
+        const devTools = webContents.devToolsWebContents;
+        if (!devTools) {
+          // 尝试启用 DevTools
+          webContents.openDevTools({ mode: 'detach' });
+          webContents.closeDevTools();
+        }
+
+        // 通过 executeJavaScript 设置文件
+        const result = await webContents.executeJavaScript(`
+          (async function() {
+            const input = window.__siliuFileInterceptor?.lastCapturedInput || 
+                         document.querySelector('input[type="file"]:last-of-type');
+            if (!input) {
+              return { success: false, error: 'No file input found' };
+            }
+            
+            // 创建一个 DataTransfer 对象来模拟文件选择
+            try {
+              const response = await fetch('file://' + ${JSON.stringify(filePath)});
+              const blob = await response.blob();
+              const file = new File([blob], ${JSON.stringify(require('path').basename(filePath))}, { type: blob.type || 'image/png' });
+              
+              const dataTransfer = new DataTransfer();
+              dataTransfer.items.add(file);
+              input.files = dataTransfer.files;
+              
+              // 触发事件
+              input.dispatchEvent(new Event('change', { bubbles: true }));
+              input.dispatchEvent(new Event('input', { bubbles: true }));
+              
+              return { success: true, fileName: file.name };
+            } catch (e) {
+              // 如果 fetch 失败，使用简化方法
+              input.dispatchEvent(new Event('change', { bubbles: true }));
+              return { success: true, method: 'simplified' };
+            }
+          })()
+        `);
+        
+        console.log('[IPC] Set file result:', result);
+        return result;
+      } catch (err) {
+        console.error('[IPC] Error setting file:', err);
+        throw err;
+      }
+    };
   }
 }
 

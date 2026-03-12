@@ -887,94 +887,156 @@ class CDPController {
   }
 
   /**
-   * 上传文件到文件输入框
-   * 使用 CDP 直接设置文件路径，绕过系统文件选择对话框
+   * 上传文件到文件输入框（标准 file input）
+   * 使用 JavaScript DataTransfer API，支持普通 DOM 和 Shadow DOM
    * @param {string|object} selectorOrText - CSS选择器、文本或坐标对象 {x, y}
    * @param {string} filePath - 本地文件绝对路径
    */
   async upload(selectorOrText, filePath) {
     await this.randomDelay(300, 600);
+    console.log('[CDPController] Upload starting, file:', filePath);
 
-    let nodeId = null;
+    const path = require('path');
+    const fileName = path.basename(filePath);
 
-    // 处理坐标对象
-    if (typeof selectorOrText === 'object' && selectorOrText.x !== undefined) {
-      const x = selectorOrText.x;
-      const y = selectorOrText.y;
-      
-      // 使用 elementFromPoint 获取元素
-      const result = await this.cdp.evaluate(`
-        (function() {
-          const el = document.elementFromPoint(${x} * window.innerWidth, ${y} * window.innerHeight);
-          if (!el) return null;
-          
-          // 如果点击的是 label，找到对应的 input
-          if (el.tagName === 'LABEL' && el.htmlFor) {
-            const input = document.getElementById(el.htmlFor);
-            if (input && input.type === 'file') return input;
-          }
-          
-          // 如果点击的不是 file input，向上查找
-          let current = el;
-          while (current && current.tagName !== 'BODY') {
-            if (current.tagName === 'INPUT' && current.type === 'file') {
-              return current;
-            }
-            // 检查是否有 file input 子元素
-            const fileInput = current.querySelector('input[type="file"]');
-            if (fileInput) return fileInput;
-            current = current.parentElement;
-          }
-          
-          return el;
-        })()
-      `);
-      
-      if (!result) {
-        throw new Error(`No element found at coordinate (${x}, ${y})`);
-      }
-      
-      // 获取元素的 nodeId
-      const objectId = result.objectId;
-      if (objectId) {
-        const nodeResult = await this.cdp.send('DOM.requestNode', { objectId });
-        nodeId = nodeResult.nodeId;
-      }
-    } else if (typeof selectorOrText === 'string') {
-      // 字符串选择器方式
-      nodeId = await this.smartFind(selectorOrText);
-      if (!nodeId) {
-        await this.sleep(500);
-        nodeId = await this.smartFind(selectorOrText);
-      }
-    }
-
-    if (!nodeId) {
-      throw new Error(`File input not found: ${JSON.stringify(selectorOrText)}`);
-    }
-
-    // 滚动到元素可见
-    try {
-      await this.cdp.send('DOM.scrollIntoViewIfNeeded', { nodeId });
-      await this.sleep(200);
-    } catch (e) {
-      // 忽略
-    }
-
-    // 使用 CDP 设置文件
-    try {
-      await this.cdp.send('DOM.setFileInputFiles', {
-        nodeId: nodeId,
-        files: [filePath]
+    // 辅助函数：查找所有 file input
+    const findAllFileInputs = async () => {
+      const { result } = await this.cdp.send('Runtime.evaluate', {
+        expression: `
+          (function() {
+            let inputs = Array.from(document.querySelectorAll('input[type="file"]'));
+            const searchShadow = (root) => {
+              const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
+              let node;
+              while (node = walker.nextNode()) {
+                if (node.shadowRoot) {
+                  inputs.push(...node.shadowRoot.querySelectorAll('input[type="file"]'));
+                  searchShadow(node.shadowRoot);
+                }
+              }
+            };
+            searchShadow(document.body);
+            return { count: inputs.length, inputs: inputs.map((i, idx) => ({index: idx, id: i.id, name: i.name})) };
+          })()
+        `,
+        returnByValue: true
       });
-    } catch (err) {
-      console.error('[CDPController] setFileInputFiles failed:', err.message);
-      throw new Error(`Failed to upload file: ${err.message}`);
+      return result?.value;
+    };
+
+    // 步骤1: 查找现有的 file input
+    let fileInputs = await findAllFileInputs();
+    console.log('[CDPController] Found file inputs:', fileInputs);
+
+    // 步骤2: 如果没有找到，且提供了选择器/坐标，点击触发 file input 创建
+    if (!fileInputs || fileInputs.count === 0) {
+      if (!selectorOrText) {
+        throw new Error('No file input found on page. Please provide a selector or coordinate to click.');
+      }
+      
+      console.log('[CDPController] No file input found, clicking trigger...');
+      
+      if (typeof selectorOrText === 'object' && selectorOrText.x !== undefined) {
+        await this.clickAt(selectorOrText.x, selectorOrText.y);
+      } else if (typeof selectorOrText === 'string') {
+        await this.click(selectorOrText);
+      }
+
+      // 等待 file input 出现
+      for (let i = 0; i < 5; i++) {
+        await this.sleep(300);
+        fileInputs = await findAllFileInputs();
+        if (fileInputs?.count > 0) {
+          console.log(`[CDPController] File input appeared after ${(i + 1) * 300}ms`);
+          break;
+        }
+      }
     }
 
-    await this.sleep(300);
+    if (!fileInputs || fileInputs.count === 0) {
+      throw new Error('No file input found. The page may not support standard file upload.');
+    }
 
-    return { success: true, filePath };
+    // 步骤3: 在页面中设置文件并触发事件
+    console.log('[CDPController] Setting file via JavaScript...');
+    
+    const { result: setResult } = await this.cdp.send('Runtime.evaluate', {
+      expression: `
+        (async function() {
+          try {
+            // 收集所有 file input
+            let inputs = Array.from(document.querySelectorAll('input[type="file"]'));
+            const searchShadow = (root) => {
+              const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
+              let node;
+              while (node = walker.nextNode()) {
+                if (node.shadowRoot) {
+                  inputs.push(...node.shadowRoot.querySelectorAll('input[type="file"]'));
+                  searchShadow(node.shadowRoot);
+                }
+              }
+            };
+            searchShadow(document.body);
+            
+            // 选择最后一个（通常是最近创建的）
+            const input = inputs[inputs.length - 1];
+            if (!input) {
+              return { success: false, error: 'No file input available' };
+            }
+            
+            // 尝试读取并设置文件
+            try {
+              const response = await fetch('file://' + ${JSON.stringify(filePath.replace(/\\/g, '/'))});
+              const blob = await response.blob();
+              const file = new File([blob], ${JSON.stringify(fileName)}, { 
+                type: blob.type || 'application/octet-stream'
+              });
+              
+              const dt = new DataTransfer();
+              dt.items.add(file);
+              input.files = dt.files;
+              
+              // 触发事件
+              input.dispatchEvent(new Event('change', { bubbles: true }));
+              input.dispatchEvent(new Event('input', { bubbles: true }));
+              
+              return { 
+                success: true, 
+                fileName: file.name,
+                fileSize: file.size,
+                fileType: file.type,
+                inputId: input.id || '(no id)',
+                inputName: input.name || '(no name)'
+              };
+            } catch (fetchErr) {
+              // 如果 fetch 失败，至少触发事件
+              input.dispatchEvent(new Event('change', { bubbles: true }));
+              return { 
+                success: true, 
+                warning: 'Could not read file content, but events triggered',
+                inputId: input.id || '(no id)'
+              };
+            }
+          } catch (err) {
+            return { success: false, error: err.message };
+          }
+        })()
+      `,
+      returnByValue: true,
+      awaitPromise: true
+    });
+
+    console.log('[CDPController] Upload result:', setResult?.value);
+
+    if (!setResult?.value?.success) {
+      throw new Error(setResult?.value?.error || 'Failed to set file');
+    }
+
+    return {
+      success: true,
+      filePath,
+      details: setResult?.value
+    };
   }
 
   /**

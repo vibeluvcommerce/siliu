@@ -1267,15 +1267,13 @@ ${this.isExecuting ? `当前任务: ${this.currentTask}` : ''}
             
             console.log(`[WindowCopilot:${this.windowId}] upload: selector=${JSON.stringify(uploadSelector)}, file=${filePath}`);
             
-            if (!uploadSelector) {
-              stepResult = { success: false, error: 'Missing selector or target for upload' };
-              actualMode = 'JS';
-            } else if (!filePath) {
+            if (!filePath) {
               stepResult = { success: false, error: 'Missing filePath for upload' };
               actualMode = 'JS';
             } else {
               try {
-                const { result, mode } = await this.controller.upload(uploadSelector, filePath);
+                // 不再需要 selector，upload 方法会自动查找 file input
+                const { result, mode } = await this.controller.upload(uploadSelector || null, filePath);
                 stepResult = result;
                 actualMode = mode;
               } catch (err) {

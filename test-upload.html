@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件上传测试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+            transition: border-color 0.3s;
+        }
+        .upload-area:hover {
+            border-color: #1890ff;
+        }
+        input[type="file"] {
+            display: block;
+            margin: 20px auto;
+            padding: 10px;
+        }
+        .preview {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            min-height: 50px;
+        }
+        .preview img {
+            max-width: 100%;
+            max-height: 200px;
+            margin-top: 10px;
+        }
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .status.success {
+            background: #f6ffed;
+            border: 1px solid #b7eb8f;
+            color: #52c41a;
+        }
+        .status.error {
+            background: #fff2f0;
+            border: 1px solid #ffccc7;
+            color: #ff4d4f;
+        }
+        button {
+            background: #1890ff;
+            color: white;
+            border: none;
+            padding: 10px 30px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #40a9ff;
+        }
+        .comment-box {
+            margin-top: 30px;
+            padding: 20px;
+            background: #fafafa;
+            border-radius: 4px;
+        }
+        textarea {
+            width: 100%;
+            height: 80px;
+            padding: 10px;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+            resize: vertical;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 文件上传测试</h1>
+        
+        <div class="upload-area">
+            <p>点击按钮选择文件，或使用自动化上传</p>
+            <input type="file" id="fileInput" accept="image/*">
+            <p style="color: #999; font-size: 14px;">支持 JPG, PNG, GIF 格式</p>
+        </div>
+
+        <div class="preview" id="preview">
+            <p style="color: #999;">选择的文件将显示在这里...</p>
+        </div>
+
+        <div class="comment-box">
+            <h3>📝 评论区（模拟）</h3>
+            <textarea id="commentText" placeholder="输入评论内容..."></textarea>
+            <br><br>
+            <button onclick="submitComment()">发布评论</button>
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const preview = document.getElementById('preview');
+
+        // 监听文件选择
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                showFile(file);
+            }
+        });
+
+        // 显示文件信息
+        function showFile(file) {
+            let html = `
+                <div class="status success">
+                    ✅ 文件已选择: <strong>${file.name}</strong><br>
+                    大小: ${(file.size / 1024).toFixed(2)} KB<br>
+                    类型: ${file.type || '未知'}
+                </div>
+            `;
+
+            // 如果是图片，显示预览
+            if (file.type && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    html += `<img src="${e.target.result}" alt="预览">`;
+                    preview.innerHTML = html;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                preview.innerHTML = html;
+            }
+        }
+
+        // 提交评论
+        function submitComment() {
+            const text = document.getElementById('commentText').value;
+            const file = fileInput.files[0];
+            
+            if (!text && !file) {
+                alert('请输入评论内容或选择图片');
+                return;
+            }
+
+            let message = '评论内容:\n' + (text || '(无文字)');
+            if (file) {
+                message += '\n\n图片:\n' + file.name;
+            }
+            
+            alert(message + '\n\n✅ 测试成功！');
+        }
+
+        // 监听自定义事件（用于自动化测试）
+        window.addEventListener('siliuFileSelected', function(e) {
+            console.log('[Test Page] Received siliuFileSelected event:', e.detail);
+            preview.innerHTML = `
+                <div class="status success">
+                    ✅ 通过自动化收到文件选择事件<br>
+                    文件路径: ${e.detail.filePath}
+                </div>
+            `;
+        });
+
+        console.log('[Test Page] File upload test page loaded');
+        console.log('[Test Page] File input element:', fileInput);
+    </script>
+</body>
+</html>

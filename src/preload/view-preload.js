@@ -111,6 +111,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 设置文本编辑操作监听
   setupTextEditHandlers();
+
+  // 设置文件选择器拦截
+  setupFileChooserInterception();
 });
 
 // 注入样式到 Shadow DOM
@@ -324,3 +327,247 @@ function setupContextMenu() {
     }
   }, true);
 }
+
+/**
+ * 文件选择器拦截系统
+ * 阻止系统文件选择器弹出，允许通过 CDP 控制文件上传
+ */
+function setupFileChooserInterception() {
+  console.log('[Siliu Preload] Setting up file chooser interception...');
+
+  // 创建全局拦截器对象
+  window.__siliuFileInterceptor = {
+    // 存储被拦截的 file input
+    interceptedInputs: new Map(),
+    
+    // 存储待上传的文件路径
+    pendingFilePath: null,
+    
+    // 存储最后捕获的 input
+    lastCapturedInput: null,
+    
+    // 设置待上传文件路径（由 CDP 调用）
+    setPendingFile: function(filePath) {
+      console.log('[Siliu FileInterceptor] Setting pending file:', filePath);
+      this.pendingFilePath = filePath;
+      return { success: true };
+    },
+    
+    // 获取最后捕获的 input
+    getLastCapturedInput: function() {
+      return this.lastCapturedInput;
+    },
+    
+    // 处理文件上传
+    handleUpload: function(input) {
+      if (!this.pendingFilePath) {
+        console.log('[Siliu FileInterceptor] No pending file path');
+        return false;
+      }
+      
+      console.log('[Siliu FileInterceptor] Handling upload for:', this.pendingFilePath);
+      
+      // 通知主进程设置文件
+      ipcRenderer.invoke('filechooser:setFile', this.pendingFilePath).then(result => {
+        console.log('[Siliu FileInterceptor] Set file result:', result);
+        
+        // 触发 change 事件
+        if (input) {
+          input.dispatchEvent(new Event('change', { bubbles: true }));
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          
+          // 触发自定义事件通知页面
+          input.dispatchEvent(new CustomEvent('siliuFileSelected', {
+            detail: { filePath: this.pendingFilePath },
+            bubbles: true
+          }));
+        }
+        
+        this.pendingFilePath = null;
+      }).catch(err => {
+        console.error('[Siliu FileInterceptor] Failed to set file:', err);
+      });
+      
+      return true;
+    },
+    
+    // 创建受控的 file input（作为备用）
+    createControlledInput: function() {
+      let input = document.getElementById('__siliu_controlled_input__');
+      if (!input) {
+        input = document.createElement('input');
+        input.type = 'file';
+        input.id = '__siliu_controlled_input__';
+        input.accept = 'image/*';
+        input.style.cssText = 'position:fixed;opacity:0;pointer-events:none;width:1px;height:1px;z-index:-1;';
+        
+        // 监听 change 事件
+        input.addEventListener('change', (e) => {
+          console.log('[Siliu FileInterceptor] Controlled input changed:', e);
+        });
+        
+        document.body.appendChild(input);
+      }
+      return input;
+    }
+  };
+
+  // 拦截所有 input[type=file] 的创建
+  const originalCreateElement = Document.prototype.createElement;
+  Document.prototype.createElement = function(tagName, options) {
+    const element = originalCreateElement.call(this, tagName, options);
+    
+    if (tagName.toLowerCase() === 'input') {
+      // 使用 MutationObserver 监听 type 属性变化
+      const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          if (mutation.attributeName === 'type' && element.type === 'file') {
+            setupInputInterception(element);
+          }
+        });
+      });
+      
+      observer.observe(element, { attributes: true });
+      
+      // 立即检查（如果创建时已经设置了 type=file）
+      if (element.type === 'file') {
+        setupInputInterception(element);
+      }
+    }
+    
+    return element;
+  };
+
+  // 拦截 input[type=file] 的点击
+  function setupInputInterception(input) {
+    if (input.__siliu_intercepted__) return;
+    input.__siliu_intercepted__ = true;
+    
+    console.log('[Siliu FileInterceptor] Setting up interception for input:', input);
+    
+    // 拦截 click 方法
+    const originalClick = input.click;
+    input.click = function() {
+      console.log('[Siliu FileInterceptor] Intercepted click on file input');
+      
+      window.__siliuFileInterceptor.lastCapturedInput = input;
+      
+      // 如果有待上传文件，直接处理
+      if (window.__siliuFileInterceptor.pendingFilePath) {
+        window.__siliuFileInterceptor.handleUpload(input);
+        return;
+      }
+      
+      // 否则通知主进程准备上传
+      ipcRenderer.send('filechooser:opened', {
+        id: input.id,
+        name: input.name,
+        className: input.className
+      });
+      
+      // 不调用原始 click，阻止系统选择器
+      console.log('[Siliu FileInterceptor] Prevented system file chooser');
+    };
+    
+    // 拦截 showPicker 方法（现代浏览器）
+    if (input.showPicker) {
+      const originalShowPicker = input.showPicker;
+      input.showPicker = function() {
+        console.log('[Siliu FileInterceptor] Intercepted showPicker');
+        window.__siliuFileInterceptor.lastCapturedInput = input;
+        
+        if (window.__siliuFileInterceptor.pendingFilePath) {
+          window.__siliuFileInterceptor.handleUpload(input);
+          return Promise.resolve();
+        }
+        
+        ipcRenderer.send('filechooser:opened', {
+          id: input.id,
+          name: input.name,
+          className: input.className
+        });
+        
+        return Promise.resolve();
+      };
+    }
+  }
+
+  // 监听 document 上的点击事件，捕获对 file input 的点击
+  document.addEventListener('click', function(e) {
+    const target = e.target;
+    
+    // 检查是否点击了 file input
+    if (target.tagName === 'INPUT' && target.type === 'file') {
+      console.log('[Siliu FileInterceptor] Click on file input detected');
+      window.__siliuFileInterceptor.lastCapturedInput = target;
+      setupInputInterception(target);
+      
+      // 如果有待上传文件，阻止默认行为并处理
+      if (window.__siliuFileInterceptor.pendingFilePath) {
+        e.preventDefault();
+        e.stopPropagation();
+        window.__siliuFileInterceptor.handleUpload(target);
+        return false;
+      }
+    }
+    
+    // 检查是否点击了上传按钮（可能触发 file input）
+    // 通过查找父元素中的 file input
+    const parent = target.closest?.('[class*="upload"], [class*="image"], [class*="file"], label');
+    if (parent) {
+      const fileInput = parent.querySelector('input[type="file"]');
+      if (fileInput) {
+        console.log('[Siliu FileInterceptor] Found file input in parent:', fileInput);
+        window.__siliuFileInterceptor.lastCapturedInput = fileInput;
+        setupInputInterception(fileInput);
+      }
+    }
+  }, true);
+
+  // 处理已存在的 file input
+  document.querySelectorAll('input[type="file"]').forEach(setupInputInterception);
+  
+  // 监听新添加的 file input
+  const bodyObserver = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      mutation.addedNodes.forEach((node) => {
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          if (node.tagName === 'INPUT' && node.type === 'file') {
+            setupInputInterception(node);
+          }
+          node.querySelectorAll?.('input[type="file"]').forEach(setupInputInterception);
+        }
+      });
+    });
+  });
+  
+  bodyObserver.observe(document.body, { childList: true, subtree: true });
+
+  console.log('[Siliu Preload] File chooser interception ready');
+}
+
+// 暴露文件选择器 API 给页面
+contextBridge.exposeInMainWorld('siliuFileChooser', {
+  // 设置待上传文件路径
+  setPendingFile: (filePath) => {
+    if (window.__siliuFileInterceptor) {
+      return window.__siliuFileInterceptor.setPendingFile(filePath);
+    }
+    return { success: false, error: 'Interceptor not ready' };
+  },
+  
+  // 获取最后捕获的 input
+  getLastCapturedInput: () => {
+    if (window.__siliuFileInterceptor) {
+      return window.__siliuFileInterceptor.getLastCapturedInput();
+    }
+    return null;
+  },
+  
+  // 监听文件选择器打开事件
+  onFileChooserOpened: (callback) => {
+    ipcRenderer.on('filechooser:opened', (event, data) => {
+      callback(data);
+    });
+  }
+});
