@@ -66,6 +66,12 @@ contextBridge.exposeInMainWorld('siliuAPI', {
   siliuExecute: (code) => ipcRenderer.invoke('siliu:executeScript', code),
   siliuGetPageInfo: () => ipcRenderer.invoke('siliu:getPageInfo'),
 
+  // ========== 文件管理控制（系统级对话框拦截）==========
+  fileSetAutoMode: (enabled, options) => ipcRenderer.invoke('file:setAutoMode', enabled, options),
+  filePrepareUpload: (filePath) => ipcRenderer.invoke('file:prepareUpload', filePath),
+  fileGetWorkPath: (subDir) => ipcRenderer.invoke('file:getWorkPath', subDir),
+  fileListFiles: (subDir) => ipcRenderer.invoke('file:listFiles', subDir),
+
   // ========== Copilot 控制 ==========
   copilotSendMessage: (text) => ipcRenderer.invoke('copilot:sendMessage', text),
   copilotGetConfig: () => ipcRenderer.invoke('copilot:getConfig'),

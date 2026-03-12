@@ -34,6 +34,7 @@ const MAIN_SCROLLBAR_CSS = `
 const { BrowserView } = require('electron');
 const path = require('path');
 const EventEmitter = require('events');
+const AutoFileManager = require('./auto-file-manager');
 
 class TabManager extends EventEmitter {
   constructor(windowManager, options = {}) {
@@ -53,6 +54,12 @@ class TabManager extends EventEmitter {
     this.closingViews = new Set();
     this.sidebarOpen = false; // 侧边栏状态
     
+    // 初始化文件管理器（系统级对话框拦截）
+    this.fileManager = new AutoFileManager(this);
+    
+    // 监听文件管理器事件
+    this._setupFileManagerEvents();
+    
     // 初始化指纹管理器（反检测）- 启用简化版
     this.fingerprintManager = new FingerprintManager({
       enabled: options.antiDetect !== false, // 默认启用简化版
@@ -70,6 +77,30 @@ class TabManager extends EventEmitter {
       // 【测试】应用 UA 修改
       this.fingerprintManager.applyToSession(this.session);
     }
+  }
+  
+  /**
+   * 设置文件管理器事件监听
+   */
+  _setupFileManagerEvents() {
+    // 监听文件选择事件
+    this.fileManager.on('file:selected', (data) => {
+      console.log('[TabManager] File auto-selected:', data);
+      this.emit('file:selected', data);
+    });
+    
+    // 监听需要手动干预的事件
+    this.fileManager.on('dialog:manual-required', (data) => {
+      console.warn('[TabManager] Manual dialog intervention required:', data);
+      this.emit('dialog:manual-required', data);
+    });
+    
+    // 监听上传点击事件
+    this.fileManager.on('upload:click', ({ selector, filePath }) => {
+      console.log('[TabManager] Auto upload click:', selector, filePath);
+      // 这里会通过 controller 触发点击
+      this.emit('upload:click', { selector, filePath });
+    });
   }
 
   /**

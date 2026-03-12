@@ -32,6 +32,7 @@ class IPCHandlers {
     this._setupNavigationHandlers();
     this._setupTabHandlers();
     this._setupWindowHandlers();
+    this._setupFileManagerHandlers();
     this._setupCopilotHandlers();
     this._setupOpenclawHandlers();
     this._setupShellContextMenu();
@@ -254,6 +255,57 @@ class IPCHandlers {
       } catch (err) {
         return { success: false, error: err.message };
       }
+    });
+  }
+
+  // ========== 文件管理控制（系统级对话框拦截）==========
+  _setupFileManagerHandlers() {
+    // 设置自动文件模式
+    ipcMain.handle('file:setAutoMode', (e, enabled, options = {}) => {
+      const tabManager = this._getTabManagerForSender(e.sender);
+      if (tabManager?.fileManager) {
+        tabManager.fileManager.setAutoMode(enabled, options);
+        return { 
+          success: true, 
+          enabled, 
+          workDir: tabManager.fileManager.getWorkPath() 
+        };
+      }
+      return { success: false, error: 'FileManager not available' };
+    });
+
+    // 准备上传文件（设置待选文件）
+    ipcMain.handle('file:prepareUpload', (e, filePath) => {
+      const tabManager = this._getTabManagerForSender(e.sender);
+      if (tabManager?.fileManager) {
+        const result = tabManager.fileManager.prepareUpload(filePath);
+        return { success: result, filePath };
+      }
+      return { success: false, error: 'FileManager not available' };
+    });
+
+    // 获取工作目录
+    ipcMain.handle('file:getWorkPath', (e, subDir = '') => {
+      const tabManager = this._getTabManagerForSender(e.sender);
+      if (tabManager?.fileManager) {
+        return { 
+          success: true, 
+          path: tabManager.fileManager.getWorkPath(subDir) 
+        };
+      }
+      return { success: false, error: 'FileManager not available' };
+    });
+
+    // 列出文件
+    ipcMain.handle('file:listFiles', (e, subDir = '') => {
+      const tabManager = this._getTabManagerForSender(e.sender);
+      if (tabManager?.fileManager) {
+        return { 
+          success: true, 
+          files: tabManager.fileManager.listFiles(subDir) 
+        };
+      }
+      return { success: false, error: 'FileManager not available' };
     });
   }
 
