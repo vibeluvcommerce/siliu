@@ -123,6 +123,14 @@ class DialogInterceptor extends EventEmitter {
    */
   clearNextFile() {
     this.pendingFile = null;
+    console.log('[DialogInterceptor] Next file cleared');
+  }
+
+  /**
+   * 清除待选文件
+   */
+  clearNextFile() {
+    this.pendingFile = null;
   }
 
   /**

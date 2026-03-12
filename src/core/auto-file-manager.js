@@ -130,6 +130,17 @@ class AutoFileManager extends EventEmitter {
   }
 
   /**
+   * 清除待处理操作和拦截器中的待选文件
+   */
+  clearNextFile() {
+    this.pendingOperation = null;
+    if (this.interceptor) {
+      this.interceptor.clearNextFile();
+    }
+    console.log('[AutoFileManager] Next file cleared');
+  }
+
+  /**
    * AI 执行上传操作
    * @param {string} selector - 上传按钮选择器或坐标
    * @param {string} filePath - 要上传的文件
