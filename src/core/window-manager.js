@@ -64,6 +64,13 @@ class WindowManager {
       this.mainWindow.show();
     });
 
+    // 窗口显示后触发 resize（确保 BrowserView 正确渲染）
+    this.mainWindow.once('show', () => {
+      setTimeout(() => {
+        this.onResize?.();
+      }, 100);
+    });
+
     await this.mainWindow.loadFile(this.config.shellHtmlPath);
 
     // 窗口事件

@@ -147,6 +147,14 @@ class TabManager extends EventEmitter {
       return { action: 'deny' };
     });
 
+    // 设置自动调整大小（关键：确保 BrowserView 跟随窗口变化）
+    view.setAutoResize({
+      width: true,
+      height: true,
+      horizontal: false,
+      vertical: false
+    });
+
     this.resizeView(view, sidebarOpen);
     mainWindow.setBrowserView(view);
 
@@ -155,6 +163,11 @@ class TabManager extends EventEmitter {
 
     // 再次 resize 确保尺寸正确（窗口可能还未稳定）
     setTimeout(() => this.resizeView(view, sidebarOpen), 0);
+
+    // 页面加载完成后再 resize 一次（确保视口正确）
+    view.webContents.once('did-finish-load', () => {
+      setTimeout(() => this.resizeView(view, this.sidebarOpen), 100);
+    });
 
     // 加载 URL
     if (url?.startsWith('http') || url?.startsWith('file://')) {
@@ -259,20 +272,14 @@ class TabManager extends EventEmitter {
       const isFullScreen = mainWindow?.isFullScreen() || false;
       const isMaximized = mainWindow?.isMaximized() || false;
       
-      // 获取窗口尺寸
-      const [width, height] = this.windowManager.getSize();
+      // 使用 getContentBounds 获取客户区尺寸（不包括边框和标题栏）
+      const contentBounds = mainWindow.getContentBounds();
+      const windowWidth = contentBounds.width;
+      const windowHeight = contentBounds.height;
+      
       const totalHeaderHeight = this.config.titlebarHeight + this.config.toolbarHeight;
       
-      // Linux 适配：使用 getBounds 获取更准确的窗口尺寸
-      let windowWidth = width;
-      let windowHeight = height;
-      if (process.platform === 'linux') {
-        const bounds = mainWindow.getBounds();
-        windowWidth = bounds.width;
-        windowHeight = bounds.height;
-      }
-      
-      // 计算可用宽度
+      // 计算可用宽度（考虑侧边栏）
       let availableWidth;
       if (sidebarOpen) {
         if (isFullScreen || isMaximized) {
@@ -284,33 +291,72 @@ class TabManager extends EventEmitter {
           // 工作区域宽度减去侧边栏宽度
           availableWidth = Math.max(workArea.width - this.config.sidebarWidth, 300);
         } else {
-          // 窗口模式：使用窗口尺寸减去侧边栏宽度
-          // Linux 下使用适配后的尺寸
+          // 窗口模式：使用窗口内容区宽度减去侧边栏宽度
           availableWidth = Math.max(windowWidth - this.config.sidebarWidth, 300);
         }
       } else {
         availableWidth = windowWidth;
       }
       
-      // Linux 调试日志
-      if (process.platform === 'linux') {
-        console.log('[TabManager] resizeView:', { 
-          platform: process.platform,
-          isFullScreen, 
-          isMaximized, 
-          sidebarOpen, 
-          windowWidth, 
-          windowHeight, 
-          availableWidth,
-          sidebarWidth: this.config.sidebarWidth
-        });
-      }
+      // 计算 view 的高度（减去标题栏和工具栏）
+      const viewHeight = Math.max(windowHeight - totalHeaderHeight, 300);
+      
+      // 调试日志
+      console.log('[TabManager] resizeView:', { 
+        platform: process.platform,
+        isFullScreen, 
+        isMaximized, 
+        sidebarOpen, 
+        contentBounds,
+        availableWidth,
+        viewHeight,
+        sidebarWidth: this.config.sidebarWidth
+      });
       
       view.setBounds({
         x: 0,
         y: totalHeaderHeight,
         width: Math.max(availableWidth, 300),
-        height: Math.max(windowHeight - totalHeaderHeight, 300),
+        height: viewHeight,
+      });
+
+      // 关键：通过修改 document.documentElement 的宽高来强制页面重排
+      // 这样 window.innerWidth/Height 才会真正改变
+      setImmediate(() => {
+        if (!view.isDestroyed?.()) {
+          view.webContents?.executeJavaScript(`
+            (function() {
+              // 方法1：临时修改 html 元素的尺寸来触发重排
+              const html = document.documentElement;
+              const originalWidth = html.style.width;
+              const originalHeight = html.style.height;
+              
+              // 强制设置尺寸为 100%，这会基于新的 BrowserView 尺寸计算
+              html.style.width = '100vw';
+              html.style.height = '100vh';
+              
+              // 触发强制重排
+              void html.offsetWidth;
+              
+              // 恢复原始样式（如果有）
+              if (originalWidth) html.style.width = originalWidth;
+              if (originalHeight) html.style.height = originalHeight;
+              
+              // 方法2：触发 resize 事件
+              window.dispatchEvent(new Event('resize', { bubbles: true }));
+              
+              // 方法3：对于使用 ResizeObserver 的页面
+              if (window.ResizeObserver) {
+                // 创建临时的 resize observer 来触发观察器
+                const ro = new ResizeObserver(() => {});
+                ro.observe(document.body);
+                setTimeout(() => ro.disconnect(), 0);
+              }
+              
+              console.log('[Siliu] Viewport updated, innerWidth:', window.innerWidth);
+            })()
+          `).catch(() => {});
+        }
       });
     } catch (err) {
       console.error('[TabManager] Failed to resize view:', err.message);
