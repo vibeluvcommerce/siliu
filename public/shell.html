@@ -1628,22 +1628,61 @@
         const query = input.value.trim();
         if (!query) return;
 
-        // 判断是否是 URL
-        const isUrl = /^(https?:\/\/)?([\w-]+\.)+[\w-]+/.test(query);
+        // 智能检测是否是 URL
+        const urlInfo = parseUrlOrSearch(query);
 
-        if (isUrl) {
-          // URL - 确保有 https:// 前缀
-          let url = query;
-          if (!url.startsWith('http://') && !url.startsWith('https://')) {
-            url = 'https://' + url;
-          }
-          navigateToUrl(url);
+        if (urlInfo.isUrl) {
+          navigateToUrl(urlInfo.url);
         } else {
           // 搜索 - 使用 Google
           const searchUrl = 'https://www.google.com/search?q=' + encodeURIComponent(query);
           navigateToUrl(searchUrl);
         }
       }
+    }
+
+    /**
+     * 智能解析输入：判断是 URL 还是搜索词
+     * 返回 { isUrl: boolean, url: string }
+     */
+    function parseUrlOrSearch(input) {
+      const trimmed = input.trim();
+
+      // 1. 如果以协议开头，肯定是 URL
+      if (/^(https?:|ftp:|file:|chrome:|about:|blob:|data:)/i.test(trimmed)) {
+        return { isUrl: true, url: trimmed };
+      }
+
+      // 2. 排除纯搜索词特征（包含空格、中文、特殊符号等）
+      if (/[\s\u4e00-\u9fa5<>'"{}|^\\]/.test(trimmed)) {
+        return { isUrl: false, url: null };
+      }
+
+      // 3. 检测 IP 地址（支持端口）
+      // IPv4: 192.168.1.1 或 192.168.1.1:8080
+      if (/^(\d{1,3}\.){3}\d{1,3}(:\d+)?(\/|$)/.test(trimmed)) {
+        return { isUrl: true, url: 'http://' + trimmed };
+      }
+
+      // 4. 检测 localhost 和 hostname（支持端口和路径）
+      // localhost:8080, localhost:8080/path, my-server:3000
+      if (/^[\w-]+(:\d+)?(\/|$)/.test(trimmed) && !trimmed.includes('.')) {
+        // 没有点号，可能是 localhost 或纯 hostname
+        if (trimmed.toLowerCase().startsWith('localhost') || 
+            /^[\w-]+:\d+/.test(trimmed)) {
+          return { isUrl: true, url: 'http://' + trimmed };
+        }
+      }
+
+      // 5. 检测域名格式（支持端口和路径）
+      // example.com, example.com:8080, example.com/path, sub.example.com:3000/api
+      const domainPattern = /^([\w-]+\.)+[a-zA-Z]{2,}(:\d+)?(\/[^\s]*)?$/;
+      if (domainPattern.test(trimmed)) {
+        return { isUrl: true, url: 'https://' + trimmed };
+      }
+
+      // 6. 默认作为搜索
+      return { isUrl: false, url: null };
     }
 
     async function navigateToUrl(url) {
