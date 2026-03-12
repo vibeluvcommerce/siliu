@@ -37,27 +37,27 @@ class DialogInterceptor extends EventEmitter {
       // 加载 kernel32.dll
       this.kernel32 = this.koffi.load('kernel32.dll');
       
-      // 定义函数原型（使用 @decorated 格式）
-      // FindWindow 系列
-      this.user32.FindWindowW = this.user32.func('FindWindowW@8', 'void *', ['const char16 *', 'const char16 *']);
-      this.user32.FindWindowExW = this.user32.func('FindWindowExW@16', 'void *', ['void *', 'void *', 'const char16 *', 'const char16 *']);
+      // 定义函数原型（不使用 @decorated 格式，koffi 会自动处理）
+      // FindWindow 系列 - 使用函数原型定义
+      this.user32.FindWindowW = this.user32.func('void *FindWindowW(const char16 *, const char16 *)');
+      this.user32.FindWindowExW = this.user32.func('void *FindWindowExW(void *, void *, const char16 *, const char16 *)');
       
       // 窗口操作
-      this.user32.GetClassNameW = this.user32.func('GetClassNameW@12', 'int', ['void *', 'void *', 'int']);
-      this.user32.SetWindowTextW = this.user32.func('SetWindowTextW@8', 'bool', ['void *', 'const char16 *']);
-      this.user32.GetWindowTextW = this.user32.func('GetWindowTextW@12', 'int', ['void *', 'void *', 'int']);
-      this.user32.IsWindow = this.user32.func('IsWindow@4', 'bool', ['void *']);
-      this.user32.IsWindowVisible = this.user32.func('IsWindowVisible@4', 'bool', ['void *']);
-      this.user32.GetForegroundWindow = this.user32.func('GetForegroundWindow@0', 'void *', []);
-      this.user32.EnumWindows = this.user32.func('EnumWindows@8', 'bool', ['void *', 'int64']);
-      this.user32.GetWindowThreadProcessId = this.user32.func('GetWindowThreadProcessId@8', 'uint32', ['void *', 'void *']);
+      this.user32.GetClassNameW = this.user32.func('int GetClassNameW(void *, void *, int)');
+      this.user32.SetWindowTextW = this.user32.func('bool SetWindowTextW(void *, const char16 *)');
+      this.user32.GetWindowTextW = this.user32.func('int GetWindowTextW(void *, void *, int)');
+      this.user32.IsWindow = this.user32.func('bool IsWindow(void *)');
+      this.user32.IsWindowVisible = this.user32.func('bool IsWindowVisible(void *)');
+      this.user32.GetForegroundWindow = this.user32.func('void *GetForegroundWindow(void)');
+      this.user32.EnumWindows = this.user32.func('bool EnumWindows(void *, int64)');
+      this.user32.GetWindowThreadProcessId = this.user32.func('uint32 GetWindowThreadProcessId(void *, void *)');
       
       // 消息发送
-      this.user32.PostMessageW = this.user32.func('PostMessageW@16', 'bool', ['void *', 'uint32', 'uint64', 'int64']);
-      this.user32.SendMessageW = this.user32.func('SendMessageW@16', 'int64', ['void *', 'uint32', 'uint64', 'int64']);
+      this.user32.PostMessageW = this.user32.func('bool PostMessageW(void *, uint32, uint64, int64)');
+      this.user32.SendMessageW = this.user32.func('int64 SendMessageW(void *, uint32, uint64, int64)');
       
       // 进程相关
-      this.kernel32.GetCurrentProcessId = this.kernel32.func('GetCurrentProcessId@0', 'uint32', []);
+      this.kernel32.GetCurrentProcessId = this.kernel32.func('uint32 GetCurrentProcessId(void)');
       
       console.log('[DialogInterceptor] Win32 API initialized');
     } catch (err) {
