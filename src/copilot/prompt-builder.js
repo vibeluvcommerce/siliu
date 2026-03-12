@@ -213,7 +213,7 @@ ${buildActionHelp()}
 - press 支持：Enter（回车）、Backspace（退格删除）、Delete（删除）、Tab（制表）、Escape（退出）、ArrowDown/ArrowUp/ArrowLeft/ArrowRight（方向键）
 - selectAll 支持：使用 Ctrl+A 全选文本框内容，配合 type 可替换原有内容
 - upload 支持上传本地文件到网页，只需提供 filePath（如 "D:/images/photo.jpg"），系统会自动查找文件输入框并设置文件。注意：不需要先点击上传按钮，直接调用 upload 即可
-- 【重要限制】B站评论图片上传目前不支持自动化，因为B站使用自定义上传组件而非标准file input。如遇上传失败，请跳过图片上传直接发布纯文字评论
+- 【重要】B站评论图片上传已支持自动化！系统会自动拦截文件选择对话框并填入指定图片。正确流程：先 click 点击图片上传按钮，等待系统对话框弹出，系统会自动选择文件。如果上传失败再考虑跳过图片
 - 【重要】抖音/视频类网站请使用 wheel 而非 scroll 来切换视频
 - 输入错误时可使用 press + Backspace 删除后重新输入，或使用 selectAll 全选后直接输入替换
 - 【重要】遇到登录/扫码/验证码时暂停任务，告知用户完成后再继续
