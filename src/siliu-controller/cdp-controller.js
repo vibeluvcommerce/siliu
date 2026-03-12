@@ -889,20 +889,68 @@ class CDPController {
   /**
    * 上传文件到文件输入框
    * 使用 CDP 直接设置文件路径，绕过系统文件选择对话框
-   * @param {string} selectorOrText - CSS选择器或文本
+   * @param {string|object} selectorOrText - CSS选择器、文本或坐标对象 {x, y}
    * @param {string} filePath - 本地文件绝对路径
    */
   async upload(selectorOrText, filePath) {
     await this.randomDelay(300, 600);
 
-    // 查找文件输入框
-    let nodeId = await this.smartFind(selectorOrText);
-    if (!nodeId) {
-      await this.sleep(500);
+    let nodeId = null;
+
+    // 处理坐标对象
+    if (typeof selectorOrText === 'object' && selectorOrText.x !== undefined) {
+      const x = selectorOrText.x;
+      const y = selectorOrText.y;
+      
+      // 使用 elementFromPoint 获取元素
+      const result = await this.cdp.evaluate(`
+        (function() {
+          const el = document.elementFromPoint(${x} * window.innerWidth, ${y} * window.innerHeight);
+          if (!el) return null;
+          
+          // 如果点击的是 label，找到对应的 input
+          if (el.tagName === 'LABEL' && el.htmlFor) {
+            const input = document.getElementById(el.htmlFor);
+            if (input && input.type === 'file') return input;
+          }
+          
+          // 如果点击的不是 file input，向上查找
+          let current = el;
+          while (current && current.tagName !== 'BODY') {
+            if (current.tagName === 'INPUT' && current.type === 'file') {
+              return current;
+            }
+            // 检查是否有 file input 子元素
+            const fileInput = current.querySelector('input[type="file"]');
+            if (fileInput) return fileInput;
+            current = current.parentElement;
+          }
+          
+          return el;
+        })()
+      `);
+      
+      if (!result) {
+        throw new Error(`No element found at coordinate (${x}, ${y})`);
+      }
+      
+      // 获取元素的 nodeId
+      const objectId = result.objectId;
+      if (objectId) {
+        const nodeResult = await this.cdp.send('DOM.requestNode', { objectId });
+        nodeId = nodeResult.nodeId;
+      }
+    } else if (typeof selectorOrText === 'string') {
+      // 字符串选择器方式
       nodeId = await this.smartFind(selectorOrText);
       if (!nodeId) {
-        throw new Error(`File input not found: ${selectorOrText}`);
+        await this.sleep(500);
+        nodeId = await this.smartFind(selectorOrText);
       }
+    }
+
+    if (!nodeId) {
+      throw new Error(`File input not found: ${JSON.stringify(selectorOrText)}`);
     }
 
     // 滚动到元素可见
