@@ -207,6 +207,9 @@ class SiliuController {
   /**
    * 使用系统级对话框拦截器上传
    * 适用于 B站等自定义上传组件
+   * 
+   * 注意：如果 selectorOrText 为 undefined，表示上传按钮已经被点击过了
+   * 系统对话框可能已经弹出，此时只需等待拦截器工作
    */
   async _uploadWithSystemInterceptor(selectorOrText, filePath) {
     const fileManager = this.tabManager.fileManager;
@@ -227,35 +230,26 @@ class SiliuController {
       running: interceptorRunning 
     });
     
-    // 3. 点击上传按钮（这会触发系统文件对话框）
-    console.log('[SiliuController] Clicking upload button to trigger dialog...');
-    let clickResult;
-    if (typeof selectorOrText === 'object' && selectorOrText.x !== undefined) {
-      clickResult = await this.clickAt(selectorOrText.x, selectorOrText.y);
-    } else if (typeof selectorOrText === 'string') {
-      clickResult = await this.click(selectorOrText);
-    } else {
-      // 如果没有提供选择器，尝试常见上传按钮选择器
-      const commonSelectors = [
-        '[class*="upload"]',
-        '[class*="image"]',
-        'button:has-text("上传")',
-        'button:has-text("图片")',
-        '.reply-box .upload-btn',
-        '.comment-box .upload-btn'
-      ];
+    // 3. 点击上传按钮（如果提供了选择器）
+    // 如果 selectorOrText 为 undefined，表示按钮已经被点击过了（AI 先 click 再 upload）
+    if (selectorOrText) {
+      console.log('[SiliuController] Clicking upload button to trigger dialog...');
+      let clickResult;
       
-      for (const selector of commonSelectors) {
-        try {
-          clickResult = await this.click(selector);
-          if (clickResult.result?.success) {
-            console.log('[SiliuController] Upload button clicked with selector:', selector);
-            break;
-          }
-        } catch (e) {
-          // 继续尝试下一个
-        }
+      if (typeof selectorOrText === 'object' && selectorOrText.x !== undefined) {
+        clickResult = await this.clickAt(selectorOrText.x, selectorOrText.y);
+        console.log('[SiliuController] Upload button clicked at coordinates:', selectorOrText);
+      } else if (typeof selectorOrText === 'string') {
+        clickResult = await this.click(selectorOrText);
+        console.log('[SiliuController] Upload button clicked with selector:', selectorOrText);
       }
+      
+      // 等待对话框弹出
+      await new Promise(r => setTimeout(r, 500));
+    } else {
+      console.log('[SiliuController] No selector provided, assuming dialog already triggered');
+      // 给对话框一点时间来成为前台窗口
+      await new Promise(r => setTimeout(r, 1000));
     }
     
     // 4. 等待拦截器完成或超时
