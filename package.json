@@ -10,15 +10,18 @@
     "dist": "electron-builder",
     "dist:win": "electron-builder --win zip",
     "dist:win:portable": "electron-builder --win portable",
+    "dist:mac": "electron-builder --mac",
+    "dist:linux": "electron-builder --linux",
     "postinstall": "electron-builder install-app-deps"
   },
   "build": {
     "appId": "com.siliu.browser",
     "productName": "Siliu Browser",
-    "icon": "assets/icon.ico",
+    "icon": "assets/icon",
     "directories": {
       "output": "dist"
     },
+    "electronDist": "node_modules/electron/dist",
     "extraResources": [],
     "files": [
       "src/**/*",
@@ -61,6 +64,42 @@
     },
     "portable": {
       "artifactName": "${productName}-${version}-Portable.${ext}"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["x64", "arm64"]
+        },
+        {
+          "target": "zip",
+          "arch": ["x64", "arm64"]
+        }
+      ],
+      "category": "public.app-category.productivity",
+      "icon": "assets/icon.icns"
+    },
+    "dmg": {
+      "title": "${productName} ${version}",
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": ["x64"]
+        },
+        {
+          "target": "deb",
+          "arch": ["x64"]
+        },
+        {
+          "target": "tar.gz",
+          "arch": ["x64"]
+        }
+      ],
+      "category": "Network",
+      "icon": "assets/icon.png"
     }
   },
   "dependencies": {
