@@ -265,6 +265,11 @@ class TabManager extends EventEmitter {
 
     this.views.delete(viewId);
     this.closingViews.delete(viewId);
+    
+    // 清除 activeViewId（如果关闭的是当前活动标签）
+    if (wasActive) {
+      this.activeViewId = null;
+    }
 
     // 切换活动标签
     if (wasActive) {
