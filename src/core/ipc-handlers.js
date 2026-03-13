@@ -721,10 +721,12 @@ class IPCHandlers {
       }
     });
 
-    ipcMain.handle('openclaw:disconnect', () => {
+    ipcMain.handle('openclaw:disconnect', async () => {
+      console.log('[IPC] openclaw:disconnect called');
       const aiService = this.getAIService?.();
       if (aiService) {
-        aiService.disconnect();
+        await aiService.disconnect();
+        console.log('[IPC] disconnect completed');
         return { success: true };
       }
       return { success: false, error: 'AI service not initialized' };
