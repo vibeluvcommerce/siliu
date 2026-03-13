@@ -496,14 +496,21 @@ class AIServiceManager {
    * 断开当前连接
    */
   async disconnect() {
-    console.log('[AIServiceManager] disconnect called, currentService:', this.currentService?.constructor?.name);
+    console.log('[AIServiceManager] disconnect called, currentService:', this.currentService?.constructor?.name, 'kimiAdapter:', !!this.kimiAdapter);
+    
     if (this.currentService) {
       console.log('[AIServiceManager] Calling currentService.disconnect()');
       await this.currentService.disconnect();
       console.log('[AIServiceManager] currentService.disconnect() completed');
       this.currentService = null;
     }
-    this.kimiAdapter = null;
+    
+    if (this.kimiAdapter) {
+      console.log('[AIServiceManager] Calling kimiAdapter.disconnect()');
+      await this.kimiAdapter.disconnect();
+      console.log('[AIServiceManager] kimiAdapter.disconnect() completed');
+      this.kimiAdapter = null;
+    }
     
     // 重置所有回调的 applied 状态，以便重新订阅到新服务
     if (this._pendingMessageCallbacks) {
