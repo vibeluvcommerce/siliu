@@ -280,9 +280,18 @@ class CoreModule extends EventEmitter {
   }
 
   async _doCreateNewWindow(url, sourceWindow = null) {
+    // 获取源窗口尺寸，保持一致的 17:9 比例
+    let windowWidth = 1600;
+    let windowHeight = 900;
+    if (sourceWindow && !sourceWindow.isDestroyed()) {
+      const bounds = sourceWindow.getBounds();
+      windowWidth = bounds.width;
+      windowHeight = bounds.height;
+    }
+
     const newWindow = new BrowserWindow({
-      width: 1280,
-      height: 800,
+      width: windowWidth,
+      height: windowHeight,
       minWidth: 800,
       minHeight: 600,
       show: false,
@@ -448,9 +457,9 @@ class CoreModule extends EventEmitter {
     newWindow.once('ready-to-show', () => {
       newWindow.show();
 
-      // 创建初始视图
+      // 创建初始视图（Copilot 默认展开）
       const currentUrl = url || this.NEW_TAB_URL;
-      detachedTabManager.createView(currentUrl, false);
+      detachedTabManager.createView(currentUrl, true);
 
       // 通知 Copilot 新窗口创建
       const copilot = this.ipcHandlers?.getCopilot?.();

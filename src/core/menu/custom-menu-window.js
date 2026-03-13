@@ -454,7 +454,7 @@ class CustomMenuWindow {
       },
       'duplicate': () => {
         const vd = this.currentTabManager.getViewData(viewId);
-        if (vd) this.currentTabManager.createView(vd.url);
+        if (vd) this.currentTabManager.createView(vd.url, this.currentTabManager.sidebarOpen);
       }
     };
 
@@ -468,7 +468,7 @@ class CustomMenuWindow {
     const { url, text } = this.currentLinkData;
 
     const handlers = {
-      'open-in-new-tab': () => this.currentTabManager.createView(url),
+      'open-in-new-tab': () => this.currentTabManager.createView(url, this.currentTabManager.sidebarOpen),
       'open-in-new-window': () => global.coreInstance?.createNewWindow(url),
       'copy-link-url': () => clipboard.writeText(url),
       'copy-link-text': () => clipboard.writeText(text || '')
@@ -485,7 +485,7 @@ class CustomMenuWindow {
     const win = this.currentWindow;
 
     const handlers = {
-      'open-in-new-tab': () => this.currentTabManager.createView(src),
+      'open-in-new-tab': () => this.currentTabManager.createView(src, this.currentTabManager.sidebarOpen),
       'save-image': async () => {
         const path = require('path');
         const https = require('https');
@@ -560,11 +560,11 @@ class CustomMenuWindow {
       'select-all': () => webContents.send('editor:select-all'),
       'search-google': () => {
         const query = encodeURIComponent(this.currentTextData.text);
-        this.currentTabManager.createView(`https://www.google.com/search?q=${query}`);
+        this.currentTabManager.createView(`https://www.google.com/search?q=${query}`, this.currentTabManager.sidebarOpen);
       },
       'search-new-tab': () => {
         const query = encodeURIComponent(this.currentTextData.text);
-        this.currentTabManager.createView(`https://www.google.com/search?q=${query}`);
+        this.currentTabManager.createView(`https://www.google.com/search?q=${query}`, this.currentTabManager.sidebarOpen);
       }
     };
 
@@ -583,13 +583,13 @@ class CustomMenuWindow {
       'search-google': () => {
         if (this.currentTextData?.text) {
           const query = encodeURIComponent(this.currentTextData.text);
-          this.currentTabManager?.createView(`https://www.google.com/search?q=${query}`);
+          this.currentTabManager?.createView(`https://www.google.com/search?q=${query}`, this.currentTabManager.sidebarOpen);
         }
       },
       'search-new-tab': () => {
         if (this.currentTextData?.text) {
           const query = encodeURIComponent(this.currentTextData.text);
-          this.currentTabManager?.createView(`https://www.google.com/search?q=${query}`);
+          this.currentTabManager?.createView(`https://www.google.com/search?q=${query}`, this.currentTabManager.sidebarOpen);
         }
       }
     };
