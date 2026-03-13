@@ -205,6 +205,134 @@ class SiliuController {
   }
   
   /**
+   * 扫描文件夹获取文件列表
+   * @param {string} folderPath - 文件夹路径
+   * @param {Object} options - 选项
+   * @param {string[]} options.extensions - 文件扩展名过滤，如 ['.jpg', '.png']
+   * @param {boolean} options.recursive - 是否递归子文件夹
+   * @returns {Promise<{success: boolean, files: string[], error?: string}>}
+   */
+  async listFiles(folderPath, options = {}) {
+    const fs = require('fs');
+    const path = require('path');
+    
+    try {
+      if (!fs.existsSync(folderPath)) {
+        return { success: false, files: [], error: 'Folder not found: ' + folderPath };
+      }
+      
+      const { extensions = [], recursive = false } = options;
+      let files = [];
+      
+      const scanDir = (dir) => {
+        const items = fs.readdirSync(dir);
+        for (const item of items) {
+          const fullPath = path.join(dir, item);
+          const stat = fs.statSync(fullPath);
+          
+          if (stat.isDirectory() && recursive) {
+            scanDir(fullPath);
+          } else if (stat.isFile()) {
+            const ext = path.extname(item).toLowerCase();
+            if (extensions.length === 0 || extensions.includes(ext)) {
+              files.push(fullPath);
+            }
+          }
+        }
+      };
+      
+      scanDir(folderPath);
+      console.log(`[SiliuController] Scanned ${folderPath}, found ${files.length} files`);
+      return { success: true, files };
+      
+    } catch (err) {
+      console.error('[SiliuController] listFiles error:', err.message);
+      return { success: false, files: [], error: err.message };
+    }
+  }
+  
+  /**
+   * 根据上下文情绪选择表情图片
+   * @param {string} folderPath - 表情文件夹路径
+   * @param {string} context - 上下文文本（如评论内容）
+   * @returns {Promise<{success: boolean, selectedFile?: string, emotion?: string, error?: string}>}
+   */
+  async selectEmojiByContext(folderPath, context) {
+    // 1. 获取所有表情文件
+    const listResult = await this.listFiles(folderPath, { 
+      extensions: ['.jpg', '.jpeg', '.png', '.gif', '.webp'] 
+    });
+    
+    if (!listResult.success || listResult.files.length === 0) {
+      return { success: false, error: listResult.error || 'No emoji files found' };
+    }
+    
+    // 2. 情绪关键词映射
+    const emotionKeywords = {
+      'happy': ['happy', 'joy', 'smile', 'laugh', '开心', '高兴', '笑', '喜', '乐'],
+      'sad': ['sad', 'cry', 'tear', 'sorrow', '伤心', '难过', '哭', '悲', '泪'],
+      'angry': ['angry', 'rage', 'mad', 'furious', '生气', '愤怒', '怒', '气'],
+      'surprise': ['surprise', 'shock', 'wow', 'amazing', '惊讶', '震惊', '惊', '哇'],
+      'love': ['love', 'heart', 'like', 'favorite', '爱', '喜欢', '心', '赞'],
+      'confused': ['confused', 'question', 'doubt', '困惑', '疑惑', '疑问', '懵'],
+      'cool': ['cool', 'awesome', 'chill', '酷', '帅', '淡定', '冷静'],
+      'embarrassed': ['embarrassed', 'shy', 'awkward', '尴尬', '害羞', '囧'],
+      'sleepy': ['sleepy', 'tired', 'sleep', '困', '累', '睡', '倦'],
+      'excited': ['excited', 'exciting', '激动', '兴奋', '燃', '嗨']
+    };
+    
+    // 3. 分析上下文情绪
+    const contextLower = context.toLowerCase();
+    let detectedEmotion = null;
+    let maxScore = 0;
+    
+    for (const [emotion, keywords] of Object.entries(emotionKeywords)) {
+      let score = 0;
+      for (const keyword of keywords) {
+        if (contextLower.includes(keyword.toLowerCase())) {
+          score += keyword.length; // 越长匹配度越高
+        }
+      }
+      if (score > maxScore) {
+        maxScore = score;
+        detectedEmotion = emotion;
+      }
+    }
+    
+    // 4. 根据情绪选择文件
+    const path = require('path');
+    let selectedFile = null;
+    
+    if (detectedEmotion) {
+      // 找匹配情绪的文件
+      const matchingFiles = listResult.files.filter(file => {
+        const fileName = path.basename(file, path.extname(file)).toLowerCase();
+        const keywords = emotionKeywords[detectedEmotion] || [];
+        return keywords.some(kw => fileName.includes(kw.toLowerCase()));
+      });
+      
+      if (matchingFiles.length > 0) {
+        // 随机选择一个匹配的
+        selectedFile = matchingFiles[Math.floor(Math.random() * matchingFiles.length)];
+      }
+    }
+    
+    // 如果没有匹配到，随机选择一个
+    if (!selectedFile) {
+      selectedFile = listResult.files[Math.floor(Math.random() * listResult.files.length)];
+      detectedEmotion = 'random';
+    }
+    
+    console.log(`[SiliuController] Selected emoji: ${selectedFile} (emotion: ${detectedEmotion})`);
+    return { 
+      success: true, 
+      selectedFile, 
+      emotion: detectedEmotion,
+      allFiles: listResult.files 
+    };
+  }
+  
+  /**
    * 使用系统级对话框拦截器上传
    * 适用于 B站等自定义上传组件
    * 

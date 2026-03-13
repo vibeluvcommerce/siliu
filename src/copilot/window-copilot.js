@@ -1286,6 +1286,60 @@ ${this.isExecuting ? `当前任务: ${this.currentTask}` : ''}
             await this._smartWait('type');
             break;
           }
+          case 'file:list': {
+            const folderPath = decision.folderPath || decision.path;
+            const extensions = decision.extensions || ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+            
+            console.log(`[WindowCopilot:${this.windowId}] file:list: path=${folderPath}, extensions=${extensions.join(',')}`);
+            
+            if (!folderPath) {
+              stepResult = { success: false, error: 'Missing folderPath for file:list' };
+              actualMode = 'JS';
+            } else {
+              try {
+                const result = await this.controller.listFiles(folderPath, { extensions });
+                stepResult = result;
+                actualMode = 'JS';
+                
+                // 将结果保存到上下文中供后续使用
+                if (result.success) {
+                  this._lastFileList = result.files;
+                  stepResult.message = `找到 ${result.files.length} 个文件: ${result.files.map(f => f.split('/').pop()).join(', ')}`;
+                }
+              } catch (err) {
+                console.error(`[WindowCopilot:${this.windowId}] file:list failed:`, err.message);
+                stepResult = { success: false, error: err.message };
+                actualMode = 'JS';
+              }
+            }
+            break;
+          }
+          case 'file:selectByContext': {
+            const folderPath = decision.folderPath || decision.path;
+            const context = decision.context || decision.text;
+            
+            console.log(`[WindowCopilot:${this.windowId}] file:selectByContext: path=${folderPath}, context=${context?.substring(0, 50)}...`);
+            
+            if (!folderPath || !context) {
+              stepResult = { success: false, error: 'Missing folderPath or context for file:selectByContext' };
+              actualMode = 'JS';
+            } else {
+              try {
+                const result = await this.controller.selectEmojiByContext(folderPath, context);
+                stepResult = result;
+                actualMode = 'JS';
+                
+                if (result.success) {
+                  stepResult.message = `根据情绪「${result.emotion}」选择了: ${result.selectedFile.split('/').pop()}`;
+                }
+              } catch (err) {
+                console.error(`[WindowCopilot:${this.windowId}] file:selectByContext failed:`, err.message);
+                stepResult = { success: false, error: err.message };
+                actualMode = 'JS';
+              }
+            }
+            break;
+          }
           case 'type': {
             console.log(`[WindowCopilot:${this.windowId}] Calling controller.type...`);
 
