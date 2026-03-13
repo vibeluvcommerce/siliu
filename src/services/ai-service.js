@@ -95,6 +95,11 @@ class OpenClawAdapter extends BaseAIService {
           console.log('[OpenClawAdapter] Connection closed, emitting ai:disconnected');
           this._connected = false;
           globalEventBus.emit('ai:disconnected', { service: this.name });
+          // 发送断开连接 toast
+          globalEventBus.emit('ai:toast', {
+            message: 'AI 连接已断开',
+            type: 'info'
+          });
         } else {
           console.log('[OpenClawAdapter] Connection closed but was never fully connected');
         }

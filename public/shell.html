@@ -2462,7 +2462,6 @@
         await window.siliuAPI?.openclawDisconnect?.();
         aiConnection.connected = false;
         updateOpenClawUI('disconnected');
-        showToast('AI 连接已断开', 'info');
       } else {
         // 连接
         openclawConnecting = true;
