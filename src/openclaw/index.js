@@ -28,6 +28,7 @@ class OpenClawModule {
     this.reconnectTimer = null;
     this.connectResolve = null;
     this.connectReject = null;
+    this.connectTimeout = null;
   }
 
   /**
@@ -63,6 +64,23 @@ class OpenClawModule {
     return new Promise((resolve, reject) => {
       this.connectResolve = resolve;
       this.connectReject = reject;
+      
+      // 设置连接超时（5秒）
+      this.connectTimeout = setTimeout(() => {
+        if (!this.connected && this.connecting) {
+          console.log('[OpenClaw] Connection timeout');
+          this.closed = true; // 标记为关闭，阻止重连
+          this.connecting = false;
+          if (this.ws) {
+            this.ws.terminate();
+            this.ws = null;
+          }
+          reject(new Error('Connection timeout'));
+          this.connectResolve = null;
+          this.connectReject = null;
+        }
+      }, 5000);
+      
       this.doConnect();
     });
   }
@@ -189,6 +207,11 @@ class OpenClawModule {
     this.pending.set(id, {
       resolve: (result) => {
         console.log('[OpenClaw] Connected!');
+        // 清除连接超时
+        if (this.connectTimeout) {
+          clearTimeout(this.connectTimeout);
+          this.connectTimeout = null;
+        }
         this.backoffMs = 800;
         this.connected = true;
         this.connecting = false;
@@ -203,6 +226,11 @@ class OpenClawModule {
       },
       reject: (err) => {
         console.error('[OpenClaw] Connect failed:', err.message);
+        // 清除连接超时
+        if (this.connectTimeout) {
+          clearTimeout(this.connectTimeout);
+          this.connectTimeout = null;
+        }
         if (this.connectReject) {
           this.connectReject(err);
           this.connectResolve = null;
