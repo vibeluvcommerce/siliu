@@ -187,7 +187,9 @@ class TabManager extends EventEmitter {
       vertical: false
     });
 
-    this.resizeView(view, sidebarOpen);
+    if (!view.isDestroyed?.()) {
+      this.resizeView(view, sidebarOpen);
+    }
     mainWindow.setBrowserView(view);
 
     // 立即注入主滚动条样式（仅 html/body）
@@ -294,8 +296,10 @@ class TabManager extends EventEmitter {
     this.sidebarOpen = sidebarOpen; // 保存侧边栏状态
     const mainWindow = this.windowManager.getWindow();
 
-    mainWindow.setBrowserView(viewData.view);
-    this.resizeView(viewData.view, sidebarOpen);
+    if (!viewData.view.isDestroyed?.()) {
+      mainWindow.setBrowserView(viewData.view);
+      this.resizeView(viewData.view, sidebarOpen);
+    }
 
     this.emit('view:activated', { 
       viewId, 
