@@ -38,7 +38,7 @@ class WindowManager {
     const isLinux = process.platform === 'linux';
 
     const windowOptions = {
-      width: 1440,
+      width: 1920,
       height: 900,
       minWidth: this.config.minWidth,
       minHeight: this.config.minHeight,
