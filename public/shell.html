@@ -2454,14 +2454,28 @@
     }
 
     // ========== OpenClaw 连接控制 ==========
+    // 防止频繁点击的标志
+    let copilotProcessing = false;
+    
     async function toggleOpenClaw() {
-      if (openclawConnecting) return;
+      // 防止频繁点击（连接/断开操作期间）
+      if (copilotProcessing || openclawConnecting) {
+        console.log('[Shell] Copilot busy, ignoring click');
+        return;
+      }
+      
+      // 设置处理中标志，防止重复点击
+      copilotProcessing = true;
 
       if (aiConnection.connected) {
         // 断开连接
-        await window.siliuAPI?.openclawDisconnect?.();
-        aiConnection.connected = false;
-        updateOpenClawUI('disconnected');
+        try {
+          await window.siliuAPI?.openclawDisconnect?.();
+          aiConnection.connected = false;
+          updateOpenClawUI('disconnected');
+        } catch (err) {
+          console.error('[Shell] Disconnect failed:', err);
+        }
       } else {
         // 连接
         openclawConnecting = true;
@@ -2500,6 +2514,12 @@
           openclawConnecting = false;
         }
       }
+      
+      // 重置处理中标志，允许下次点击
+      setTimeout(() => {
+        copilotProcessing = false;
+        console.log('[Shell] Copilot ready for next click');
+      }, 1000); // 1秒冷却时间
     }
 
     function updateOpenClawUI(state, errorMsg) {
