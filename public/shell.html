@@ -589,9 +589,28 @@
       flex-direction: column;
       align-items: center;
       padding: 12px 6px;
-      gap: 6px;
       z-index: 90;
       box-shadow: 2px 0 12px rgba(0, 0, 0, 0.06);
+    }
+
+    .agent-list {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      overflow-y: auto;
+      width: 100%;
+    }
+
+    .agent-footer {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      width: 100%;
+      margin-top: auto;
+      padding-top: 8px;
     }
 
     .agent-item {
@@ -674,7 +693,6 @@
       color: rgba(0, 0, 0, 0.4);
       font-size: 20px;
       transition: all 0.2s ease;
-      margin-top: 4px;
     }
 
     .agent-panel .add-btn:hover {
@@ -682,6 +700,31 @@
       color: #1A73E8;
       background: rgba(26, 115, 232, 0.05);
       transform: scale(1.05);
+    }
+
+    .agent-panel .settings-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      color: rgba(0, 0, 0, 0.4);
+      font-size: 20px;
+      transition: all 0.2s ease;
+    }
+
+    .agent-panel .settings-btn:hover {
+      color: #5F6368;
+      background: rgba(0, 0, 0, 0.06);
+      transform: scale(1.05);
+    }
+
+    .agent-panel .settings-btn i {
+      font-size: 22px;
     }
 
     .agent-item .status-dot {
@@ -1618,22 +1661,29 @@
 
   <!-- Agent 栏 -->
   <div class="agent-panel" id="agent-panel">
-    <div class="agent-item active" data-id="general" data-name="通用助手" onclick="selectAgent('general')">
-      <span>🤖</span>
-      <div class="status-dot"></div>
+    <div class="agent-list">
+      <div class="agent-item active" data-id="general" data-name="通用助手" onclick="selectAgent('general')">
+        <span>🤖</span>
+        <div class="status-dot"></div>
+      </div>
+      <div class="agent-item" data-id="bilibili" data-name="B站助手" onclick="selectAgent('bilibili')">
+        <span>📺</span>
+      </div>
+      <div class="agent-item" data-id="taobao" data-name="淘宝助手" onclick="selectAgent('taobao')">
+        <span>🛒</span>
+      </div>
+      <div class="agent-item" data-id="data" data-name="数据采集" onclick="selectAgent('data')">
+        <span>📊</span>
+      </div>
     </div>
-    <div class="agent-item" data-id="bilibili" data-name="B站助手" onclick="selectAgent('bilibili')">
-      <span>📺</span>
-    </div>
-    <div class="agent-item" data-id="taobao" data-name="淘宝助手" onclick="selectAgent('taobao')">
-      <span>🛒</span>
-    </div>
-    <div class="agent-item" data-id="data" data-name="数据采集" onclick="selectAgent('data')">
-      <span>📊</span>
-    </div>
-    <div class="divider"></div>
-    <div class="add-btn" onclick="addNewAgent()" title="创建新 Agent">
-      <span>+</span>
+    <div class="agent-footer">
+      <div class="divider"></div>
+      <div class="add-btn" onclick="addNewAgent()" title="创建新 Agent">
+        <span>+</span>
+      </div>
+      <div class="settings-btn" onclick="openAgentSettings()" title="Agent 管理">
+        <i class="ph ph-gear"></i>
+      </div>
     </div>
   </div>
 
@@ -1891,6 +1941,12 @@
       console.log('[AgentPanel] Add new agent');
       // TODO: 打开创建 Agent 的界面
       showToast('创建 Agent 功能开发中...');
+    }
+
+    function openAgentSettings() {
+      console.log('[AgentPanel] Open agent settings');
+      // TODO: 打开 Agent 管理设置
+      showToast('Agent 管理功能开发中...');
     }
 
     // ========== 标签栏管理器（解耦版） ==========
