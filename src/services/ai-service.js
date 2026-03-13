@@ -496,8 +496,11 @@ class AIServiceManager {
    * 断开当前连接
    */
   async disconnect() {
+    console.log('[AIServiceManager] disconnect called, currentService:', this.currentService?.constructor?.name);
     if (this.currentService) {
+      console.log('[AIServiceManager] Calling currentService.disconnect()');
       await this.currentService.disconnect();
+      console.log('[AIServiceManager] currentService.disconnect() completed');
       this.currentService = null;
     }
     this.kimiAdapter = null;

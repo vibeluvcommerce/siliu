@@ -2929,6 +2929,7 @@
 
       // AI toast 提示（连接成功/失败等）
       window.siliuAPI?.on?.('ai:toast', ({ message, type }) => {
+        console.log('[Shell] ai:toast received:', message, type);
         showToast(message, type);
       });
 

@@ -146,7 +146,9 @@ async function startup() {
 
     // AI toast 提示（连接成功/失败等）
     globalEventBus.on('ai:toast', ({ message, type }) => {
+      console.log('[Siliu] ai:toast received:', message, type);
       modules.core?.sendToRenderer?.('ai:toast', { message, type });
+      console.log('[Siliu] ai:toast sent to renderer');
     });
 
     // ③ 加载 Core

@@ -265,15 +265,19 @@ class KimiCodingAdapter {
    * 断开连接（清理资源）
    */
   disconnect() {
-    console.log('[KimiCodingAdapter] Disconnecting');
+    console.log('[KimiCodingAdapter] Disconnecting, emitting events...');
     this.messageCallbacks = [];
     
     // 发送断开连接事件和 toast
+    console.log('[KimiCodingAdapter] Emitting ai:disconnected');
     globalEventBus.emit('ai:disconnected', { service: 'Kimi' });
+    
+    console.log('[KimiCodingAdapter] Emitting ai:toast');
     globalEventBus.emit('ai:toast', {
       message: 'AI 连接已断开',
       type: 'info'
     });
+    console.log('[KimiCodingAdapter] Events emitted');
   }
 }
 
