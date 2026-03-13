@@ -138,28 +138,51 @@ class DialogInterceptor extends EventEmitter {
     }
 
     try {
-      // 直接检查前台窗口（对话框应该是前台窗口）
+      // 策略1: 先检查前台窗口（最常见情况）
       const fgWindow = this.user32.GetForegroundWindow();
+      if (fgWindow && this._checkAndHandleDialog(fgWindow)) {
+        return;
+      }
       
-      // 添加详细调试日志 - 每5秒打印一次前台窗口信息
-      if (fgWindow && this.pendingFile) {
+      // 策略2: 遍历所有顶级窗口查找对话框（不依赖前台窗口，不影响用户工作）
+      // 检查所有支持的对话框类
+      const dialogClasses = [
+        '#32770',  // 标准 Windows 对话框
+        'Chrome_WidgetWin_0', 'Chrome_WidgetWin_1', 'Chrome_WidgetWin_2',
+        'Chrome_WidgetWin_3', 'Chrome_WidgetWin_4', 'Chrome_WidgetWin_5'
+      ];
+      
+      for (const className of dialogClasses) {
+        const classNameUtf16 = Buffer.from(className + '\0', 'utf16le');
+        let hwnd = null;
+        
+        // 遍历所有该类的窗口
+        do {
+          hwnd = this.user32.FindWindowExW(null, hwnd, classNameUtf16, null);
+          if (hwnd && this._checkAndHandleDialog(hwnd)) {
+            console.log('[DialogInterceptor] Found dialog via window enumeration:', className);
+            return;
+          }
+        } while (hwnd);
+      }
+      
+      // 调试日志：每5秒打印一次前台窗口信息
+      if (this.pendingFile) {
         const now = Date.now();
         if (!this._lastDebugLog || now - this._lastDebugLog > 5000) {
           this._lastDebugLog = now;
-          const classBuffer = Buffer.alloc(512);
-          const classLen = this.user32.GetClassNameW(fgWindow, classBuffer, 256);
-          if (classLen > 0) {
-            const className = classBuffer.toString('utf16le', 0, classLen * 2).replace(/\0/g, '');
-            const titleBuffer = Buffer.alloc(1024);
-            const titleLen = this.user32.GetWindowTextW(fgWindow, titleBuffer, 512);
-            const title = titleBuffer.toString('utf16le', 0, titleLen * 2).replace(/\0/g, '');
-            console.log('[DialogInterceptor] Poll - Foreground window:', { className, title });
+          if (fgWindow) {
+            const classBuffer = Buffer.alloc(512);
+            const classLen = this.user32.GetClassNameW(fgWindow, classBuffer, 256);
+            if (classLen > 0) {
+              const className = classBuffer.toString('utf16le', 0, classLen * 2).replace(/\0/g, '');
+              const titleBuffer = Buffer.alloc(1024);
+              const titleLen = this.user32.GetWindowTextW(fgWindow, titleBuffer, 512);
+              const title = titleBuffer.toString('utf16le', 0, titleLen * 2).replace(/\0/g, '');
+              console.log('[DialogInterceptor] Poll - Foreground window:', { className, title });
+            }
           }
         }
-      }
-      
-      if (fgWindow && this._checkAndHandleDialog(fgWindow)) {
-        return;
       }
     } catch (err) {
       console.error('[DialogInterceptor] Error in poll:', err.message);
