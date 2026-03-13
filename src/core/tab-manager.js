@@ -44,6 +44,7 @@ class TabManager extends EventEmitter {
       titlebarHeight: 40,
       toolbarHeight: 48,
       sidebarWidth: 360,
+      agentPanelWidth: 64,  // Agent 栏宽度
       newTabUrl: path.join(__dirname, '../../public/newtab.html'),
       ...options
     };
@@ -344,10 +345,13 @@ class TabManager extends EventEmitter {
         sidebarWidth: this.config.sidebarWidth
       });
       
+      // 计算 BrowserView 位置（留出左侧 Agent 栏空间）
+      const agentPanelWidth = this.config.agentPanelWidth;
+      
       view.setBounds({
-        x: 0,
+        x: agentPanelWidth,  // 从 Agent 栏右侧开始
         y: totalHeaderHeight,
-        width: Math.max(availableWidth, 300),
+        width: Math.max(availableWidth - agentPanelWidth, 300),
         height: viewHeight,
       });
 

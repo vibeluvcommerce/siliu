@@ -3,7 +3,6 @@
 
 const { BrowserWindow } = require('electron');
 const path = require('path');
-const AgentPanelWindow = require('./agent-panel-window');
 
 class WindowManager {
   constructor(options = {}) {
@@ -23,8 +22,6 @@ class WindowManager {
       this.mainWindow.on('resize', () => {
         this.onResize?.();
       });
-      // 分离窗口模式下也创建 Agent 栏
-      this.createAgentPanel();
     } else {
       this.mainWindow = null;
       this.isDetached = false;
@@ -32,7 +29,6 @@ class WindowManager {
     
     this.onResize = null; // 外部回调
     this.copilotSettingsWindow = null; // Copilot 设置窗口
-    this.agentPanel = null; // Agent 栏窗口
   }
 
   async createWindow() {
@@ -73,20 +69,12 @@ class WindowManager {
       setTimeout(() => {
         this.onResize?.();
       }, 100);
-      
-      // 创建 Agent 栏窗口
-      this.createAgentPanel();
     });
 
     await this.mainWindow.loadFile(this.config.shellHtmlPath);
 
     // 窗口事件
     this.mainWindow.on('closed', () => {
-      // 销毁 Agent 栏窗口
-      if (this.agentPanel) {
-        this.agentPanel.destroy();
-        this.agentPanel = null;
-      }
       this.mainWindow = null;
     });
 
@@ -104,25 +92,6 @@ class WindowManager {
 
   isWindowReady() {
     return this.mainWindow && !this.mainWindow.isDestroyed();
-  }
-
-  /**
-   * 创建 Agent 栏窗口
-   */
-  async createAgentPanel() {
-    try {
-      this.agentPanel = new AgentPanelWindow(this.mainWindow);
-      await this.agentPanel.create();
-    } catch (err) {
-      console.error('[WindowManager] Failed to create agent panel:', err.message);
-    }
-  }
-
-  /**
-   * 获取 Agent 栏窗口
-   */
-  getAgentPanel() {
-    return this.agentPanel;
   }
 
   sendToRenderer(channel, data) {
