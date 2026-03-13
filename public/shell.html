@@ -3096,11 +3096,17 @@
       initTitlebarInteractions();
       setupEventListeners();
       
+      // 默认展开 Copilot 侧边栏
+      setTimeout(() => {
+        console.log('[Shell] Auto-opening Copilot sidebar');
+        toggleCopilot();
+      }, 300);
+      
       // 延迟检查 OpenClaw 连接状态（确保窗口已完全加载）
       setTimeout(() => {
         console.log('[Shell] Calling checkOpenClawStatus from setTimeout');
         checkOpenClawStatus();
-      }, 500);
+      }, 800);
     });
 
     // 检查 OpenClaw 状态
