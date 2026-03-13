@@ -282,9 +282,16 @@ class TabManager extends EventEmitter {
   setActiveView(viewId, sidebarOpen = false) {
     if (!this.views.has(viewId)) return;
 
+    const viewData = this.views.get(viewId);
+    
+    // 检查 view 是否已被销毁
+    if (viewData.view?.isDestroyed?.()) {
+      console.warn('[TabManager] Cannot activate destroyed view:', viewId);
+      return;
+    }
+
     this.activeViewId = viewId;
     this.sidebarOpen = sidebarOpen; // 保存侧边栏状态
-    const viewData = this.views.get(viewId);
     const mainWindow = this.windowManager.getWindow();
 
     mainWindow.setBrowserView(viewData.view);
@@ -402,7 +409,7 @@ class TabManager extends EventEmitter {
   resizeActiveView(sidebarOpen = false) {
     if (!this.activeViewId) return;
     const viewData = this.views.get(this.activeViewId);
-    if (viewData?.view) {
+    if (viewData?.view && !viewData.view.isDestroyed?.()) {
       this.sidebarOpen = sidebarOpen; // 同步 sidebarOpen 状态
       this.resizeView(viewData.view, sidebarOpen);
     }

@@ -731,11 +731,18 @@ class IPCHandlers {
     });
 
     ipcMain.handle('openclaw:status', () => {
-      const aiService = this.getAIService?.();
-      return {
-        connected: aiService?.isConnected() || false,
-        service: aiService?.getServiceName?.() || 'none'
-      };
+      try {
+        const aiService = this.getAIService?.();
+        const isConnected = aiService?.isConnected?.() || false;
+        const serviceName = aiService?.getServiceName?.();
+        return {
+          connected: Boolean(isConnected),
+          service: String(serviceName || 'none')
+        };
+      } catch (err) {
+        console.error('[IPC] openclaw:status error:', err.message);
+        return { connected: false, service: 'none', error: err.message };
+      }
     });
 
     ipcMain.handle('openclaw:sendMessage', async (e, text) => {
