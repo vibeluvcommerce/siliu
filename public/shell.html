@@ -600,7 +600,21 @@
       align-items: center;
       gap: 6px;
       overflow-y: auto;
+      overflow-x: hidden;
       width: 100%;
+      padding: 4px 0;
+    }
+
+    /* 隐藏滚动条但保持滚动功能 */
+    .agent-list::-webkit-scrollbar {
+      width: 0;
+      height: 0;
+      background: transparent;
+    }
+    
+    .agent-list {
+      scrollbar-width: none;
+      -ms-overflow-style: none;
     }
 
     .agent-footer {
@@ -710,7 +724,7 @@
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      border: none;
+      border: 2px solid rgba(0, 0, 0, 0.15);
       background: transparent;
       color: rgba(0, 0, 0, 0.4);
       font-size: 20px;
@@ -718,8 +732,9 @@
     }
 
     .agent-panel .settings-btn:hover {
+      border-color: #5F6368;
       color: #5F6368;
-      background: rgba(0, 0, 0, 0.06);
+      background: rgba(0, 0, 0, 0.04);
       transform: scale(1.05);
     }
 
@@ -1662,17 +1677,17 @@
   <!-- Agent 栏 -->
   <div class="agent-panel" id="agent-panel">
     <div class="agent-list">
-      <div class="agent-item active" data-id="general" data-name="通用助手" onclick="selectAgent('general')">
+      <div class="agent-item active" data-id="general" data-name="通用助手" title="通用助手" onclick="selectAgent('general')">
         <span>🤖</span>
         <div class="status-dot"></div>
       </div>
-      <div class="agent-item" data-id="bilibili" data-name="B站助手" onclick="selectAgent('bilibili')">
+      <div class="agent-item" data-id="bilibili" data-name="B站助手" title="B站助手" onclick="selectAgent('bilibili')">
         <span>📺</span>
       </div>
-      <div class="agent-item" data-id="taobao" data-name="淘宝助手" onclick="selectAgent('taobao')">
+      <div class="agent-item" data-id="taobao" data-name="淘宝助手" title="淘宝助手" onclick="selectAgent('taobao')">
         <span>🛒</span>
       </div>
-      <div class="agent-item" data-id="data" data-name="数据采集" onclick="selectAgent('data')">
+      <div class="agent-item" data-id="data" data-name="数据采集" title="数据采集" onclick="selectAgent('data')">
         <span>📊</span>
       </div>
     </div>
