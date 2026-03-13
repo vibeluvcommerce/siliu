@@ -97,7 +97,7 @@ class OpenClawAdapter extends BaseAIService {
           globalEventBus.emit('ai:disconnected', { service: this.name });
           // 发送断开连接 toast
           globalEventBus.emit('ai:toast', {
-            message: 'AI 连接已断开',
+            message: `${this.name} 连接已断开`,
             type: 'info'
           });
         } else {
@@ -161,7 +161,7 @@ class OpenClawAdapter extends BaseAIService {
       console.log('[OpenClawAdapter] Manual disconnect, emitting events');
       globalEventBus.emit('ai:disconnected', { service: this.name });
       globalEventBus.emit('ai:toast', {
-        message: 'AI 连接已断开',
+        message: `${this.name} 连接已断开`,
         type: 'info'
       });
     }

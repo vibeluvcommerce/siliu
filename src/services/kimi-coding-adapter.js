@@ -274,7 +274,7 @@ class KimiCodingAdapter {
     
     console.log('[KimiCodingAdapter] Emitting ai:toast');
     globalEventBus.emit('ai:toast', {
-      message: 'AI 连接已断开',
+      message: 'Kimi 连接已断开',
       type: 'info'
     });
     console.log('[KimiCodingAdapter] Events emitted');
