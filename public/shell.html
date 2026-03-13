@@ -2810,6 +2810,16 @@
     function setupEventListeners() {
       let loadingState = false;
 
+      // 监听 sidebar 打开事件（新窗口初始化）
+      window.siliuAPI?.on?.('sidebar:open', () => {
+        const sidebar = document.getElementById('sidebar');
+        const btn = document.getElementById('copilot-btn');
+        if (!sidebar.classList.contains('show')) {
+          sidebar.classList.add('show');
+          btn?.classList.add('active');
+        }
+      });
+
       // 标签页创建
       window.siliuAPI?.on?.('tab-created', ({ id, url, title }) => {
         addTab(id, title || '新标签页', url);

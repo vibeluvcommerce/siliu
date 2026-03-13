@@ -460,6 +460,11 @@ class CoreModule extends EventEmitter {
       // 创建初始视图（Copilot 默认展开）
       const currentUrl = url || this.NEW_TAB_URL;
       detachedTabManager.createView(currentUrl, true);
+      
+      // 通知 shell.html 展开 sidebar UI
+      setTimeout(() => {
+        detachedWindowManager.sendToRenderer('sidebar:open');
+      }, 100);
 
       // 通知 Copilot 新窗口创建
       const copilot = this.ipcHandlers?.getCopilot?.();

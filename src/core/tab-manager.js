@@ -194,11 +194,19 @@ class TabManager extends EventEmitter {
     view.webContents.insertCSS(MAIN_SCROLLBAR_CSS).catch(() => {});
 
     // 再次 resize 确保尺寸正确（窗口可能还未稳定）
-    setTimeout(() => this.resizeView(view, sidebarOpen), 0);
+    setTimeout(() => {
+      if (!view.isDestroyed?.()) {
+        this.resizeView(view, sidebarOpen);
+      }
+    }, 0);
 
     // 页面加载完成后再 resize 一次（确保视口正确）
     view.webContents.once('did-finish-load', () => {
-      setTimeout(() => this.resizeView(view, this.sidebarOpen), 100);
+      setTimeout(() => {
+        if (!view.isDestroyed?.()) {
+          this.resizeView(view, sidebarOpen);
+        }
+      }, 100);
     });
 
     // 加载 URL
@@ -296,7 +304,10 @@ class TabManager extends EventEmitter {
    * 调整视图大小
    */
   resizeView(view, sidebarOpen = false) {
-    if (view.isDestroyed?.()) return;
+    // 检查 view 是否有效
+    if (!view || view.isDestroyed?.()) {
+      return;
+    }
 
     try {
       // 获取窗口状态
