@@ -153,7 +153,18 @@ class OpenClawAdapter extends BaseAIService {
     // 标记实例过期（通过创建新实例 ID）
     OpenClawAdapter._activeInstance = Date.now();
     
+    // 如果当前是连接状态，手动触发断开事件（因为 onClose 中需要 _connected 为 true）
+    const wasConnected = this._connected;
     this._connected = false;
+    
+    if (wasConnected) {
+      console.log('[OpenClawAdapter] Manual disconnect, emitting events');
+      globalEventBus.emit('ai:disconnected', { service: this.name });
+      globalEventBus.emit('ai:toast', {
+        message: 'AI 连接已断开',
+        type: 'info'
+      });
+    }
     
     // 断开并清理模块
     if (this.module) {
