@@ -1711,7 +1711,7 @@
   <!-- 侧边栏 -->
   <div class="sidebar" id="sidebar">
     <div class="sidebar-header">
-      <div class="sidebar-avatar disconnected" onclick="toggleOpenClaw()" title="点击连接 AI">
+      <div class="sidebar-avatar connected" onclick="toggleOpenClaw()" title="AI 已连接">
         <i class="ph ph-robot"></i>
       </div>
       <div class="sidebar-title">Siliu Copilot</div>
@@ -2293,10 +2293,10 @@
     // ========== 聊天 ==========
     // AI 连接状态
     let aiConnection = {
-      connected: false,
+      connected: true,  // 默认显示为已连接，后续根据真实状态更新
       mode: 'none',  // 'openclaw' | 'kimi' | 'none'
-      name: 'None',
-      displayName: '未连接'
+      name: 'AI',
+      displayName: 'AI 助手'
     };
     let openclawConnecting = false;
     let pendingServiceType = 'openclaw';
