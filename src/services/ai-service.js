@@ -96,8 +96,9 @@ class OpenClawAdapter extends BaseAIService {
           this._connected = false;
           globalEventBus.emit('ai:disconnected', { service: this.name });
           // 发送断开连接 toast
+          const serviceName = this.isLocalOpenClaw ? 'OpenClaw 本地服务' : 'Siliu AI 云端服务';
           globalEventBus.emit('ai:toast', {
-            message: `${this.name} 连接已断开`,
+            message: `${serviceName} 已断开`,
             type: 'info'
           });
         } else {
@@ -160,8 +161,9 @@ class OpenClawAdapter extends BaseAIService {
     if (wasConnected) {
       console.log('[OpenClawAdapter] Manual disconnect, emitting events');
       globalEventBus.emit('ai:disconnected', { service: this.name });
+      const serviceName = this.isLocalOpenClaw ? 'OpenClaw 本地服务' : 'Siliu AI 云端服务';
       globalEventBus.emit('ai:toast', {
-        message: `${this.name} 连接已断开`,
+        message: `${serviceName} 已断开`,
         type: 'info'
       });
     }
