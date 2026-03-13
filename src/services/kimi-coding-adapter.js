@@ -263,20 +263,24 @@ class KimiCodingAdapter {
 
   /**
    * 断开连接（清理资源）
+   * @param {boolean} silent - 是否静默断开（不发送 toast）
    */
-  disconnect() {
-    console.log('[KimiCodingAdapter] Disconnecting, emitting events...');
+  disconnect(silent = false) {
+    console.log('[KimiCodingAdapter] Disconnecting, silent:', silent);
     this.messageCallbacks = [];
     
-    // 发送断开连接事件和 toast
+    // 发送断开连接事件
     console.log('[KimiCodingAdapter] Emitting ai:disconnected');
     globalEventBus.emit('ai:disconnected', { service: 'Kimi' });
     
-    console.log('[KimiCodingAdapter] Emitting ai:toast');
-    globalEventBus.emit('ai:toast', {
-      message: 'Siliu AI 云端服务 已断开',
-      type: 'info'
-    });
+    // 非静默模式才发送 toast
+    if (!silent) {
+      console.log('[KimiCodingAdapter] Emitting ai:toast');
+      globalEventBus.emit('ai:toast', {
+        message: 'Siliu AI 云端服务 已断开',
+        type: 'info'
+      });
+    }
     console.log('[KimiCodingAdapter] Events emitted');
   }
 }

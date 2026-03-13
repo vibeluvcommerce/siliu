@@ -468,9 +468,9 @@ class IPCHandlers {
         if (connectionConfigChanged) {
           const aiService = this.getAIService?.();
           if (aiService) {
-            // 总是先断开现有连接
-            console.log('[IPC] Connection config changed, disconnecting existing connection...');
-            await aiService.disconnect();
+            // 总是先断开现有连接（静默模式，不发送断开 toast）
+            console.log('[IPC] Connection config changed, disconnecting existing connection (silent)...');
+            await aiService.disconnect(true);
             
             // 检查是否有有效的 token 才尝试连接
             const hasValidToken = config.local?.token || configManager.get('local.token');

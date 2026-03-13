@@ -150,7 +150,7 @@ class OpenClawAdapter extends BaseAIService {
     }
   }
 
-  async disconnect() {
+  async disconnect(silent = false) {
     // 标记实例过期（通过创建新实例 ID）
     OpenClawAdapter._activeInstance = Date.now();
     
@@ -159,13 +159,16 @@ class OpenClawAdapter extends BaseAIService {
     this._connected = false;
     
     if (wasConnected) {
-      console.log('[OpenClawAdapter] Manual disconnect, emitting events');
+      console.log('[OpenClawAdapter] Manual disconnect, silent:', silent);
       globalEventBus.emit('ai:disconnected', { service: this.name });
-      const serviceName = this.isLocalOpenClaw ? 'OpenClaw 本地服务' : 'Siliu AI 云端服务';
-      globalEventBus.emit('ai:toast', {
-        message: `${serviceName} 已断开`,
-        type: 'info'
-      });
+      // 非静默模式才发送 toast
+      if (!silent) {
+        const serviceName = this.isLocalOpenClaw ? 'OpenClaw 本地服务' : 'Siliu AI 云端服务';
+        globalEventBus.emit('ai:toast', {
+          message: `${serviceName} 已断开`,
+          type: 'info'
+        });
+      }
     }
     
     // 断开并清理模块
@@ -496,20 +499,21 @@ class AIServiceManager {
 
   /**
    * 断开当前连接
+   * @param {boolean} silent - 是否静默断开（不发送 toast）
    */
-  async disconnect() {
-    console.log('[AIServiceManager] disconnect called, currentService:', this.currentService?.constructor?.name, 'kimiAdapter:', !!this.kimiAdapter);
+  async disconnect(silent = false) {
+    console.log('[AIServiceManager] disconnect called, silent:', silent, 'currentService:', this.currentService?.constructor?.name, 'kimiAdapter:', !!this.kimiAdapter);
     
     if (this.currentService) {
       console.log('[AIServiceManager] Calling currentService.disconnect()');
-      await this.currentService.disconnect();
+      await this.currentService.disconnect(silent);
       console.log('[AIServiceManager] currentService.disconnect() completed');
       this.currentService = null;
     }
     
     if (this.kimiAdapter) {
       console.log('[AIServiceManager] Calling kimiAdapter.disconnect()');
-      await this.kimiAdapter.disconnect();
+      await this.kimiAdapter.disconnect(silent);
       console.log('[AIServiceManager] kimiAdapter.disconnect() completed');
       this.kimiAdapter = null;
     }
