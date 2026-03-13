@@ -321,7 +321,12 @@ class TabManager extends EventEmitter {
    */
   resizeView(view, sidebarOpen = false) {
     // 检查 view 是否有效
-    if (!view || view.isDestroyed?.()) {
+    if (!view) {
+      console.warn('[TabManager] resizeView: view is null');
+      return;
+    }
+    if (view.isDestroyed?.()) {
+      console.warn('[TabManager] resizeView: view is destroyed');
       return;
     }
 
@@ -362,6 +367,11 @@ class TabManager extends EventEmitter {
       });
       
       // 计算 BrowserView 位置（留出左侧 Agent 栏空间）
+      // 再次检查，防止检查后被销毁
+      if (view.isDestroyed?.()) {
+        console.warn('[TabManager] resizeView: view destroyed before setBounds');
+        return;
+      }
       view.setBounds({
         x: this.config.agentPanelWidth,  // 从 Agent 栏右侧开始
         y: totalHeaderHeight,
@@ -408,7 +418,12 @@ class TabManager extends EventEmitter {
         }
       });
     } catch (err) {
-      console.error('[TabManager] Failed to resize view:', err.message);
+      // 忽略 view 被销毁后的预期错误
+      if (err.message?.includes('destroyed')) {
+        console.log('[TabManager] View destroyed during resize, ignoring');
+      } else {
+        console.error('[TabManager] Failed to resize view:', err.message);
+      }
     }
   }
 
