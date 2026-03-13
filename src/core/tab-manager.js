@@ -322,24 +322,12 @@ class TabManager extends EventEmitter {
       
       const totalHeaderHeight = this.config.titlebarHeight + this.config.toolbarHeight;
       
-      // 计算可用宽度（考虑侧边栏）
-      let availableWidth;
+      // 计算可用宽度（始终减去 Agent 栏，再根据 sidebar 减去侧边栏）
+      let availableWidth = windowWidth - this.config.agentPanelWidth;
       if (sidebarOpen) {
-        if (isFullScreen || isMaximized) {
-          // 全屏/最大化模式：需要考虑工作区域
-          const { screen } = require('electron');
-          const winBounds = mainWindow.getBounds();
-          const display = screen.getDisplayNearestPoint({ x: winBounds.x, y: winBounds.y });
-          const workArea = display.workArea;
-          // 工作区域宽度减去侧边栏宽度
-          availableWidth = Math.max(workArea.width - this.config.sidebarWidth, 300);
-        } else {
-          // 窗口模式：使用窗口内容区宽度减去侧边栏宽度
-          availableWidth = Math.max(windowWidth - this.config.sidebarWidth, 300);
-        }
-      } else {
-        availableWidth = windowWidth;
+        availableWidth -= this.config.sidebarWidth;
       }
+      availableWidth = Math.max(availableWidth, 300);
       
       // 计算 view 的高度（减去标题栏和工具栏）
       const viewHeight = Math.max(windowHeight - totalHeaderHeight, 300);
@@ -351,18 +339,17 @@ class TabManager extends EventEmitter {
         isMaximized, 
         sidebarOpen, 
         contentBounds,
+        agentPanelWidth: this.config.agentPanelWidth,
+        sidebarWidth: sidebarOpen ? this.config.sidebarWidth : 0,
         availableWidth,
-        viewHeight,
-        sidebarWidth: this.config.sidebarWidth
+        viewHeight
       });
       
       // 计算 BrowserView 位置（留出左侧 Agent 栏空间）
-      const agentPanelWidth = this.config.agentPanelWidth;
-      
       view.setBounds({
-        x: agentPanelWidth,  // 从 Agent 栏右侧开始
+        x: this.config.agentPanelWidth,  // 从 Agent 栏右侧开始
         y: totalHeaderHeight,
-        width: Math.max(availableWidth - agentPanelWidth, 300),
+        width: availableWidth,
         height: viewHeight,
       });
 
