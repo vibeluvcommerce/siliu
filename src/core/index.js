@@ -213,10 +213,11 @@ class CoreModule extends EventEmitter {
       global.lastFocusedWindowId = 'main';
     });
     
-    // 创建初始标签页
+    // 创建初始标签页（Copilot 默认展开）
     setTimeout(async () => {
       const initialUrl = this.NEW_TAB_URL;
-      this.createView(initialUrl);
+      this.sidebarOpen = true;  // 同步状态
+      this.createView(initialUrl, true);  // 传入 sidebarOpen=true
       await this.initializeModules();
     }, 100);
 

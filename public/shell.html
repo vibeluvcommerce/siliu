@@ -3106,11 +3106,18 @@
       initTitlebarInteractions();
       setupEventListeners();
       
-      // 默认展开 Copilot 侧边栏
-      setTimeout(() => {
-        console.log('[Shell] Auto-opening Copilot sidebar');
-        toggleCopilot();
-      }, 300);
+      // 等待第一个标签页创建后再展开 Copilot（确保 BrowserView 已初始化）
+      const checkFirstTab = setInterval(() => {
+        const tabsContainer = document.getElementById('tabs-container');
+        if (tabsContainer && tabsContainer.children.length > 0) {
+          clearInterval(checkFirstTab);
+          console.log('[Shell] Auto-opening Copilot sidebar');
+          toggleCopilot();
+        }
+      }, 50);
+      
+      // 最大等待 2 秒
+      setTimeout(() => clearInterval(checkFirstTab), 2000);
       
       // 延迟检查 OpenClaw 连接状态（确保窗口已完全加载）
       setTimeout(() => {
