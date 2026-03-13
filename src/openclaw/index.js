@@ -65,10 +65,10 @@ class OpenClawModule {
       this.connectResolve = resolve;
       this.connectReject = reject;
       
-      // 设置连接超时（5秒）
+      // 设置连接超时（3秒）
       this.connectTimeout = setTimeout(() => {
         if (!this.connected && this.connecting) {
-          console.log('[OpenClaw] Connection timeout');
+          console.log('[OpenClaw] Connection timeout (3s)');
           this.closed = true; // 标记为关闭，阻止重连
           this.connecting = false;
           if (this.ws) {
@@ -79,7 +79,7 @@ class OpenClawModule {
           this.connectResolve = null;
           this.connectReject = null;
         }
-      }, 5000);
+      }, 3000);
       
       this.doConnect();
     });
