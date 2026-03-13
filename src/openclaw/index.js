@@ -13,7 +13,8 @@ class OpenClawModule {
       sessionKey: options.sessionKey || 'agent:main:main',
       onHello: options.onHello || (() => {}),
       onClose: options.onClose || (() => {}),
-      onEvent: options.onEvent || (() => {})
+      onEvent: options.onEvent || (() => {}),
+      autoReconnect: options.autoReconnect !== false // 默认启用自动重连
     };
     
     this.ws = null;
@@ -122,13 +123,16 @@ class OpenClawModule {
           this.connectReject = null;
         }
 
-        // 自动重连（如果不是主动断开）
-        if (!this.closed) {
+        // 自动重连（如果不是主动断开且启用了自动重连）
+        if (!this.closed && this.opts.autoReconnect) {
           console.log('[OpenClaw] Reconnecting in', this.backoffMs, 'ms...');
           this.reconnectTimer = setTimeout(() => {
             this.doConnect();
           }, this.backoffMs);
           this.backoffMs = Math.min(this.backoffMs * 1.5, 30000);
+        } else if (!this.opts.autoReconnect && !this.connected) {
+          console.log('[OpenClaw] Auto reconnect disabled, marking as closed');
+          this.closed = true;
         }
       });
 

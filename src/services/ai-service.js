@@ -71,6 +71,7 @@ class OpenClawAdapter extends BaseAIService {
       url: this.url,
       token: this.token,
       sessionKey: this.sessionKey,
+      autoReconnect: false, // 首次连接失败不重试，快速反馈错误
       onHello: (result) => {
         // 检查实例是否过期（已被新实例替换）
         if (OpenClawAdapter._activeInstance !== this._instanceId) {
