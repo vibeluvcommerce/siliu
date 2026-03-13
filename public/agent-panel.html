@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Panel</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: transparent;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* 主容器 - 玻璃拟态效果 */
+    .panel {
+      width: 64px;
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(20px);
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.12),
+        0 2px 8px rgba(0, 0, 0, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.6);
+      padding: 8px 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    /* Agent 项 */
+    .agent-item {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      font-size: 24px;
+      background: transparent;
+      border: 2px solid transparent;
+    }
+
+    .agent-item:hover {
+      background: rgba(0, 0, 0, 0.04);
+      transform: scale(1.05);
+    }
+
+    .agent-item.active {
+      background: linear-gradient(135deg, rgba(26, 115, 232, 0.15) 0%, rgba(26, 115, 232, 0.08) 100%);
+      border-color: rgba(26, 115, 232, 0.3);
+      box-shadow: 
+        0 2px 8px rgba(26, 115, 232, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    }
+
+    /* 选中指示器 */
+    .agent-item.active::before {
+      content: '';
+      position: absolute;
+      left: -8px;
+      width: 4px;
+      height: 24px;
+      background: #1A73E8;
+      border-radius: 0 3px 3px 0;
+      box-shadow: 0 0 8px rgba(26, 115, 232, 0.5);
+    }
+
+    /* 悬停提示 */
+    .agent-item::after {
+      content: attr(data-name);
+      position: absolute;
+      left: 70px;
+      padding: 6px 12px;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      font-size: 12px;
+      border-radius: 8px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.2s ease;
+      transform: translateX(-10px);
+      backdrop-filter: blur(10px);
+    }
+
+    .agent-item:hover::after {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    /* 分隔线 */
+    .divider {
+      width: 32px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.1), transparent);
+      margin: 4px 0;
+    }
+
+    /* 添加按钮 */
+    .add-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      border: 2px dashed rgba(0, 0, 0, 0.15);
+      background: transparent;
+      color: rgba(0, 0, 0, 0.4);
+      font-size: 20px;
+      transition: all 0.2s ease;
+      margin-top: 4px;
+    }
+
+    .add-btn:hover {
+      border-color: #1A73E8;
+      color: #1A73E8;
+      background: rgba(26, 115, 232, 0.05);
+      transform: scale(1.05);
+    }
+
+    /* 状态指示点 */
+    .status-dot {
+      position: absolute;
+      bottom: 4px;
+      right: 4px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #34A853;
+      border: 2px solid white;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+
+    /* 空状态 */
+    .empty-state {
+      padding: 20px 10px;
+      text-align: center;
+      color: rgba(0, 0, 0, 0.4);
+      font-size: 11px;
+    }
+
+    /* 动画 */
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+
+    .agent-item.active .status-dot {
+      animation: pulse 2s ease infinite;
+    }
+  </style>
+</head>
+<body>
+  <div class="panel" id="panel">
+    <!-- Agent 列表 -->
+    <div id="agent-list"></div>
+    
+    <!-- 分隔线 -->
+    <div class="divider"></div>
+    
+    <!-- 添加按钮 -->
+    <div class="add-btn" id="add-btn" title="创建新 Agent">
+      <span>+</span>
+    </div>
+  </div>
+
+  <script>
+    let currentAgentId = null;
+
+    // 渲染 Agent 列表
+    function renderAgents(agents, currentId) {
+      currentAgentId = currentId;
+      const list = document.getElementById('agent-list');
+      list.innerHTML = '';
+
+      agents.forEach(agent => {
+        const item = document.createElement('div');
+        item.className = 'agent-item' + (agent.id === currentId ? ' active' : '');
+        item.setAttribute('data-id', agent.id);
+        item.setAttribute('data-name', agent.name);
+        item.innerHTML = `
+          <span>${agent.icon}</span>
+          ${agent.id === currentId ? '<div class="status-dot"></div>' : ''}
+        `;
+        
+        item.addEventListener('click', () => {
+          selectAgent(agent.id);
+        });
+
+        list.appendChild(item);
+      });
+    }
+
+    // 选择 Agent
+    function selectAgent(agentId) {
+      if (agentId === currentAgentId) return;
+      
+      // 更新 UI
+      document.querySelectorAll('.agent-item').forEach(item => {
+        item.classList.remove('active');
+        const dot = item.querySelector('.status-dot');
+        if (dot) dot.remove();
+      });
+
+      const selected = document.querySelector(`[data-id="${agentId}"]`);
+      if (selected) {
+        selected.classList.add('active');
+        selected.innerHTML += '<div class="status-dot"></div>';
+      }
+
+      currentAgentId = agentId;
+      
+      // 通知主进程
+      window.agentPanel.selectAgent(agentId);
+    }
+
+    // 初始化
+    window.agentPanel.onInit((data) => {
+      renderAgents(data.agents, data.current);
+    });
+
+    // 更新列表
+    window.agentPanel.onAgentsUpdated((agents) => {
+      renderAgents(agents, currentAgentId);
+    });
+
+    // 添加按钮
+    document.getElementById('add-btn').addEventListener('click', () => {
+      window.agentPanel.addAgent();
+    });
+
+    // 清理
+    window.addEventListener('beforeunload', () => {
+      window.agentPanel.removeAllListeners();
+    });
+  </script>
+</body>
+</html>
