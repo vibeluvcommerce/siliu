@@ -387,6 +387,30 @@ class WindowCopilot {
   }
 
   /**
+   * 获取评论内容（用于智能选择表情）
+   * 从对话历史中查找 AI 输入的评论文本
+   */
+  _getCommentContext() {
+    // 从对话历史中查找最后一条 assistant 消息中包含 type 操作的内容
+    for (let i = this.conversationHistory.length - 1; i >= 0; i--) {
+      const entry = this.conversationHistory[i];
+      if (entry.role === 'assistant') {
+        // 尝试从 JSON 操作中提取 type 的文本
+        const typeMatch = entry.content.match(/"action":\s*"type"[^}]*"text":\s*"([^"]+)"/);
+        if (typeMatch) {
+          return typeMatch[1];
+        }
+        // 也尝试匹配其他格式
+        const textMatch = entry.content.match(/type.*输入评论|评论.*输入|输入.*"([^"]+)"/);
+        if (textMatch) {
+          return textMatch[1] || '';
+        }
+      }
+    }
+    return '';
+  }
+
+  /**
    * 发送用户消息
    */
   async sendMessage(text) {
@@ -1263,7 +1287,7 @@ ${this.isExecuting ? `当前任务: ${this.currentTask}` : ''}
           }
           case 'upload': {
             const uploadSelector = decision.selector || decision.target;
-            const filePath = decision.filePath || decision.file;
+            let filePath = decision.filePath || decision.file;
             
             console.log(`[WindowCopilot:${this.windowId}] upload: selector=${JSON.stringify(uploadSelector)}, file=${filePath}`);
             
@@ -1272,9 +1296,37 @@ ${this.isExecuting ? `当前任务: ${this.currentTask}` : ''}
               actualMode = 'JS';
             } else {
               try {
-                // 不再需要 selector，upload 方法会自动查找 file input
+                // 【智能检测】如果路径是文件夹，自动扫描并选择表情
+                const fs = require('fs');
+                const isDirectory = fs.existsSync(filePath) && fs.statSync(filePath).isDirectory();
+                
+                if (isDirectory) {
+                  console.log(`[WindowCopilot:${this.windowId}] upload: detected folder path, auto-selecting emoji...`);
+                  
+                  // 1. 获取评论内容（从对话历史或上一步 type 的内容）
+                  const context = this._getCommentContext();
+                  console.log(`[WindowCopilot:${this.windowId}] upload: comment context="${context}"`);
+                  
+                  // 2. 智能选择表情
+                  const selectResult = await this.controller.selectEmojiByContext(filePath, context);
+                  
+                  if (selectResult.success && selectResult.selectedFile) {
+                    filePath = selectResult.selectedFile;
+                    console.log(`[WindowCopilot:${this.windowId}] upload: auto-selected ${filePath} (emotion: ${selectResult.emotion})`);
+                    stepResult = { 
+                      success: true, 
+                      selectedFile: filePath, 
+                      emotion: selectResult.emotion,
+                      message: `智能选择了 ${selectResult.emotion} 表情: ${filePath.split('/').pop()}`
+                    };
+                  } else {
+                    throw new Error(`无法从文件夹选择表情: ${selectResult.error || '没有匹配的文件'}`);
+                  }
+                }
+                
+                // 3. 执行上传
                 const { result, mode } = await this.controller.upload(uploadSelector || null, filePath);
-                stepResult = result;
+                stepResult = { ...stepResult, ...result };
                 actualMode = mode;
               } catch (err) {
                 console.error(`[WindowCopilot:${this.windowId}] upload failed:`, err.message);

@@ -19,7 +19,7 @@ const ACTION_SCHEMA = {
   click: { params: ['selector|target'], desc: '点击元素，支持坐标 {type:"coordinate",x:0.5,y:0.3}' },
   hover: { params: ['selector|target'], desc: '鼠标悬停在元素上（触发下拉菜单、Tooltip等），支持坐标' },
   type: { params: ['selector|target', 'text'], desc: '在输入框输入文本。支持坐标方式：{"action":"type","target":{"type":"coordinate",x:0.5,y:0.3},"text":"xxx"}' },
-  upload: { params: ['filePath'], desc: '上传本地文件。只需提供 filePath，系统会自动查找文件输入框并设置文件。示例：{"action":"upload","filePath":"D:/images/photo.jpg"}' },
+  upload: { params: ['filePath'], desc: '上传本地文件。传入具体文件路径（如 D:/images/photo.jpg）直接上传；传入文件夹路径（如 D:/meme）会自动根据评论情绪智能选择表情图片上传。示例：{"action":"upload","filePath":"D:/images/photo.jpg"}' },
   select: { params: ['selector', 'option'], desc: '选择下拉框选项（原生select或React Select等自定义下拉），option可以是value、text或index。不需要滚动查找，直接指定选项文本即可' },
   selectAll: { params: ['selector|target'], desc: '全选文本框内容（Ctrl+A），用于复制或替换' },
   press: { params: ['key'], desc: '按键（Enter/Backspace/Delete/Tab/Escape/ArrowDown等）' },
@@ -214,7 +214,7 @@ ${buildActionHelp()}
 - selectAll 支持：使用 Ctrl+A 全选文本框内容，配合 type 可替换原有内容
 - upload 支持上传本地文件到网页，只需提供 filePath（如 "D:/images/photo.jpg"），系统会自动查找文件输入框并设置文件。注意：不需要先点击上传按钮，直接调用 upload 即可
 - 【重要】图片/文件上传已支持自动化！正确流程：1) 先调用一次 click 点击图片上传按钮 2) 然后立即调用 upload 并传入 filePath，系统会自动等待系统文件选择对话框弹出并填入指定文件。注意不要重复点击上传按钮 3) 上传成功后必须 screenshot 重新确认页面元素位置，因为图片/文件可能会导致页面布局变化
-- 【重要】支持从文件夹智能选择表情图片！只需提供文件夹路径，AI 会根据评论内容的情绪自动选择合适的表情。表情文件名建议包含情绪关键词（如 happy.jpg, sad.png, angry.gif）。示例流程：1) file:list 扫描文件夹获取所有表情 2) file:selectByContext 根据评论内容智能选择表情 3) click 点击图片上传按钮 4) upload 上传选中的表情
+- 【重要】表情图片智能选择！upload 支持直接传入文件夹路径（如 D:/meme），系统会根据评论情绪自动选择合适的表情（happy/sad/angry 等）。也可手动分步执行：1) file:list 扫描文件夹 2) file:selectByContext 根据评论选择表情 3) click 点击上传按钮 4) upload 上传具体文件
 - 【重要】抖音/视频类网站请使用 wheel 而非 scroll 来切换视频
 - 输入错误时可使用 press + Backspace 删除后重新输入，或使用 selectAll 全选后直接输入替换
 - 【重要】遇到登录/扫码/验证码时暂停任务，告知用户完成后再继续
