@@ -736,8 +736,15 @@
       transform: scale(1.05);
     }
 
-    .agent-panel .settings-btn i {
+    .agent-panel .settings-btn i,
+    .agent-item i.ph {
       font-size: 22px;
+      line-height: 1;
+    }
+    
+    .agent-panel .add-btn i.ph {
+      font-size: 20px;
+      line-height: 1;
     }
 
     .agent-item .status-dot {
@@ -1676,23 +1683,23 @@
   <div class="agent-panel" id="agent-panel">
     <div class="agent-list">
       <div class="agent-item active" data-id="general" data-name="通用助手" title="通用助手" onclick="selectAgent('general')">
-        <span>🤖</span>
+        <i class="ph ph-robot"></i>
         <div class="status-dot"></div>
       </div>
       <div class="agent-item" data-id="bilibili" data-name="B站助手" title="B站助手" onclick="selectAgent('bilibili')">
-        <span>📺</span>
+        <i class="ph ph-television"></i>
       </div>
       <div class="agent-item" data-id="taobao" data-name="淘宝助手" title="淘宝助手" onclick="selectAgent('taobao')">
-        <span>🛒</span>
+        <i class="ph ph-shopping-cart"></i>
       </div>
       <div class="agent-item" data-id="data" data-name="数据采集" title="数据采集" onclick="selectAgent('data')">
-        <span>📊</span>
+        <i class="ph ph-chart-bar"></i>
       </div>
     </div>
     <div class="agent-footer">
       <div class="divider"></div>
       <div class="add-btn" onclick="addNewAgent()" title="创建新 Agent">
-        <span>+</span>
+        <i class="ph ph-plus"></i>
       </div>
       <div class="settings-btn" onclick="openAgentSettings()" title="Agent 管理">
         <i class="ph ph-gear"></i>
