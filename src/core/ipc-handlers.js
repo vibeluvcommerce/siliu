@@ -375,6 +375,36 @@ class IPCHandlers {
       return { success: false, error: 'Method not available' };
     });
 
+    // 【新】Agent 切换
+    ipcMain.handle('copilot:switchAgent', async (e, agentId) => {
+      const windowId = this._getWindowIdFromSender(e.sender);
+      const copilotManager = this.getCopilot?.();
+      
+      if (!copilotManager) {
+        return { success: false, error: 'Copilot manager not initialized' };
+      }
+      
+      try {
+        // 获取或创建该窗口的 Copilot
+        let windowCopilot = copilotManager.getCopilot(windowId);
+        if (!windowCopilot) {
+          console.log(`[IPC] Copilot not found for window ${windowId}, creating...`);
+          windowCopilot = await copilotManager.createCopilot(windowId);
+        }
+        
+        if (!windowCopilot) {
+          return { success: false, error: 'Failed to create copilot' };
+        }
+        
+        // 切换 Agent
+        const success = windowCopilot.switchAgent(agentId);
+        return { success };
+      } catch (err) {
+        console.error('[IPC] switchAgent error:', err);
+        return { success: false, error: err.message };
+      }
+    });
+
     // Copilot 配置相关 IPC
     ipcMain.handle('copilot:getConfig', async () => {
       try {

@@ -1944,8 +1944,17 @@
       currentAgentId = agentId;
       console.log('[AgentPanel] Selected:', agentId);
 
-      // 通知主进程
-      window.siliuAPI?.setAgent?.(agentId);
+      // 【新】通知主进程切换 Agent
+      window.siliuAPI?.switchAgent?.(agentId).then(result => {
+        if (result?.success) {
+          showToast(`已切换到: ${selected?.getAttribute('data-name') || agentId}`);
+        } else {
+          showToast('Agent 切换失败');
+        }
+      }).catch(err => {
+        console.error('[AgentPanel] Switch agent failed:', err);
+        showToast('Agent 切换失败');
+      });
 
       // 显示提示
       const agentName = selected?.getAttribute('data-name') || agentId;

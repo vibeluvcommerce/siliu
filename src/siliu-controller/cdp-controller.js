@@ -374,22 +374,28 @@ class CDPController {
    * 智能查找 - 尝试多种方法
    */
   async smartFind(selectorOrText) {
+    // 防御性检查：处理 undefined 或 null
+    if (!selectorOrText) {
+      console.warn('[CDPController] smartFind: selectorOrText is null/undefined');
+      return 0;
+    }
+    
     let searchText = selectorOrText;
     
     // 处理 text= 前缀
-    if (selectorOrText.startsWith('text=')) {
+    if (typeof selectorOrText === 'string' && selectorOrText.startsWith('text=')) {
       searchText = selectorOrText.substring(5);
       return this.findByText(searchText);
     }
     
     // 1. 如果是 XPath
-    if (selectorOrText.startsWith('//') || selectorOrText.startsWith('xpath:')) {
+    if (typeof selectorOrText === 'string' && (selectorOrText.startsWith('//') || selectorOrText.startsWith('xpath:'))) {
       const xpath = selectorOrText.replace(/^xpath:/, '');
       return this.findByXPath(xpath);
     }
 
-    // 2. 如果是 CSS 选择器
-    if (this._isCSSSelector(selectorOrText)) {
+    // 2. 如果是 CSS 选择器（必须是字符串）
+    if (typeof selectorOrText === 'string' && this._isCSSSelector(selectorOrText)) {
       return this.querySelector(selectorOrText);
     }
 
@@ -440,6 +446,11 @@ class CDPController {
    * 支持 CSS 选择器、文本内容、XPath
    */
   async click(selectorOrText, options = {}) {
+    // 防御性检查
+    if (!selectorOrText) {
+      throw new Error(`Invalid selector for click: ${selectorOrText}`);
+    }
+    
     // 【快速模式】如果关闭拟人化，使用简单点击
     if (!this.humanize.enabled) {
       return this._fastClick(selectorOrText, options);
@@ -1044,6 +1055,11 @@ class CDPController {
    * 支持 CSS 选择器、文本内容、XPath
    */
   async type(selectorOrText, text, options = {}) {
+    // 防御性检查
+    if (!selectorOrText) {
+      throw new Error(`Invalid selector for type: ${selectorOrText}`);
+    }
+    
     // 随机停顿
     await this.humanPause('normal');
 
@@ -1217,7 +1233,7 @@ class CDPController {
       windowsVirtualKeyCode: keyInfo.windowsVirtualKeyCode,
       nativeVirtualKeyCode: keyInfo.windowsVirtualKeyCode,
     });
-    return { success: true, key };
+    return { success: true, mode: 'CDP', key };
   }
 
   /**
@@ -1278,6 +1294,11 @@ class CDPController {
 
     let nodeId = 0;
 
+    // 防御性检查
+    if (!selectorOrText || typeof selectorOrText !== 'string') {
+      throw new Error(`Invalid selector: ${selectorOrText}`);
+    }
+    
     if (this._isCSSSelector(selectorOrText)) {
       nodeId = await this.querySelector(selectorOrText);
     } else {
@@ -1746,6 +1767,7 @@ class CDPController {
   // ========== 辅助方法 ==========
 
   _isCSSSelector(str) {
+    if (typeof str !== 'string') return false;
     return /^[.#\[\w]/.test(str) || str.includes(' ') || str.includes('>') || str.includes(':');
   }
 }

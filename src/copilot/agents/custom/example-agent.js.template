@@ -1,0 +1,103 @@
+/**
+ * 示例自定义 Agent 模板
+ * 
+ * 使用说明：
+ * 1. 复制此文件并重命名（去掉 .template 后缀）
+ * 2. 修改类名、id、name 等信息
+ * 3. 实现 getDomainKnowledge() 方法添加你的知识
+ * 4. 重启应用即可自动加载
+ */
+
+const { BaseAgent } = require('../base-agent');
+
+class ExampleAgent extends BaseAgent {
+  constructor(options = {}) {
+    super({
+      id: 'example',                    // 唯一标识符（必需）
+      name: '示例助手',                  // 显示名称（必需）
+      icon: '📝',                      // 图标（可选）
+      description: '这是一个示例 Agent，展示如何创建自定义 Agent',
+      maxSteps: 100,                   // 最大步数（可选）
+      maxElements: 25,                 // 最大元素数（可选）
+      ...options
+    });
+  }
+
+  /**
+   * 领域特定知识 - 核心扩展点
+   * 
+   * 在这里编写针对特定网站的知识：
+   * - 页面结构特点
+   * - 操作流程
+   * - 坐标/选择器提示
+   * - 注意事项
+   */
+  getDomainKnowledge() {
+    return `【示例网站特有规则】
+
+【页面结构】
+- 描述关键区域的位置
+- 如何识别重要元素
+
+【操作流程】
+- 标准操作步骤
+- 常见任务的最佳实践
+
+【元素定位】
+- 关键元素的选择器或坐标范围
+- 优先使用什么定位方式
+
+【注意事项】
+- 容易出错的地方
+- 需要特别注意的事项`;
+  }
+
+  /**
+   * 可选：自定义元素格式化
+   * 让 Prompt 中的元素列表更易读
+   */
+  formatElements(elements) {
+    // 先调用父类方法获取基础格式
+    let result = super.formatElements(elements);
+    
+    // 添加自定义识别提示
+    const hasSpecialElement = elements.some(e => 
+      e.className?.includes('special-class')
+    );
+    
+    if (hasSpecialElement) {
+      result += '\n\n【自定义元素识别】\n- 检测到特殊元素';
+    }
+
+    return result;
+  }
+
+  /**
+   * 可选：预处理观察数据
+   * 优化元素排序或添加标记
+   */
+  processObservation(observation) {
+    if (!observation.elements) return observation;
+
+    // 为特定元素添加优先级
+    observation.elements = observation.elements.map(el => {
+      const enhanced = { ...el };
+      
+      // 高优先级元素
+      if (el.id === 'important-button') {
+        enhanced.priority = (enhanced.priority || 0) + 10;
+      }
+      
+      return enhanced;
+    });
+
+    // 按优先级排序
+    observation.elements.sort((a, b) => 
+      (b.priority || 0) - (a.priority || 0)
+    );
+
+    return observation;
+  }
+}
+
+module.exports = { ExampleAgent };

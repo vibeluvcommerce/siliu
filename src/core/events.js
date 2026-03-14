@@ -31,7 +31,8 @@ exports.COPILOT_EVENTS = {
   CONTINUE_TASK: 'copilot:continue-task',
   THINKING: 'copilot:thinking',  // 与AI沟通中
   EXECUTION_CONFIRMED: 'copilot:execution-confirmed',  // 执行已确认
-  NEED_USER_CONFIRMATION: 'copilot:need-user-confirmation'  // 需要用户确认
+  NEED_USER_CONFIRMATION: 'copilot:need-user-confirmation',  // 需要用户确认
+  AGENT_CHANGED: 'copilot:agent-changed'  // Agent 切换事件
 };
 
 // 浏览器控制器事件

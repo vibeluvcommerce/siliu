@@ -608,16 +608,19 @@ class SiliuController {
    * 按键（如 Enter, Tab, Escape 等）
    */
   async press(key) {
+    console.log(`[SiliuController] press: called with key=${key}, CDP connected=${this.cdpController?.isConnected}`);
     if (this.cdpController?.isConnected) {
       try {
-        await this.cdpController.press(key);
-        return { success: true, mode: 'CDP' };
+        const result = await this.cdpController.press(key);
+        console.log('[SiliuController] press: CDP success, result=', result);
+        return result;
       } catch (err) {
-        console.warn('[SiliuController] press: CDP failed, using JS');
+        console.warn('[SiliuController] press: CDP failed, using JS:', err.message);
       }
     }
     
     // 降级到 JS
+    console.log('[SiliuController] press: using JS fallback');
     return this._nativePress(key);
   }
 
@@ -1239,7 +1242,7 @@ class SiliuController {
       })()
     `);
 
-    return { success: true };
+    return { success: true, mode: 'JS' };
   }
 
   async _nativeScreenshot() {

@@ -13,6 +13,7 @@ const { PromptBuilder } = require('./prompt-builder');
 const { LoginDetector } = require('./login-detector');
 const { VisualContextManager } = require('./visual-context');
 const { ExecutionConfirmation, ConfirmationResult } = require('./execution-confirmation');
+const { registry: agentRegistry } = require('./agents');
 
 // 默认配置
 const DEFAULT_CONFIG = {
@@ -35,6 +36,9 @@ class WindowCopilot {
 
     // 初始化提示词构建器
     this.promptBuilder = new PromptBuilder({ maxSteps: this.config.maxSteps });
+    
+    // 绑定 AgentRegistry
+    this.agentRegistry = agentRegistry;
 
     // 初始化登录检测器
     this.loginDetector = new LoginDetector();
@@ -462,59 +466,42 @@ class WindowCopilot {
   }
 
   /**
+   * 切换 Agent
+   * @param {string} agentId - Agent ID
+   */
+  switchAgent(agentId) {
+    const success = this.agentRegistry.switchTo(agentId);
+    if (success) {
+      console.log(`[WindowCopilot:${this.windowId}] Switched to agent: ${agentId}`);
+      this._emitToWindow(COPILOT_EVENTS.AGENT_CHANGED, { 
+        agentId, 
+        agentInfo: this.agentRegistry.getCurrent() 
+      });
+    }
+    return success;
+  }
+
+  /**
+   * 获取当前 Agent
+   */
+  getCurrentAgent() {
+    return this.agentRegistry.getCurrent();
+  }
+
+  /**
    * 构建带意图判断的提示词
+   * 改造后：使用 AgentRegistry 构建 Prompt
    */
   _buildPromptWithContext(currentMessage) {
-    // 基础提示
-    let context = `你是 Siliu Browser 的 AI Copilot，可以通过 CDP 控制浏览器完成自动化任务。
-
-当前模式: ${this.isExecuting ? '执行中' : '对话'}
-${this.isExecuting ? `当前任务: ${this.currentTask}` : ''}
-
-你的职责:
-1. 理解用户需求
-2. 自然友好地回复
-3. 判断是否需要浏览器操作
-
-【重要】如果需要操作浏览器，请在回复末尾严格使用以下格式（必须使用 @action:）：
-@action: 具体操作描述
-
-【正确示例】
-用户: 帮我查一下今天的天气
-你: 我来帮你查一下今天的天气信息。
-@action: 打开天气网站查询今天天气
-
-用户: 打开 GitHub
-你: 好的，我来帮你打开 GitHub。
-@action: 打开 GitHub 网站
-
-用户: 可以了，现在去看抖音
-你: 好的，我暂停当前任务，现在去看抖音。
-@action: 打开抖音
-
-【关键】不要告诉用户需要连接浏览器或安装扩展，你已经连接好了！
-`;
-
-    // 添加最近对话历史
-    const recentHistory = this.conversationHistory.slice(-10);
-
-    if (recentHistory.length === 0) {
-      return context + `\n\n用户: ${currentMessage}`;
-    }
-
-    context += '\n以下是我们之前的对话：\n\n';
-    for (const item of recentHistory) {
-      if (item.role === 'user') {
-        context += `用户: ${item.content}\n`;
-      } else {
-        // 截取助手回复的前200字符作为上下文
-        const preview = item.content.substring(0, 200);
-        context += `助手: ${preview}${item.content.length > 200 ? '...' : ''}\n`;
-      }
-    }
-    context += `\n---\n用户新问题: ${currentMessage}`;
-
-    return context;
+    // 【新】使用 AgentRegistry 构建 Chat Prompt
+    const context = {
+      userMessage: currentMessage,
+      isExecuting: this.isExecuting,
+      currentTask: this.currentTask,
+      conversationHistory: this.conversationHistory
+    };
+    
+    return this.agentRegistry.buildPrompt('chat', context);
   }
 
   /**
@@ -868,7 +855,10 @@ ${this.isExecuting ? `当前任务: ${this.currentTask}` : ''}
       pageInfo.html = '';
     }
 
-    return pageInfo;
+    // 【新】使用当前 Agent 处理页面观察（优化元素提取）
+    const processedPageInfo = this.agentRegistry.processObservation(pageInfo);
+
+    return processedPageInfo;
   }
 
   /**
@@ -1107,7 +1097,7 @@ ${this.isExecuting ? `当前任务: ${this.currentTask}` : ''}
         // ===== 执行前验证 =====
         if (decision.action === 'click' || decision.action === 'type') {
           const target = decision.target?.selector || decision.selector || decision.target;
-          if (target && target.type !== 'coordinate') {
+          if (target && target.type !== 'coordinate' && target.x === undefined) {
             console.log(`[WindowCopilot:${this.windowId}] Pre-execution verification for ${decision.action}...`);
             const verifyResult = await this._verifyElementBeforeAction(target, decision.action);
             
@@ -1158,7 +1148,7 @@ ${this.isExecuting ? `当前任务: ${this.currentTask}` : ''}
 
             // 【注意】点击下拉菜单时不能 blur，否则 hover 状态会丢失
             // 只在非坐标点击（selector 点击）且可能是输入框时 blur
-            const isCoordinateClick = decision.target?.type === 'coordinate';
+            const isCoordinateClick = decision.target?.type === 'coordinate' || (decision.target?.x !== undefined && decision.target?.y !== undefined);
             const isAddressBar = decision.selector?.includes('address') ||
                                  decision.selector?.includes('url') ||
                                  decision.selector?.includes('omnibox');
@@ -1205,7 +1195,7 @@ ${this.isExecuting ? `当前任务: ${this.currentTask}` : ''}
             await this._blurShellInput();
 
             // 支持坐标 hover
-            if (decision.target?.type === 'coordinate') {
+            if (decision.target?.type === 'coordinate' || (decision.target?.x !== undefined && decision.target?.y !== undefined)) {
               const { x, y } = decision.target;
               console.log(`[WindowCopilot:${this.windowId}] Hover at coordinate: (${x}, ${y})`);
               const viewportInfo = this.executionContext?.lastObservation?.viewport;
@@ -1440,8 +1430,8 @@ ${this.isExecuting ? `当前任务: ${this.currentTask}` : ''}
                 stepResult = { success: false, error: err.message };
                 actualMode = 'JS';
               }
-            } else if (decision.target?.type === 'coordinate') {
-              // 使用坐标点击输入框获取焦点，然后输入
+            } else if (decision.target?.type === 'coordinate' || (decision.target?.x !== undefined && decision.target?.y !== undefined)) {
+              // 使用坐标点击输入框获取焦点，然后输入（支持显式type标记或隐式x/y坐标）
               
               // 检查上一步是否全选，如果是则跳过点击
               const skipClick = this._lastAction === 'selectAll';
@@ -1517,9 +1507,10 @@ ${this.isExecuting ? `当前任务: ${this.currentTask}` : ''}
             break;
           }
           case 'press': {
-            const { result, mode } = await this.controller.press(decision.key);
-            stepResult = result;
-            actualMode = mode;
+            const { result: pressResult, mode: pressMode } = await this.controller.press(decision.key);
+            console.log(`[WindowCopilot:${this.windowId}] press returned mode: ${pressMode}`);
+            stepResult = pressResult;
+            actualMode = pressMode;
             // 智能等待按键响应（如 Enter 提交表单）
             await this._smartWait('press');
             break;
@@ -1920,7 +1911,8 @@ ${text.substring(0, 500)}
       step: this.stepCount,
       decision,
       result,
-      executed: true
+      executed: true,
+      confirmStatus: null  // 等待确认，将在 AI 响应 yes/no 后更新
     });
 
     // 构建提示词让 AI 判断这一步是否成功
