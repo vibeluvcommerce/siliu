@@ -4,16 +4,19 @@
 const { nativeImage } = require('electron');
 const fs = require('fs').promises;
 const path = require('path');
-const os = require('os');
 const { ImageUploader } = require('../services/image-uploader');
 const { ScreenshotServer } = require('../services/screenshot-server');
+const { getWorkspaceManager } = require('../core/workspace-manager');
 
 class VisualContextManager {
   constructor(options = {}) {
     this.maxWidth = options.maxWidth || 1280;
     this.quality = options.quality || 80;
     this.format = options.format || 'jpeg';
-    this.tempDir = options.tempDir || path.join(os.tmpdir(), 'siliu-screenshots');
+    
+    // Use workspace screenshots directory to avoid OneDrive sync issues
+    const workspace = getWorkspaceManager();
+    this.tempDir = options.tempDir || workspace.getScreenshotsDir();
     
     // 传输模式: 'file' | 'upload' | 'server'
     this.transferMode = options.transferMode || 'file';
@@ -186,11 +189,27 @@ class VisualContextManager {
     try {
       const files = await fs.readdir(this.tempDir);
       for (const file of files) {
+        if (file === '.gitignore') continue;
         await fs.unlink(path.join(this.tempDir, file));
       }
       console.log('[VisualContext] Cleaned up all screenshots');
     } catch (e) {
       console.error('[VisualContext] Cleanup error:', e);
+    }
+  }
+
+  /**
+   * 清理旧截图（保留最近N个）
+   */
+  async cleanupOld(keepCount = 50) {
+    try {
+      const workspace = getWorkspaceManager();
+      const deleted = await workspace.cleanOldScreenshots(keepCount);
+      console.log(`[VisualContext] Cleaned ${deleted} old screenshots`);
+      return deleted;
+    } catch (e) {
+      console.error('[VisualContext] Cleanup old error:', e);
+      return 0;
     }
   }
 

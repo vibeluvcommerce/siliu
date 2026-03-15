@@ -10,6 +10,7 @@
 
 const { globalEventBus } = require('../core/event-bus');
 const CDPController = require('./cdp-controller');
+const { resolveHomePath } = require('../core/path-utils');
 
 // 人类化配置默认值
 const DEFAULT_HUMANIZE_CONFIG = {
@@ -175,6 +176,9 @@ class SiliuController {
    * 3. 系统级拦截：先设置待选文件，再点击上传按钮，自动填充系统对话框
    */
   async upload(selectorOrText, filePath) {
+    // 解析 ~ 路径
+    filePath = resolveHomePath(filePath);
+    
     // 首先尝试 CDP 模式（标准 file input）
     if (this.cdpController?.isConnected) {
       try {

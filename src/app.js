@@ -70,6 +70,7 @@ if (!gotTheLock) {
 const { globalEventBus } = require('./core/event-bus');
 const ConfigManager = require('./core/config-manager');
 const { AIServiceManager } = require('./services/ai-service');
+const { getWorkspaceManager } = require('./core/workspace-manager');
 const CoreModule = require('./core');
 const ContextMenuModule = require('./core/menu/index.js');
 const SiliuController = require('./siliu-controller');
@@ -115,6 +116,12 @@ async function startup() {
     console.log('[Siliu] Loading ConfigManager...');
     modules.config = new ConfigManager();
     console.log('[Siliu] Config loaded');
+
+    // ①b 初始化工作区管理器（必须在其他模块之前）
+    console.log('[Siliu] Initializing WorkspaceManager...');
+    const workspaceManager = getWorkspaceManager();
+    await workspaceManager.initialize();
+    console.log('[Siliu] Workspace ready at:', workspaceManager.workspaceBase);
 
     // ② 初始化 AI 服务管理器
     console.log('[Siliu] Initializing AIServiceManager...');

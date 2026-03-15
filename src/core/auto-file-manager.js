@@ -6,40 +6,41 @@
 const { EventEmitter } = require('events');
 const path = require('path');
 const fs = require('fs');
-const { app } = require('electron');
+const { getWorkspaceManager } = require('./workspace-manager');
+const { resolveHomePath } = require('./path-utils');
 
 class AutoFileManager extends EventEmitter {
   constructor(tabManager) {
     super();
     this.tabManager = tabManager;
     this.interceptor = null;
-    this.workDir = this._getDefaultWorkDir();
+    this.workspace = getWorkspaceManager();
+    this.workDir = this.workspace.getAutoFilesDir();
     this.isAutoMode = false;
     this.pendingOperation = null; // { type: 'upload'|'download', filePath: string }
+    
+    // 确保工作目录存在
+    this._ensureWorkDir();
     
     // 尝试加载拦截器
     this._initInterceptor();
   }
 
   /**
-   * 获取默认工作目录
+   * 确保工作目录存在
    */
-  _getDefaultWorkDir() {
-    const workDir = path.join(app.getPath('userData'), 'auto-files');
-    if (!fs.existsSync(workDir)) {
-      fs.mkdirSync(workDir, { recursive: true });
+  _ensureWorkDir() {
+    // Upload directory
+    const uploadDir = this.workspace.getAutoUploadDir();
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
     }
     
-    // 创建子目录
-    const dirs = ['uploads', 'downloads'];
-    dirs.forEach(dir => {
-      const subDir = path.join(workDir, dir);
-      if (!fs.existsSync(subDir)) {
-        fs.mkdirSync(subDir, { recursive: true });
-      }
-    });
-    
-    return workDir;
+    // Download directory
+    const downloadDir = this.workspace.getAutoDownloadDir();
+    if (!fs.existsSync(downloadDir)) {
+      fs.mkdirSync(downloadDir, { recursive: true });
+    }
   }
 
   /**
@@ -106,10 +107,13 @@ class AutoFileManager extends EventEmitter {
 
   /**
    * 准备上传文件
-   * @param {string} filePath - 要上传的文件路径
+   * @param {string} filePath - 要上传的文件路径（支持 ~ 简写）
    * @returns {boolean} 是否成功准备
    */
   prepareUpload(filePath) {
+    // 解析 ~ 路径
+    filePath = resolveHomePath(filePath);
+    
     if (!fs.existsSync(filePath)) {
       console.error('[AutoFileManager] File not found:', filePath);
       return false;

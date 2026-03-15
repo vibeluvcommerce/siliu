@@ -14,6 +14,7 @@ const { LoginDetector } = require('./login-detector');
 const { VisualContextManager } = require('./visual-context');
 const { ExecutionConfirmation, ConfirmationResult } = require('./execution-confirmation');
 const { registry: agentRegistry } = require('./agents');
+const { resolveHomePath } = require('../core/path-utils');
 
 // 默认配置
 const DEFAULT_CONFIG = {
@@ -1278,6 +1279,11 @@ class WindowCopilot {
           case 'upload': {
             const uploadSelector = decision.selector || decision.target;
             let filePath = decision.filePath || decision.file;
+            
+            // 解析 ~ 路径
+            if (filePath) {
+              filePath = resolveHomePath(filePath);
+            }
             
             console.log(`[WindowCopilot:${this.windowId}] upload: selector=${JSON.stringify(uploadSelector)}, file=${filePath}`);
             
