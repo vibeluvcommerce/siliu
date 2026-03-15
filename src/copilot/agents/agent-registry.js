@@ -13,6 +13,8 @@ const path = require('path');
 // 内置 Agent（确保至少有一个可用）
 const { GeneralAgent } = require('./builtin/general-agent');
 const { BilibiliAgent } = require('./builtin/bilibili-agent');
+const { TaobaoAgent } = require('./builtin/taobao-agent');
+const { DataAgent } = require('./builtin/data-agent');
 
 class AgentRegistry {
   constructor() {
@@ -43,6 +45,12 @@ class AgentRegistry {
     
     // B站助手
     this.register(new BilibiliAgent());
+    
+    // 淘宝助手
+    this.register(new TaobaoAgent());
+    
+    // 数据采集
+    this.register(new DataAgent());
     
     console.log('[AgentRegistry] Built-in agents registered');
   }
