@@ -17,7 +17,7 @@
 ```
 AI 采集数据
     ↓
-输出 data action（分批）
+输出 collect action（分批）
     ↓
 系统实时写入磁盘缓存
     ↓
@@ -34,11 +34,11 @@ AI 采集数据
 
 ## 4. 关键数据结构
 
-### 4.1 AI 输出格式（data action）
+### 4.1 AI 输出格式（collect action）
 
 ```typescript
-interface DataAction {
-  action: 'data';
+interface CollectAction {
+  action: 'collect';
   content: {
     type: 'table' | 'list' | 'document' | 'chart';
     data: any;
@@ -96,7 +96,7 @@ interface ExportIndex {
                                ↓
                     ┌─────────────────────┐
          ┌─────────│     COLLECTING      │◄────────────────┐
-         │         │   接收 data action  │                 │
+         │         │ 接收 collect action │                 │
          │         └──────────┬──────────┘                 │
          │                    │                           │
          │     hasMore: true  │                           │
@@ -124,7 +124,7 @@ interface ExportIndex {
 ```javascript
 // AI 输出示例
 {
-  action: 'data',
+  action: 'collect',
   content: { type: 'table', data: {...} },
   batchIndex: 4,
   hasMore: false,  // ← 明确标记结束
@@ -484,15 +484,15 @@ class PNGExporter extends BaseExporter {
 
 ```markdown
 【导出数据】
-如需导出采集的数据，使用 data action 分批输出，最后用 export action 触发导出。
+如需导出采集的数据，使用 collect action 分批输出，最后用 export action 触发导出。
 
-## 1. 采集数据（data action）
+## 1. 采集数据（collect action）
 
-分批输出数据，每批一个 data action：
+分批输出数据，每批一个 collect action：
 
 ```json
 {
-  "action": "data",
+  "action": "collect",
   "content": {
     "type": "table",
     "data": {
@@ -573,7 +573,7 @@ class PNGExporter extends BaseExporter {
 - [ ] PNG 导出器
 
 ### Phase 4: AI 集成
-- [ ] data action 支持
+- [ ] collect action 支持
 - [ ] export action 支持
 - [ ] 更新系统提示
 - [ ] 用户通知机制
