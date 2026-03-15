@@ -20,7 +20,9 @@ class BilibiliAgent extends BaseAgent {
     super({
       id: 'bilibili',
       name: 'B站助手',
-      icon: '📺',
+      icon: 'television',               // Phosphor 图标
+      color: '#FB7299',                 // B站粉色渐变
+      colorEnd: '#FC9BAD',
       description: '专为 Bilibili 优化的自动化助手',
       ...options
     });

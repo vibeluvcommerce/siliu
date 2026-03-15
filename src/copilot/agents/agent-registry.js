@@ -197,16 +197,11 @@ class AgentRegistry {
   }
 
   /**
-   * 获取所有可用的 Agent 列表
-   * @returns {Array} Agent 信息列表
+   * 获取所有可用的 Agent 列表（用于 UI 渲染）
+   * @returns {Array} Agent 展示信息列表
    */
   getAllAgents() {
-    return Array.from(this.agents.values()).map(agent => ({
-      id: agent.id,
-      name: agent.name,
-      icon: agent.icon,
-      description: agent.description
-    }));
+    return Array.from(this.agents.values()).map(agent => agent.getDisplayInfo());
   }
 
   /**

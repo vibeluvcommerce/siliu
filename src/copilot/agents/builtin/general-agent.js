@@ -14,7 +14,9 @@ class GeneralAgent extends BaseAgent {
     super({
       id: 'general',
       name: '通用助手',
-      icon: '🤖',
+      icon: 'robot',                    // Phosphor 图标
+      color: '#1A73E8',                 // 蓝色渐变
+      colorEnd: '#4285F4',
       description: '通用浏览器自动化，适用于大多数网站',
       ...options
     });

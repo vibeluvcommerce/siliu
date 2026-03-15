@@ -1697,28 +1697,8 @@
 
   <!-- Agent 栏 -->
   <div class="agent-panel" id="agent-panel">
-    <div class="agent-list">
-      <div class="agent-item active" data-id="general" data-name="通用助手" title="通用助手" onclick="selectAgent('general')">
-        <div class="agent-icon" style="background: linear-gradient(135deg, #1A73E8 0%, #4285F4 100%);">
-          <i class="ph ph-robot"></i>
-        </div>
-        <div class="status-dot"></div>
-      </div>
-      <div class="agent-item" data-id="bilibili" data-name="B站助手" title="B站助手" onclick="selectAgent('bilibili')">
-        <div class="agent-icon" style="background: linear-gradient(135deg, #FB7299 0%, #FC9BAD 100%);">
-          <i class="ph ph-television"></i>
-        </div>
-      </div>
-      <div class="agent-item" data-id="taobao" data-name="淘宝助手" title="淘宝助手" onclick="selectAgent('taobao')">
-        <div class="agent-icon" style="background: linear-gradient(135deg, #FF6B00 0%, #FF8C42 100%);">
-          <i class="ph ph-shopping-cart"></i>
-        </div>
-      </div>
-      <div class="agent-item" data-id="data" data-name="数据采集" title="数据采集" onclick="selectAgent('data')">
-        <div class="agent-icon" style="background: linear-gradient(135deg, #34A853 0%, #5BB974 100%);">
-          <i class="ph ph-chart-bar"></i>
-        </div>
-      </div>
+    <div class="agent-list" id="agent-list">
+      <!-- Agent 列表由 JavaScript 动态渲染 -->
     </div>
     <div class="agent-footer">
       <div class="divider"></div>
@@ -1949,6 +1929,41 @@
 
     // ========== Agent 栏管理 ==========
     let currentAgentId = 'general';
+    let allAgents = []; // 缓存 Agent 列表
+
+    // 渲染 Agent 列表
+    async function renderAgentList() {
+      try {
+        const agents = await window.siliuAPI?.getAllAgents?.();
+        if (!agents || agents.length === 0) return;
+        
+        allAgents = agents;
+        const agentListEl = document.getElementById('agent-list');
+        if (!agentListEl) return;
+
+        // 获取当前 Agent
+        const current = await window.siliuAPI?.getCurrentAgent?.();
+        currentAgentId = current?.id || 'general';
+
+        // 渲染 Agent 项
+        agentListEl.innerHTML = agents.map(agent => {
+          const isActive = agent.id === currentAgentId;
+          const gradient = `linear-gradient(135deg, ${agent.color} 0%, ${agent.colorEnd} 100%)`;
+          return `
+            <div class="agent-item ${isActive ? 'active' : ''}" data-id="${agent.id}" data-name="${agent.name}" title="${agent.description || agent.name}" onclick="selectAgent('${agent.id}')">
+              <div class="agent-icon" style="background: ${gradient};">
+                <i class="ph ph-${agent.icon}"></i>
+              </div>
+              ${isActive ? '<div class="status-dot"></div>' : ''}
+            </div>
+          `;
+        }).join('');
+
+        console.log('[AgentPanel] Rendered', agents.length, 'agents');
+      } catch (err) {
+        console.error('[AgentPanel] Failed to render agents:', err);
+      }
+    }
 
     function selectAgent(agentId) {
       if (agentId === currentAgentId) return;
@@ -3164,6 +3179,9 @@
       initTabManager();
       initTitlebarInteractions();
       setupEventListeners();
+      
+      // 渲染 Agent 列表
+      renderAgentList();
       
       // 等待第一个标签页创建后再展开 Copilot（确保 BrowserView 已初始化）
       const checkFirstTab = setInterval(() => {

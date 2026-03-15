@@ -17,7 +17,9 @@ class BaseAgent {
     // 基础信息（子类必须覆盖）
     this.id = options.id || 'base';
     this.name = options.name || '基础代理';
-    this.icon = options.icon || '🤖';
+    this.icon = options.icon || 'robot';           // Phosphor 图标名称
+    this.color = options.color || '#1A73E8';       // 图标背景色（渐变起点）
+    this.colorEnd = options.colorEnd || '#4285F4'; // 图标背景色（渐变终点）
     this.description = options.description || '通用浏览器自动化能力';
     
     // 配置（可选覆盖）
@@ -27,6 +29,21 @@ class BaseAgent {
       maxElements: 25,      // 最大元素数量
       maxHistorySteps: 20,  // 历史记录显示步数
       ...options
+    };
+  }
+  
+  /**
+   * 获取 Agent 展示信息
+   * 用于 UI 渲染
+   */
+  getDisplayInfo() {
+    return {
+      id: this.id,
+      name: this.name,
+      icon: this.icon,           // Phosphor 图标名，如 'robot'
+      color: this.color,         // 渐变起点色
+      colorEnd: this.colorEnd,   // 渐变终点色
+      description: this.description
     };
   }
 

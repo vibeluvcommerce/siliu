@@ -37,6 +37,7 @@ class IPCHandlers {
     this._setupOpenclawHandlers();
     this._setupShellContextMenu();
     this._setupFileChooserHandlers();
+    this._setupAgentHandlers();
   }
 
   // ========== 导航控制 ==========
@@ -1016,6 +1017,28 @@ class IPCHandlers {
         throw err;
       }
     };
+  }
+
+  // ========== Agent 相关 IPC ==========
+  _setupAgentHandlers() {
+    const { registry } = require('../copilot/agents/agent-registry');
+    
+    // 获取所有 Agent 列表（用于 UI 渲染）
+    ipcMain.handle('agents:getAll', () => {
+      return registry.getAllAgents();
+    });
+    
+    // 获取当前 Agent
+    ipcMain.handle('agents:getCurrent', () => {
+      const agent = registry.getCurrent();
+      return agent ? agent.getDisplayInfo() : null;
+    });
+    
+    // 切换 Agent
+    ipcMain.handle('agents:switch', (e, agentId) => {
+      const success = registry.switchTo(agentId);
+      return { success, agent: success ? registry.getCurrent().getDisplayInfo() : null };
+    });
   }
 }
 

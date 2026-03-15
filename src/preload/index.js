@@ -83,6 +83,11 @@ contextBridge.exposeInMainWorld('siliuAPI', {
   copilotUserChoice: (shouldContinue) => ipcRenderer.invoke('copilot:userChoice', shouldContinue),
   switchAgent: (agentId) => ipcRenderer.invoke('copilot:switchAgent', agentId),
 
+  // ========== Agent 管理 ==========
+  getAllAgents: () => ipcRenderer.invoke('agents:getAll'),
+  getCurrentAgent: () => ipcRenderer.invoke('agents:getCurrent'),
+  switchToAgent: (agentId) => ipcRenderer.invoke('agents:switch', agentId),
+
   // ========== Shell 输入框右键菜单 ==========
   showShellContextMenu: (isEditable, hasSelection, text) => ipcRenderer.invoke('shell:contextmenu', { isEditable, hasSelection, text }),
 
