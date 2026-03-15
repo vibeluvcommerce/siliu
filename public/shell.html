@@ -1934,12 +1934,27 @@
     // 渲染 Agent 列表
     async function renderAgentList() {
       try {
-        const agents = await window.siliuAPI?.getAllAgents?.();
-        if (!agents || agents.length === 0) return;
+        console.log('[AgentPanel] Rendering agents...');
+        
+        if (!window.siliuAPI?.getAllAgents) {
+          console.error('[AgentPanel] siliuAPI.getAllAgents not available');
+          return;
+        }
+        
+        const agents = await window.siliuAPI.getAllAgents();
+        console.log('[AgentPanel] Got agents:', agents);
+        
+        if (!agents || agents.length === 0) {
+          console.warn('[AgentPanel] No agents returned');
+          return;
+        }
         
         allAgents = agents;
         const agentListEl = document.getElementById('agent-list');
-        if (!agentListEl) return;
+        if (!agentListEl) {
+          console.error('[AgentPanel] agent-list element not found');
+          return;
+        }
 
         // 获取当前 Agent
         const current = await window.siliuAPI?.getCurrentAgent?.();
@@ -1948,11 +1963,14 @@
         // 渲染 Agent 项
         agentListEl.innerHTML = agents.map(agent => {
           const isActive = agent.id === currentAgentId;
-          const gradient = `linear-gradient(135deg, ${agent.color} 0%, ${agent.colorEnd} 100%)`;
+          const color = agent.color || '#1A73E8';
+          const colorEnd = agent.colorEnd || '#4285F4';
+          const gradient = `linear-gradient(135deg, ${color} 0%, ${colorEnd} 100%)`;
+          const icon = agent.icon || 'robot';
           return `
             <div class="agent-item ${isActive ? 'active' : ''}" data-id="${agent.id}" data-name="${agent.name}" title="${agent.description || agent.name}" onclick="selectAgent('${agent.id}')">
               <div class="agent-icon" style="background: ${gradient};">
-                <i class="ph ph-${agent.icon}"></i>
+                <i class="ph ph-${icon}"></i>
               </div>
               ${isActive ? '<div class="status-dot"></div>' : ''}
             </div>

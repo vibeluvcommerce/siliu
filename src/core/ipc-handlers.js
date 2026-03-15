@@ -1022,10 +1022,13 @@ class IPCHandlers {
   // ========== Agent 相关 IPC ==========
   _setupAgentHandlers() {
     const { registry } = require('../copilot/agents/agent-registry');
+    console.log('[IPC] Setting up agent handlers, registry count:', registry.count);
     
     // 获取所有 Agent 列表（用于 UI 渲染）
     ipcMain.handle('agents:getAll', () => {
-      return registry.getAllAgents();
+      const agents = registry.getAllAgents();
+      console.log('[IPC] agents:getAll returning', agents.length, 'agents');
+      return agents;
     });
     
     // 获取当前 Agent
