@@ -15,6 +15,7 @@ const { VisualContextManager } = require('./visual-context');
 const { ExecutionConfirmation, ConfirmationResult } = require('./execution-confirmation');
 const { registry: agentRegistry } = require('./agents');
 const { resolveHomePath } = require('../core/path-utils');
+const { getExportManager } = require('../core/export-manager');
 
 // 默认配置
 const DEFAULT_CONFIG = {
@@ -1537,6 +1538,73 @@ class WindowCopilot {
           case 'no': {
             // yes/no 是确认操作，不需要实际执行，直接返回成功
             stepResult = { success: true, confirmStatus: decision.action };
+            actualMode = 'JS';
+            break;
+          }
+          case 'collect': {
+            // 数据采集：将数据批次写入缓存
+            const exportManager = getExportManager();
+            
+            // 如果没有活跃任务，自动创建一个新任务
+            if (!this._currentExportTaskId) {
+              this._currentExportTaskId = await exportManager.startExport({
+                format: 'excel',  // 默认格式
+                filename: decision.filename || `export-${Date.now()}`
+              });
+              console.log(`[WindowCopilot:${this.windowId}] Auto-started export task: ${this._currentExportTaskId}`);
+            }
+            
+            try {
+              const result = await exportManager.collectBatch(
+                this._currentExportTaskId,
+                decision.content,
+                decision.batchIndex || 0,
+                decision.hasMore !== false  // 默认为 true
+              );
+              stepResult = { 
+                success: true, 
+                batchIndex: result.batchIndex,
+                hasMore: result.hasMore,
+                message: `已采集批次 ${result.batchIndex}`
+              };
+              actualMode = 'JS';
+              
+              // 如果是最后一批，清理任务ID
+              if (!result.hasMore) {
+                this._currentExportTaskId = null;
+              }
+            } catch (err) {
+              console.error(`[WindowCopilot:${this.windowId}] collect failed:`, err.message);
+              stepResult = { success: false, error: err.message };
+              actualMode = 'JS';
+            }
+            break;
+          }
+          case 'export': {
+            // 手动触发导出
+            const exportManager = getExportManager();
+            
+            if (this._currentExportTaskId) {
+              try {
+                const result = await exportManager.manualExport(this._currentExportTaskId);
+                stepResult = { 
+                  success: true, 
+                  path: result.path,
+                  status: result.status,
+                  message: `已导出到: ${result.path}`
+                };
+                this._currentExportTaskId = null;
+              } catch (err) {
+                console.error(`[WindowCopilot:${this.windowId}] export failed:`, err.message);
+                stepResult = { success: false, error: err.message };
+              }
+            } else {
+              // 没有活跃任务，提示错误
+              stepResult = { 
+                success: false, 
+                error: '没有正在采集的数据，请先使用 collect 操作采集数据'
+              };
+            }
             actualMode = 'JS';
             break;
           }

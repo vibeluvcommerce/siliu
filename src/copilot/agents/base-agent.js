@@ -148,6 +148,16 @@ class BaseAgent {
         desc: '步骤确认：当前步骤失败/需要重试',
         example: { action: 'no', description: '步骤执行失败，需要重试' }
       },
+      collect: {
+        params: ['content', 'batchIndex', 'hasMore'],
+        desc: '采集数据批次，用于导出',
+        example: { action: 'collect', content: { type: 'table', data: { headers: ['商品', '价格'], rows: [['iPhone', 5999]] } }, batchIndex: 0, hasMore: true, description: '采集第1页数据' }
+      },
+      export: {
+        params: ['format', 'filename'],
+        desc: '触发数据导出（可选，系统会自动导出）',
+        example: { action: 'export', format: 'excel', filename: '商品数据', description: '导出采集的数据' }
+      },
       done: { 
         params: ['summary'], 
         desc: '【最终完成】整个任务全部完成，输出总结',
@@ -224,7 +234,35 @@ ${examples}
 - selectAll 支持：使用 Ctrl+A 全选文本框内容，配合 type 可替换原有内容
 - upload 支持上传本地文件，filePath 使用绝对路径（如 "D:/images/photo.jpg"）
 - 【重要】抖音/视频类网站请使用 wheel 而非 scroll 来切换视频
-- 输入错误时可使用 press + Backspace 删除后重新输入`;
+- 输入错误时可使用 press + Backspace 删除后重新输入
+
+【数据导出指南】
+如需导出网页数据（表格、列表等），使用 collect 操作分批采集：
+
+1. 表格数据格式：
+   {"action": "collect", "content": {"type": "table", "data": {"headers": ["商品", "价格"], "rows": [["iPhone", 5999]]}}, "batchIndex": 0, "hasMore": true}
+
+2. 列表数据格式：
+   {"action": "collect", "content": {"type": "list", "data": {"items": ["item1", "item2"]}}, "batchIndex": 0, "hasMore": true}
+
+3. 图片字段格式（自动下载插入）：
+   rows 中可以包含 {"type": "image", "url": "https://...", "alt": "描述"}
+
+4. 多页采集：
+   - 每页输出一个 collect，batchIndex 递增
+   - 最后一页设置 hasMore: false
+   - 系统会自动合并所有批次并导出
+
+5. 导出格式：
+   - excel: 支持图片嵌入
+   - csv: 图片转为 URL 文本
+   - json: 原始数据结构
+   - pdf: 生成报告文档
+   - png: 生成图表图片
+
+6. 超时处理：
+   - 180秒无新数据自动导出已采集部分
+   - 使用 export action 可手动提前触发导出`;
   }
 
   /**
