@@ -3198,8 +3198,12 @@
       initTitlebarInteractions();
       setupEventListeners();
       
-      // 渲染 Agent 列表
-      renderAgentList();
+      // 渲染 Agent 列表（延迟确保 preload 已加载）
+      console.log('[Shell] Scheduling renderAgentList...');
+      setTimeout(() => {
+        console.log('[Shell] Calling renderAgentList');
+        renderAgentList();
+      }, 100);
       
       // 等待第一个标签页创建后再展开 Copilot（确保 BrowserView 已初始化）
       const checkFirstTab = setInterval(() => {

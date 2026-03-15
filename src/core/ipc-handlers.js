@@ -1034,10 +1034,17 @@ class IPCHandlers {
       }
     
     // 获取所有 Agent 列表（用于 UI 渲染）
-    ipcMain.handle('agents:getAll', () => {
-      const agents = registry.getAllAgents();
-      console.log('[IPC] agents:getAll returning', agents.length, 'agents');
-      return agents;
+    console.log('[IPC] Registering agents:getAll handler');
+    ipcMain.handle('agents:getAll', async (event) => {
+      console.log('[IPC] agents:getAll called by:', event.sender.id);
+      try {
+        const agents = registry.getAllAgents();
+        console.log('[IPC] agents:getAll returning', agents?.length, 'agents');
+        return agents;
+      } catch (err) {
+        console.error('[IPC] agents:getAll error:', err);
+        throw err;
+      }
     });
     
     // 获取当前 Agent
