@@ -24,7 +24,9 @@ class IPCHandlers {
    * 设置所有 IPC 处理器
    */
   setup() {
+    console.log('[IPC] Setup called, _ipcSetupDone:', this._ipcSetupDone);
     if (this._ipcSetupDone) {
+      console.log('[IPC] Setup already done, skipping');
       return;
     }
     this._ipcSetupDone = true;
@@ -1021,8 +1023,15 @@ class IPCHandlers {
 
   // ========== Agent 相关 IPC ==========
   _setupAgentHandlers() {
-    const { registry } = require('../copilot/agents/agent-registry');
-    console.log('[IPC] Setting up agent handlers, registry count:', registry.count);
+    console.log('[IPC] _setupAgentHandlers called');
+    try {
+      const { registry } = require('../copilot/agents/agent-registry');
+      console.log('[IPC] Agent registry loaded, count:', registry?.count);
+      
+      if (!registry) {
+        console.error('[IPC] Agent registry is null!');
+        return;
+      }
     
     // 获取所有 Agent 列表（用于 UI 渲染）
     ipcMain.handle('agents:getAll', () => {
@@ -1042,6 +1051,9 @@ class IPCHandlers {
       const success = registry.switchTo(agentId);
       return { success, agent: success ? registry.getCurrent().getDisplayInfo() : null };
     });
+    } catch (err) {
+      console.error('[IPC] Error setting up agent handlers:', err);
+    }
   }
 }
 
