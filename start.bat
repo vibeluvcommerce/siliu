@@ -10,4 +10,5 @@ taskkill /F /IM electron.exe 2>nul
 ping -n 2 127.0.0.1 >nul
 
 echo Starting Siliu Browser...
-.\node_modules\.bin\electron . --no-sandbox 2>&1 | powershell -Command "$input | Tee-Object -FilePath logs\siliu.log"
+chcp 65001 >nul
+.\node_modules\.bin\electron . --no-sandbox 2>&1 | powershell -Command "$OutputEncoding = [Console]::OutputEncoding = [System.Text.Encoding]::UTF8; $input | Tee-Object -FilePath logs\siliu.log"
