@@ -86,7 +86,8 @@ const modules = {
   contextMenu: null,
   controller: null,
   copilot: null,
-  adblock: null
+  adblock: null,
+  agentLoader: null  // 【新增】Agent 动态加载器
 };
 
 // ========== IPC 处理器状态 ==========
@@ -213,6 +214,13 @@ async function startup() {
     await modules.adblock.activate();
     global.adblockExtension = modules.adblock;
     console.log('[Siliu] AdBlock ready');
+
+    // 【新增】初始化动态 Agent 加载器
+    console.log('[Siliu] Initializing DynamicAgentLoader...');
+    const { DynamicAgentLoader } = require('./copilot/agents/dynamic-agent-loader');
+    modules.agentLoader = new DynamicAgentLoader(workspaceManager);
+    await modules.agentLoader.initialize();
+    console.log('[Siliu] DynamicAgentLoader ready');
 
     // 加载 TabListWindow（注册 tablist:show 等 IPC 处理器）
     const TabListWindow = require('./core/tab/tab-list-window');
@@ -586,6 +594,58 @@ function setupIpcHandlers() {
     } catch (err) {
       return { error: err.message };
     }
+  });
+
+  // ========== 【新增】Configurable Agent IPC 接口 ==========
+  const { registry } = require('./copilot/agents/agent-registry');
+
+  // 获取所有用户自定义 Agent（YAML 配置）
+  safeHandle('agents:listUserAgents', () => {
+    return modules.agentLoader?.getUserAgents() || [];
+  });
+
+  // 获取所有 ConfigurableAgent（包括内置的）
+  safeHandle('agents:listConfigurable', () => {
+    return registry.getConfigurableAgents();
+  });
+
+  // 获取所有 Agent（包括内置和自定义）
+  safeHandle('agents:listAll', () => {
+    return registry.getAllAgents();
+  });
+
+  // 保存 Agent 配置
+  safeHandle('agents:save', async (event, config) => {
+    if (!modules.agentLoader) {
+      return { success: false, error: 'Agent loader not initialized' };
+    }
+    return await modules.agentLoader.saveAgent(config);
+  });
+
+  // 删除 Agent 配置
+  safeHandle('agents:delete', async (event, agentId) => {
+    if (!modules.agentLoader) {
+      return { success: false, error: 'Agent loader not initialized' };
+    }
+    return await modules.agentLoader.deleteAgent(agentId);
+  });
+
+  // 获取 Agent 配置内容（YAML）
+  safeHandle('agents:getConfig', async (event, agentId) => {
+    if (!modules.agentLoader) {
+      return { success: false, error: 'Agent loader not initialized' };
+    }
+    return await modules.agentLoader.getAgentConfig(agentId);
+  });
+
+  // 检查是否为内置 Agent
+  safeHandle('agents:isBuiltIn', (event, agentId) => {
+    return registry.isBuiltInAgent(agentId);
+  });
+
+  // 打开 Agent 编辑器窗口（预留，暂时返回不可用）
+  safeHandle('agents:openEditor', () => {
+    return { success: false, error: 'Agent 编辑器即将推出，敬请期待' };
   });
 
   // 转发事件到渲染进程

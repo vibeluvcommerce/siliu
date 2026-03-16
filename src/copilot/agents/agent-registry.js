@@ -12,8 +12,6 @@ const path = require('path');
 
 // 内置 Agent（确保至少有一个可用）
 const { GeneralAgent } = require('./builtin/general-agent');
-const { BilibiliAgent } = require('./builtin/bilibili-agent');
-const { TaobaoAgent } = require('./builtin/taobao-agent');
 const { DataAgent } = require('./builtin/data-agent');
 
 class AgentRegistry {
@@ -43,14 +41,11 @@ class AgentRegistry {
     // 通用助手（默认）
     this.register(new GeneralAgent());
     
-    // B站助手
-    this.register(new BilibiliAgent());
-    
-    // 淘宝助手
-    this.register(new TaobaoAgent());
-    
     // 数据采集
     this.register(new DataAgent());
+    
+    // 注意：B站助手和淘宝助手现在通过 YAML 配置加载
+    // 位于 ~/.siliu/workspace/agents/bilibili.yaml 和 taobao.yaml
     
     console.log('[AgentRegistry] Built-in agents registered');
   }
@@ -176,17 +171,24 @@ class AgentRegistry {
   autoSelectByUrl(url) {
     if (!url) return this.getDefault().id;
     
-    // URL 匹配规则（按优先级）
+    // 1. 首先检查所有 ConfigurableAgent 的 domains 配置
+    for (const [id, agent] of this.agents) {
+      if (agent.matchesUrl && agent.matchesUrl(url)) {
+        console.log(`[AgentRegistry] Auto-selected configurable agent ${id} for URL: ${url}`);
+        return id;
+      }
+    }
+    
+    // 2. 内置 URL 匹配规则（按优先级）
     const rules = [
       { pattern: /bilibili\.com/, id: 'bilibili' },
-      // 可以在这里添加更多规则
-      // { pattern: /taobao\.com|tmall\.com/, id: 'taobao' },
+      { pattern: /taobao\.com|tmall\.com/, id: 'taobao' },
     ];
     
     for (const rule of rules) {
       if (rule.pattern.test(url)) {
         if (this.has(rule.id)) {
-          console.log(`[AgentRegistry] Auto-selected agent ${rule.id} for URL: ${url}`);
+          console.log(`[AgentRegistry] Auto-selected built-in agent ${rule.id} for URL: ${url}`);
           return rule.id;
         }
       }
@@ -243,7 +245,7 @@ class AgentRegistry {
     const currentId = this.currentAgent?.id;
     
     // 清除所有自定义 Agent（保留 builtin）
-    const builtInIds = ['general', 'bilibili']; // 内置 Agent ID 列表
+    const builtInIds = ['general', 'data']; // 内置 Agent ID 列表（bilibili、taobao 由 YAML 提供）
     for (const [id, agent] of this.agents) {
       if (!builtInIds.includes(id)) {
         this.agents.delete(id);
@@ -257,6 +259,23 @@ class AgentRegistry {
     if (currentId && this.has(currentId)) {
       this.switchTo(currentId);
     }
+  }
+
+  /**
+   * 获取 ConfigurableAgent 列表（YAML 配置的 Agent）
+   */
+  getConfigurableAgents() {
+    return Array.from(this.agents.values())
+      .filter(agent => agent.config?._sourceFile)
+      .map(agent => agent.getDisplayInfo());
+  }
+
+  /**
+   * 判断是否为内置 Agent
+   */
+  isBuiltInAgent(id) {
+    const builtInIds = ['general', 'data'];
+    return builtInIds.includes(id);
   }
 
   // ============================================================

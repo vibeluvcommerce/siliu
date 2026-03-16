@@ -11,4 +11,8 @@ ping -n 2 127.0.0.1 >nul
 
 echo Starting Siliu Browser...
 chcp 65001 >nul
+
+REM 清除可能导致 Electron 以 Node 模式运行的环境变量
+set ELECTRON_RUN_AS_NODE=
+
 .\node_modules\.bin\electron . --no-sandbox 2>&1 | powershell -Command "$OutputEncoding = [Console]::OutputEncoding = [System.Text.Encoding]::UTF8; $input | Tee-Object -FilePath logs\siliu.log"
