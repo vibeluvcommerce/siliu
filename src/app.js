@@ -805,7 +805,17 @@ function setupIpcHandlers() {
           
           const coordList = document.createElement('div');
           coordList.id = '__agent_editor_list__';
-          coordList.style.cssText = 'padding:16px;max-height:320px;overflow-y:auto;';
+          coordList.style.cssText = 'padding:16px;max-height:320px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(99,102,241,0.3) transparent;';
+          
+          // 添加自定义滚动条样式（使用字符串拼接避免 # 被解释为私有字段）
+          const listId = '__agent_editor_list__';
+          const scrollbarStyle = document.createElement('style');
+          scrollbarStyle.textContent = 
+            '#' + listId + '::-webkit-scrollbar { width: 6px; } ' +
+            '#' + listId + '::-webkit-scrollbar-track { background: transparent; border-radius: 3px; } ' +
+            '#' + listId + '::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.3); border-radius: 3px; } ' +
+            '#' + listId + '::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.5); }';
+          document.head.appendChild(scrollbarStyle);
           coordList.innerHTML = 
             '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 20px;color:#9ca3af;">' +
             '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:10px;opacity:0.4;">' +
