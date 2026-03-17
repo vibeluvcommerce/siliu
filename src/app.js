@@ -554,6 +554,16 @@ function setupIpcHandlers() {
   } catch {}
   ipcMain.on('view:annotationClick', annotationClickHandler);
   
+  // 监听完成标注按钮点击
+  const annotationDoneHandler = (event) => {
+    console.log('[Step 1] Done button clicked in overlay');
+    modules.core?.sendToRenderer?.('annotation:done', {});
+  };
+  try {
+    ipcMain.removeListener('view:annotationDone', annotationDoneHandler);
+  } catch {}
+  ipcMain.on('view:annotationDone', annotationDoneHandler);
+  
   safeHandle('annotation:injectTest', async (event, viewId) => {
     try {
       console.log('[Step 1] Inject test overlay for view:', viewId);
@@ -580,9 +590,57 @@ function setupIpcHandlers() {
             'position:fixed;top:0;left:0;width:100%;height:100%;' +
             'z-index:2147483647;cursor:crosshair;background:rgba(233,69,96,0.2);';
           
+          // 创建工具栏容器
+          const toolbar = document.createElement('div');
+          toolbar.id = '__siliu_toolbar__';
+          toolbar.style.cssText = 
+            'position:fixed;' +
+            'bottom:20px;' +
+            'left:50%;' +
+            'transform:translateX(-50%);' +
+            'z-index:2147483649;' +
+            'display:flex;' +
+            'gap:10px;' +
+            'padding:10px 20px;' +
+            'background:rgba(0,0,0,0.8);' +
+            'border-radius:8px;' +
+            'box-shadow:0 4px 12px rgba(0,0,0,0.3);';
+          
+          // 完成标注按钮
+          const doneBtn = document.createElement('button');
+          doneBtn.textContent = '完成标注';
+          doneBtn.style.cssText = 
+            'padding:8px 16px;' +
+            'background:#34A853;' +
+            'color:white;' +
+            'border:none;' +
+            'border-radius:6px;' +
+            'cursor:pointer;' +
+            'font-size:14px;' +
+            'font-weight:500;';
+          doneBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // 阻止冒泡到蒙版
+            console.log('[Siliu Overlay] Done button clicked');
+            window.postMessage({ type: 'TEST_ANNOTATION_DONE' }, '*');
+          });
+          
+          // 标注数量显示
+          const countLabel = document.createElement('span');
+          countLabel.id = '__siliu_count__';
+          countLabel.textContent = '已标注: 0';
+          countLabel.style.cssText = 
+            'color:white;' +
+            'font-size:14px;' +
+            'line-height:32px;' +
+            'padding:0 10px;';
+          
+          toolbar.appendChild(countLabel);
+          toolbar.appendChild(doneBtn);
+          
           // 跟踪滚动位置，让标记点跟随内容
           let scrollX = window.scrollX || 0;
           let scrollY = window.scrollY || 0;
+          let markerCount = 0;
           
           const updateScroll = () => {
             scrollX = window.scrollX || 0;
@@ -628,6 +686,14 @@ function setupIpcHandlers() {
               'box-shadow:0 2px 8px rgba(233,69,96,0.5);' +
               'pointer-events:none;'; // 让点击穿透到下方
             document.body.appendChild(marker);
+            markerCount++;
+            
+            // 更新计数显示
+            const countDisplay = document.getElementById('__siliu_count__');
+            if (countDisplay) {
+              countDisplay.textContent = '已标注: ' + markerCount;
+            }
+            
             console.log('[Siliu Overlay] Red marker created at doc:', docX, docY);
             
             window.postMessage({
@@ -637,6 +703,10 @@ function setupIpcHandlers() {
             }, '*');
             console.log('[Siliu Overlay] Message posted');
           });
+          
+          document.body.appendChild(overlay);
+          document.body.appendChild(toolbar);
+          console.log('[Siliu Overlay] Overlay and toolbar appended to body');
           
           if (document.body) {
             document.body.appendChild(overlay);
@@ -675,15 +745,15 @@ function setupIpcHandlers() {
       const script = `
         (function() {
           const overlay = document.getElementById('__test_annotation__');
+          const toolbar = document.getElementById('__siliu_toolbar__');
           let result = '';
           if (overlay) {
-            // 清理滚动监听（通过克隆节点移除所有事件监听器）
-            const newOverlay = overlay.cloneNode(true);
-            if (overlay.parentNode) {
-              overlay.parentNode.replaceChild(newOverlay, overlay);
-              newOverlay.remove();
-            }
+            overlay.remove();
             result += 'overlay-removed ';
+          }
+          if (toolbar) {
+            toolbar.remove();
+            result += 'toolbar-removed ';
           }
           // 同时移除所有红点标记
           const markers = document.querySelectorAll('.__siliu_marker__');

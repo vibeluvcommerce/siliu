@@ -149,7 +149,8 @@ contextBridge.exposeInMainWorld('siliuAPI', {
       'shell:editor-paste',
       'shell:editor-select-all',
       // Step 1: 标注点击事件
-      'annotation:click'
+      'annotation:click',
+      'annotation:done'
     ];
     if (validChannels.includes(channel)) {
       ipcRenderer.on(channel, (event, data) => {

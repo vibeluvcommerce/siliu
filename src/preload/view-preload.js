@@ -49,6 +49,10 @@ window.addEventListener('message', (e) => {
       viewId: null // 主进程会根据 sender 识别
     });
   }
+  if (e.data?.type === 'TEST_ANNOTATION_DONE') {
+    console.log('[Siliu Preload] Forwarding done button click to main process');
+    ipcRenderer.send('view:annotationDone', {});
+  }
 });
 
 // 主滚动条美化 CSS - 只针对 html/body

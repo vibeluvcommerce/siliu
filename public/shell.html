@@ -2035,6 +2035,8 @@
         return;
       }
       
+      currentViewId = activeView.id;
+      
       if (!testOverlayActive) {
         // 注入测试蒙版
         const result = await window.siliuAPI?.injectTestOverlay?.(activeView.id);
@@ -2058,6 +2060,18 @@
       console.log('[Step 1] Received annotation:click in shell:', data);
       if (data?.type === 'TEST_ANNOTATION_CLICK') {
         showToast(`点击坐标: x=${data.x.toFixed(3)}, y=${data.y.toFixed(3)}`);
+      }
+    });
+    
+    // 监听完成标注按钮
+    window.siliuAPI?.on?.('annotation:done', () => {
+      console.log('[Step 1] Done button clicked, removing overlay');
+      if (currentViewId) {
+        // 调用移除蒙版
+        window.siliuAPI?.removeTestOverlay?.(currentViewId).then(() => {
+          showToast('标注完成');
+          testOverlayActive = false;
+        });
       }
     });
 
