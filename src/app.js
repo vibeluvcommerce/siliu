@@ -537,23 +537,15 @@ function setupIpcHandlers() {
   // 接收 BrowserView 的标注点击消息并转发到 shell
   const annotationClickHandler = (event, data) => {
     console.log('[Step 1] Received annotation click in main process:', data);
-    // 找到消息来自哪个 view
-    const senderId = event.sender.id;
-    console.log('[Step 1] Sender webContents id:', senderId);
-    const views = modules.core?.tabManager?.getAllViews?.() || [];
-    const view = views.find(v => v.view?.webContents?.id === senderId);
+    // event.sender 就是发送消息的 webContents，直接使用
+    console.log('[Step 1] Sender webContents id:', event.sender.id);
     
-    if (view) {
-      console.log('[Step 1] Annotation click from view:', view.id, 'data:', data);
-      // 广播到所有 shell 窗口
-      modules.core?.sendToRenderer?.('annotation:click', {
-        ...data,
-        viewId: view.id
-      });
-      console.log('[Step 1] Broadcasted to shell');
-    } else {
-      console.log('[Step 1] Could not find view for sender:', senderId);
-    }
+    // 直接广播到所有 shell 窗口，不需要查找 view
+    modules.core?.sendToRenderer?.('annotation:click', {
+      ...data,
+      viewId: event.sender.id
+    });
+    console.log('[Step 1] Broadcasted to shell');
   };
   
   // 使用 ipcMain.on 而不是 safeHandle，因为这是一个事件而不是请求
