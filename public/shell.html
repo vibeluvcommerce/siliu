@@ -2439,7 +2439,7 @@
             }
             
             // 确认添加，标记转为已确认（计数由 shell 统一处理）
-            const tempMarkers = document.querySelectorAll('.__agent_editor_marker__[data-temp="true"]');
+            // tempMarkers 已经在上面定义过了，直接复用
             if (tempMarkers.length > 0) {
               tempMarkers[tempMarkers.length - 1].dataset.temp = 'false';
             }
