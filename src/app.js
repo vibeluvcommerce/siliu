@@ -594,6 +594,25 @@ function setupIpcHandlers() {
             e.stopPropagation();
             const x = e.clientX / window.innerWidth;
             const y = e.clientY / window.innerHeight;
+            
+            // 创建红点标记
+            const marker = document.createElement('div');
+            marker.className = '__siliu_marker__';
+            marker.style.cssText = 
+              'position:fixed;' +
+              'left:' + e.clientX + 'px;' +
+              'top:' + e.clientY + 'px;' +
+              'width:16px;' +
+              'height:16px;' +
+              'background:#E94560;' +
+              'border:2px solid white;' +
+              'border-radius:50%;' +
+              'transform:translate(-50%,-50%);' +
+              'z-index:2147483648;' +
+              'box-shadow:0 2px 8px rgba(233,69,96,0.5);';
+            document.body.appendChild(marker);
+            console.log('[Siliu Overlay] Red marker created at:', e.clientX, e.clientY);
+            
             window.postMessage({
               type: 'TEST_ANNOTATION_CLICK',
               x: x,
@@ -639,11 +658,18 @@ function setupIpcHandlers() {
       const script = `
         (function() {
           const overlay = document.getElementById('__test_annotation__');
+          let result = '';
           if (overlay) {
             overlay.remove();
-            return 'removed';
+            result += 'overlay-removed ';
           }
-          return 'not-found';
+          // 同时移除所有红点标记
+          const markers = document.querySelectorAll('.__siliu_marker__');
+          markers.forEach(m => m.remove());
+          if (markers.length > 0) {
+            result += 'markers-' + markers.length + ' ';
+          }
+          return result || 'not-found';
         })()
       `;
       
