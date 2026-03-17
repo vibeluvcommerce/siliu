@@ -981,26 +981,40 @@ function setupIpcHandlers() {
               selector = el.tagName.toLowerCase() + (selector ? selector : '');
             }
             
-            // 创建红点标记（fixed 定位，但基于文档坐标）
+            // 计算当前是第几个标注（已确认 + 临时）
+            const confirmedCount = document.querySelectorAll('.__agent_editor_marker__:not([data-temp="true"])').length;
+            const tempCount = document.querySelectorAll('.__agent_editor_marker__[data-temp="true"]').length;
+            const markerNumber = confirmedCount + tempCount + 1;
+            
+            // 创建带序号的红点标记（fixed 定位，但基于文档坐标）
             const marker = document.createElement('div');
             marker.className = '__agent_editor_marker__';
             marker.dataset.docX = docX;
             marker.dataset.docY = docY;
             marker.dataset.temp = 'true'; // 标记为临时，等待命名
+            marker.dataset.number = markerNumber; // 序号
+            marker.textContent = markerNumber; // 显示序号
             marker.style.cssText = 
               'position:fixed;' +
               'left:' + (docX - scrollX) + 'px;' +
               'top:' + (docY - scrollY) + 'px;' +
-              'width:16px;' +
-              'height:16px;' +
+              'width:28px;' +
+              'height:28px;' +
               'background:#E94560;' +
               'border:2px solid white;' +
               'border-radius:50%;' +
               'transform:translate(-50%,-50%);' +
               'z-index:2147483648;' +
-              'box-shadow:0 2px 8px rgba(233,69,96,0.5);' +
+              'box-shadow:0 2px 10px rgba(233,69,96,0.6);' +
               'cursor:pointer;' +
-              'pointer-events:auto;'; // 允许鼠标交互
+              'pointer-events:auto;' +
+              'display:flex;' +
+              'align-items:center;' +
+              'justify-content:center;' +
+              'color:white;' +
+              'font-size:12px;' +
+              'font-weight:700;' +
+              'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;';
             document.body.appendChild(marker);
             // 注意：coordCount 只在确认添加时增加，临时标记不增加计数
             
