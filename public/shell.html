@@ -2340,6 +2340,7 @@
               });
             }
             
+            console.log('[Siliu Overlay] Posting ANNOTATION_NAME_CONFIRMED message');
             window.postMessage({
               type: 'ANNOTATION_NAME_CONFIRMED',
               name: name,
@@ -2355,6 +2356,7 @@
               selector: '${data.selector || ''}',
               url: location.href
             }, '*');
+            console.log('[Siliu Overlay] Message posted, removing container');
             container.remove();
           };
           

@@ -36,7 +36,7 @@ contextBridge.exposeInMainWorld('siliuAPI', {
 // 监听页面内脚本发来的 postMessage，转发到主进程
 console.log('[Siliu Preload] Setting up annotation message listener');
 window.addEventListener('message', (e) => {
-  console.log('[Siliu Preload] Message received:', e.data);
+  console.log('[Siliu Preload] Message received, type:', e.data?.type);
   if (e.data?.type === 'TEST_ANNOTATION_CLICK' || e.data?.type === 'SILIU_ANNOTATION_CLICK') {
     console.log('[Siliu Preload] Forwarding annotation click to main process, data:', e.data);
     // 转发到主进程（包含完整坐标信息）
@@ -59,7 +59,7 @@ window.addEventListener('message', (e) => {
     ipcRenderer.send('view:annotationDone', {});
   }
   if (e.data?.type === 'ANNOTATION_NAME_CONFIRMED') {
-    console.log('[Siliu Preload] Forwarding name confirmed to main process');
+    console.log('[Siliu Preload] ANNOTATION_NAME_CONFIRMED received, forwarding to main:', e.data.name);
     ipcRenderer.send('view:annotationNameConfirmed', {
       name: e.data.name,
       viewportX: e.data.viewportX,

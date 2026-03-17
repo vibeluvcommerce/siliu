@@ -566,7 +566,9 @@ function setupIpcHandlers() {
   
   // 监听坐标命名确认
   const annotationNameConfirmedHandler = async (event, data) => {
-    console.log('[Step 2] Name confirmed, sender id:', event.sender.id);
+    console.log('[Step 2] annotationNameConfirmedHandler CALLED');
+    console.log('[Step 2] Name confirmed, sender id:', event.sender?.id);
+    console.log('[Step 2] Received data:', data);
     
     // 获取当前 view 的截图
     const senderId = event.sender.id;
