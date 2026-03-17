@@ -618,7 +618,9 @@ function setupIpcHandlers() {
     }
     
     // 广播完整数据到 shell（包含截图路径）
-    modules.core?.sendToRenderer?.('annotation:nameConfirmed', {
+    console.log('[Step 2] Broadcasting to shell, sendToRenderer exists:', !!modules.core?.sendToRenderer);
+    if (modules.core?.sendToRenderer) {
+      modules.core.sendToRenderer('annotation:nameConfirmed', {
       name: data.name,
       viewportX: data.viewportX,
       viewportY: data.viewportY,
@@ -632,7 +634,10 @@ function setupIpcHandlers() {
       selector: data.selector,
       url: data.url,
       screenshotPath: screenshotPath  // 文件路径，不是 base64
-    });
+      });
+    } else {
+      console.log('[Step 2] sendToRenderer not available');
+    }
   };
   try {
     ipcMain.removeListener('view:annotationNameConfirmed', annotationNameConfirmedHandler);
