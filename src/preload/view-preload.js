@@ -38,14 +38,14 @@ console.log('[Siliu Preload] Setting up annotation message listener');
 window.addEventListener('message', (e) => {
   console.log('[Siliu Preload] Message received:', e.data);
   if (e.data?.type === 'TEST_ANNOTATION_CLICK' || e.data?.type === 'SILIU_ANNOTATION_CLICK') {
-    console.log('[Siliu Preload] Forwarding annotation click to main process');
+    console.log('[Siliu Preload] Forwarding annotation click to main process, data:', e.data);
     // 转发到主进程
     ipcRenderer.send('view:annotationClick', {
       type: e.data.type,
       x: e.data.x,
       y: e.data.y,
-      tag: e.data.tag,
-      url: e.data.url,
+      tag: e.data.tag || 'element',
+      url: e.data.url || location.href,
       viewId: null // 主进程会根据 sender 识别
     });
   }

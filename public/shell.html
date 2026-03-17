@@ -2368,10 +2368,13 @@
       
       const count = annotationSession.coordinates.length;
       const script = `
-        const countDisplay = document.getElementById('__siliu_count__');
-        if (countDisplay) {
-          countDisplay.textContent = '已标注: ${count}';
-        }
+        (function() {
+          const countDisplay = document.getElementById('__siliu_count__');
+          if (countDisplay) {
+            countDisplay.textContent = '已标注: ${count}';
+          }
+          return 'count-updated';
+        })()
       `;
       
       try {

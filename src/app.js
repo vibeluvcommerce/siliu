@@ -691,6 +691,10 @@ function setupIpcHandlers() {
             const x = e.clientX / window.innerWidth;
             const y = e.clientY / window.innerHeight;
             
+            // 获取点击位置的元素
+            const el = document.elementFromPoint(e.clientX, e.clientY);
+            const tag = el?.tagName || 'element';
+            
             // 创建红点标记（fixed 定位，但基于文档坐标）
             const marker = document.createElement('div');
             marker.className = '__siliu_marker__';
@@ -718,12 +722,14 @@ function setupIpcHandlers() {
               countDisplay.textContent = '已标注: ' + markerCount;
             }
             
-            console.log('[Siliu Overlay] Red marker created at doc:', docX, docY);
+            console.log('[Siliu Overlay] Red marker created at doc:', docX, docY, 'tag:', tag);
             
             window.postMessage({
               type: 'TEST_ANNOTATION_CLICK',
               x: x,
-              y: y
+              y: y,
+              tag: tag,
+              url: location.href
             }, '*');
             console.log('[Siliu Overlay] Message posted');
           });
