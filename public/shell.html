@@ -2188,9 +2188,12 @@
     
     // 显示坐标命名输入（通过注入到 BrowserView）
     async function showCoordNamingInput(viewId, data) {
+      console.log('[Step 2] Showing naming input for view:', viewId, 'data:', data);
       annotationSession.currentCoord = { ...data, viewId };
       
       const suggestions = generateCoordSuggestions(data.tag);
+      console.log('[Step 2] Suggestions:', suggestions);
+      
       const script = `
         (function() {
           // 如果已存在命名输入，先移除
@@ -2217,8 +2220,8 @@
           
           // 位置信息显示
           const posLabel = document.createElement('span');
-          posLabel.textContent = 'x:${x.toFixed(3)} y:${y.toFixed(3)}';
-          posLabel.style.cssText = 
+          posLabel.textContent = 'x:${data.viewportX.toFixed(3)} y:${data.viewportY.toFixed(3)}';
+          posLabel.style.cssText =
             'font-family:monospace;' +
             'font-size:12px;' +
             'color:#666;' +
@@ -2331,6 +2334,13 @@
         })()
       `;
       
+      console.log('[Step 2] Injecting naming script to view:', viewId);
+      try {
+        const result = await window.siliuAPI?.injectTestOverlay?.(viewId, script);
+        console.log('[Step 2] Naming script injected, result:', result);
+      } catch (err) {
+        console.error('[Step 2] Failed to inject naming script:', err);
+      }
       await window.siliuAPI?.executeScript?.(script);
     }
     
