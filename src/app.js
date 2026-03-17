@@ -699,6 +699,25 @@ function setupIpcHandlers() {
             e.preventDefault();
             e.stopPropagation();
             
+            // 检查是否有未完成的标注输入框
+            const existingNaming = document.getElementById('__siliu_naming__');
+            if (existingNaming) {
+              console.log('[Siliu Overlay] Found unfinished annotation, removing previous marker');
+              // 删除最后一个红点（未完成的标注）
+              const markers = document.querySelectorAll('.__siliu_marker__');
+              if (markers.length > 0) {
+                markers[markers.length - 1].remove();
+                markerCount--;
+              }
+              // 删除输入框
+              existingNaming.remove();
+              // 更新计数
+              const countDisplay = document.getElementById('__siliu_count__');
+              if (countDisplay) {
+                countDisplay.textContent = '已标注: ' + markerCount;
+              }
+            }
+            
             // 记录多种坐标信息
             const viewportX = e.clientX / window.innerWidth;   // 视口比例坐标 (0-1)
             const viewportY = e.clientY / window.innerHeight;  // 视口比例坐标 (0-1)

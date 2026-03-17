@@ -2306,25 +2306,37 @@
             container.remove();
           };
           
-          // 跳过按钮
-          const skipBtn = document.createElement('button');
-          skipBtn.textContent = '跳过';
-          skipBtn.style.cssText = 
+          // 取消按钮（放弃该标点）
+          const cancelBtn = document.createElement('button');
+          cancelBtn.textContent = '取消';
+          cancelBtn.style.cssText = 
             'padding:8px 16px;' +
-            'background:#f5f5f5;' +
-            'color:#666;' +
+            'background:#EA4335;' +
+            'color:white;' +
             'border:none;' +
             'border-radius:6px;' +
             'cursor:pointer;' +
             'font-size:14px;';
-          skipBtn.onclick = () => {
+          cancelBtn.onclick = () => {
+            // 删除对应的红点标记（最后一个添加的）
+            const markers = document.querySelectorAll('.__siliu_marker__');
+            if (markers.length > 0) {
+              markers[markers.length - 1].remove();
+              markerCount--;
+              // 更新计数显示
+              const countDisplay = document.getElementById('__siliu_count__');
+              if (countDisplay) {
+                countDisplay.textContent = '已标注: ' + markerCount;
+              }
+            }
             container.remove();
+            console.log('[Siliu Naming] Cancelled, marker removed');
           };
           
           container.appendChild(posLabel);
           container.appendChild(input);
           container.appendChild(suggestionsDiv);
-          container.appendChild(skipBtn);
+          container.appendChild(cancelBtn);
           container.appendChild(confirmBtn);
           
           document.body.appendChild(container);
