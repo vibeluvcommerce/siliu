@@ -2194,8 +2194,8 @@
       const suggestions = generateCoordSuggestions(data.tag);
       console.log('[Step 2] Suggestions:', suggestions);
       
-      // 存储截图数据（用于后续保存时关联）
-      const screenshotData = data.screenshot || null;
+      // 存储截图路径（用于 tooltip 显示）
+      const screenshotPath = data.screenshotPath || null;
       
       const script = `
         (function() {
@@ -2320,15 +2320,8 @@
               let tooltipContent = 
                 '<div style="font-weight:600;font-size:14px;margin-bottom:4px;">' + name + '</div>' +
                 '<div style="color:#aaa;margin-bottom:2px;">x:' + ${data.viewportX.toFixed(3)} + ' y:' + ${data.viewportY.toFixed(3)} + '</div>' +
-                '<div style="color:#888;">${data.tag}</div>';
-              
-              // 如果有截图，显示缩略图
-              if ('${data.screenshot}' && '${data.screenshot}'.startsWith('data:image')) {
-                tooltipContent += 
-                  '<div style="margin-top:8px;border-top:1px solid #444;padding-top:8px;">' +
-                  '<img src="${data.screenshot}" style="max-width:200px;max-height:120px;border-radius:4px;display:block;">' +
-                  '</div>';
-              }
+                '<div style="color:#888;">${data.tag}</div>' +
+                '<div style="color:#666;font-size:11px;margin-top:4px;">(截图已保存)</div>';
               
               tooltip.innerHTML = tooltipContent;
               document.body.appendChild(tooltip);
@@ -2433,10 +2426,9 @@
       return map[tag] || ['element_1'];
     }
     
-    // 截图存储（按网站+页面维度）
-    let screenshotStore = {
-      // key: siteKey_pageKey, value: base64Screenshot
-    };
+    // 截图文件路径存储（按网站+页面维度）
+    // key: siteKey_pageKey, value: filePath
+    let screenshotPathStore = {};
     
     // 获取当前网站和页面标识
     function getSiteAndPageKey(url) {
@@ -2459,7 +2451,7 @@
       }
     }
     
-    // 保存坐标（包含完整信息和截图）
+    // 保存坐标（包含完整信息和截图路径）
     function saveCoordinate(name, data) {
       // 检查是否已存在
       if (annotationSession.coordinates.find(c => c.name === name)) {
@@ -2470,10 +2462,10 @@
       // 获取网站/页面标识
       const { siteKey, pageKey, fullKey } = getSiteAndPageKey(data.url);
       
-      // 如果有新截图，保存到截图存储
-      if (data.screenshot) {
-        screenshotStore[fullKey] = data.screenshot;
-        console.log('[Step 2] Screenshot saved for:', fullKey);
+      // 如果有截图路径，保存到路径存储
+      if (data.screenshotPath) {
+        screenshotPathStore[fullKey] = data.screenshotPath;
+        console.log('[Step 2] Screenshot path saved for:', fullKey, data.screenshotPath);
       }
       
       const coord = {
@@ -2497,9 +2489,10 @@
         tag: data.tag,
         selector: data.selector,
         url: data.url,
-        // 截图引用
+        // 截图路径（用于 YAML 导出和 AI 理解）
+        screenshotPath: data.screenshotPath || null,
         screenshotKey: fullKey,
-        hasScreenshot: !!data.screenshot,
+        hasScreenshot: !!data.screenshotPath,
         createdAt: new Date().toISOString()
       };
       
@@ -2578,10 +2571,7 @@
     // 监听坐标命名确认
     window.siliuAPI?.on?.('annotation:nameConfirmed', (data) => {
       console.log('[Step 2] Name confirmed in shell:', data?.name);
-      console.log('[Step 2] Has screenshot:', !!data?.screenshot);
-      if (data?.screenshot) {
-        console.log('[Step 2] Screenshot length:', data.screenshot.length);
-      }
+      console.log('[Step 2] Screenshot path:', data?.screenshotPath || 'none');
       if (data?.name) {
         saveCoordinate(data.name, data);
       }

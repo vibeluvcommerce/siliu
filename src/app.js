@@ -572,7 +572,7 @@ function setupIpcHandlers() {
     const senderId = event.sender.id;
     const tabManager = modules.core?.tabManager;
     
-    // 从 views Map 中查找（getAllViews 返回的是简化数据）
+    // 从 views Map 中查找
     let targetView = null;
     if (tabManager?.views) {
       for (const [viewId, viewData] of tabManager.views.entries()) {
@@ -585,21 +585,39 @@ function setupIpcHandlers() {
     
     console.log('[Step 2] Sender id:', senderId, 'Found view:', targetView ? 'yes' : 'no');
     
-    let screenshotBase64 = null;
+    let screenshotPath = null;
     if (targetView?.view?.webContents) {
       console.log('[Step 2] Capturing page...');
       try {
         const image = await targetView.view.webContents.capturePage();
-        screenshotBase64 = image.toDataURL();
-        console.log('[Step 2] Screenshot captured, size:', screenshotBase64.length);
+        
+        // 保存截图到文件
+        const fs = require('fs').promises;
+        const path = require('path');
+        const workspaceManager = getWorkspaceManager();
+        const screenshotsDir = workspaceManager.getScreenshotsDir();
+        
+        // 确保目录存在
+        await fs.mkdir(screenshotsDir, { recursive: true });
+        
+        // 生成文件名: {site}_{page}_{timestamp}.png
+        const url = new URL(data.url || 'http://unknown');
+        const hostname = url.hostname.replace(/^www\./, '').replace(/[^a-zA-Z0-9]/g, '_');
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const filename = `${hostname}_${timestamp}.png`;
+        screenshotPath = path.join(screenshotsDir, filename);
+        
+        // 保存图片
+        await fs.writeFile(screenshotPath, image.toPNG());
+        console.log('[Step 2] Screenshot saved to:', screenshotPath);
       } catch (err) {
-        console.error('[Step 2] Failed to capture screenshot:', err.message);
+        console.error('[Step 2] Failed to save screenshot:', err.message);
       }
     } else {
       console.log('[Step 2] No view found for screenshot');
     }
     
-    // 广播完整数据到 shell（包含截图）
+    // 广播完整数据到 shell（包含截图路径）
     modules.core?.sendToRenderer?.('annotation:nameConfirmed', {
       name: data.name,
       viewportX: data.viewportX,
@@ -613,7 +631,7 @@ function setupIpcHandlers() {
       tag: data.tag,
       selector: data.selector,
       url: data.url,
-      screenshot: screenshotBase64  // 添加截图
+      screenshotPath: screenshotPath  // 文件路径，不是 base64
     });
   };
   try {

@@ -72,8 +72,8 @@ window.addEventListener('message', (e) => {
       viewportHeight: e.data.viewportHeight,
       tag: e.data.tag,
       selector: e.data.selector,
-      url: e.data.url,
-      screenshot: e.data.screenshot  // 转发截图
+      url: e.data.url
+      // 截图已保存到文件，不需要通过 IPC 传递
     });
   }
 });
