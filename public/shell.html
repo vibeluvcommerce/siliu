@@ -2571,8 +2571,12 @@
     });
     
     // 监听坐标命名确认
+    console.log('[Step 2] Setting up annotation:nameConfirmed listener');
+    console.log('[Step 2] siliuAPI exists:', !!window.siliuAPI);
+    console.log('[Step 2] siliuAPI.on exists:', !!window.siliuAPI?.on);
     window.siliuAPI?.on?.('annotation:nameConfirmed', (data) => {
-      console.log('[Step 2] Name confirmed in shell:', data?.name);
+      console.log('[Step 2] ====== Name confirmed in shell ======');
+      console.log('[Step 2] Data received:', data);
       console.log('[Step 2] Screenshot path:', data?.screenshotPath || 'none');
       if (data?.name) {
         saveCoordinate(data.name, data);
