@@ -566,15 +566,24 @@ function setupIpcHandlers() {
   
   // 监听坐标命名确认
   const annotationNameConfirmedHandler = async (event, data) => {
-    console.log('[Step 2] Name confirmed:', data);
+    console.log('[Step 2] Name confirmed, sender id:', event.sender.id);
     
     // 获取当前 view 的截图
     const senderId = event.sender.id;
     const views = modules.core?.tabManager?.getAllViews?.() || [];
+    console.log('[Step 2] Total views:', views.length, 'senderId:', senderId);
+    
+    // 列出所有 view 的 webContents id
+    views.forEach((v, i) => {
+      console.log(`[Step 2] View ${i}: webContents id =`, v.view?.webContents?.id);
+    });
+    
     const view = views.find(v => v.view?.webContents?.id === senderId);
+    console.log('[Step 2] Found view:', view ? 'yes' : 'no');
     
     let screenshotBase64 = null;
     if (view?.view?.webContents) {
+      console.log('[Step 2] Capturing page...');
       try {
         const image = await view.view.webContents.capturePage();
         screenshotBase64 = image.toDataURL();
@@ -582,6 +591,8 @@ function setupIpcHandlers() {
       } catch (err) {
         console.error('[Step 2] Failed to capture screenshot:', err.message);
       }
+    } else {
+      console.log('[Step 2] No view found for screenshot');
     }
     
     // 广播完整数据到 shell（包含截图）
