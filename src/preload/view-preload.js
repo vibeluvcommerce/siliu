@@ -32,13 +32,13 @@ contextBridge.exposeInMainWorld('siliuAPI', {
   }
 });
 
-// ========== Step 1: 标注点击消息转发 ==========
+// ========== Agent Editor: 标注点击消息转发 ==========
 // 监听页面内脚本发来的 postMessage，转发到主进程
-console.log('[Siliu Preload] Setting up annotation message listener');
+console.log('[Agent Editor Preload] Setting up message listener');
 window.addEventListener('message', (e) => {
-  console.log('[Siliu Preload] Message received, type:', e.data?.type);
-  if (e.data?.type === 'TEST_ANNOTATION_CLICK' || e.data?.type === 'SILIU_ANNOTATION_CLICK') {
-    console.log('[Siliu Preload] Forwarding annotation click to main process, data:', e.data);
+  console.log('[Agent Editor Preload] Message received, type:', e.data?.type);
+  if (e.data?.type === 'AGENT_EDITOR_CLICK') {
+    console.log('[Agent Editor Preload] Forwarding click to main process, data:', e.data);
     // 转发到主进程（包含完整坐标信息）
     ipcRenderer.send('view:annotationClick', {
       type: e.data.type,
@@ -54,12 +54,8 @@ window.addEventListener('message', (e) => {
       viewId: null // 主进程会根据 sender 识别
     });
   }
-  if (e.data?.type === 'TEST_ANNOTATION_DONE') {
-    console.log('[Siliu Preload] Forwarding done button click to main process');
-    ipcRenderer.send('view:annotationDone', {});
-  }
-  if (e.data?.type === 'ANNOTATION_NAME_CONFIRMED') {
-    console.log('[Siliu Preload] ANNOTATION_NAME_CONFIRMED received, forwarding to main:', e.data.name);
+  if (e.data?.type === 'AGENT_EDITOR_NAME_CONFIRMED') {
+    console.log('[Agent Editor Preload] Name confirmed, forwarding to main:', e.data.name);
     // 转发所有必要字段到主进程
     ipcRenderer.send('view:annotationNameConfirmed', {
       name: e.data.name,
@@ -76,6 +72,10 @@ window.addEventListener('message', (e) => {
       url: e.data.url
       // 注意：截图由主进程捕获并保存，不通过 IPC 传递
     });
+  }
+  if (e.data?.type === 'AGENT_EDITOR_CANCEL') {
+    console.log('[Agent Editor Preload] Cancel clicked, forwarding to shell');
+    ipcRenderer.send('view:agentEditorCancel', {});
   }
 });
 

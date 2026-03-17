@@ -88,9 +88,9 @@ contextBridge.exposeInMainWorld('siliuAPI', {
   getCurrentAgent: () => ipcRenderer.invoke('agents:getCurrent'),
   switchToAgent: (agentId) => ipcRenderer.invoke('agents:switch', agentId),
   
-  // ========== Step 1: 测试标注蒙版 ==========
-  injectTestOverlay: (viewId, customScript) => ipcRenderer.invoke('annotation:injectTest', viewId, customScript),
-  removeTestOverlay: (viewId) => ipcRenderer.invoke('annotation:removeTest', viewId),
+  // ========== Agent Editor: 标注编辑器 ==========
+  agentEditorInject: (viewId, customScript) => ipcRenderer.invoke('agentEditor:inject', viewId, customScript),
+  agentEditorRemove: (viewId) => ipcRenderer.invoke('agentEditor:remove', viewId),
 
   // ========== Shell 输入框右键菜单 ==========
   showShellContextMenu: (isEditable, hasSelection, text) => ipcRenderer.invoke('shell:contextmenu', { isEditable, hasSelection, text }),
@@ -148,10 +148,11 @@ contextBridge.exposeInMainWorld('siliuAPI', {
       'shell:editor-copy',
       'shell:editor-paste',
       'shell:editor-select-all',
-      // Step 1-2: 标注点击事件
-      'annotation:click',
-      'annotation:done',
-      'annotation:nameConfirmed'
+      // Agent Editor: 标注编辑器事件
+      'agentEditor:click',
+      'agentEditor:close',
+      'agentEditor:nameConfirmed',
+      'agentEditor:cancel'
     ];
     if (validChannels.includes(channel)) {
       ipcRenderer.on(channel, (event, data) => {

@@ -118,7 +118,7 @@
     "@fontsource/inter": "^5.2.8",
     "@phosphor-icons/web": "^2.1.2",
     "axios": "^1.13.6",
-
+    "chokidar": "^3.6.0",
     "csv-writer": "^1.6.0",
     "exceljs": "^4.4.0",
     "form-data": "^4.0.5",

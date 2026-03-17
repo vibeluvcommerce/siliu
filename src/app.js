@@ -532,20 +532,20 @@ function setupIpcHandlers() {
     }
   });
 
-  // ========== Step 1: 测试标注蒙版注入 ==========
+  // ========== Agent Editor: 标注编辑器注入 ==========
   
   // 接收 BrowserView 的标注点击消息并转发到 shell
   const annotationClickHandler = (event, data) => {
-    console.log('[Step 1] Received annotation click in main process:', data);
+    console.log('[Agent Editor] Received annotation click in main process:', data);
     // event.sender 就是发送消息的 webContents，直接使用
-    console.log('[Step 1] Sender webContents id:', event.sender.id);
+    console.log('[Agent Editor] Sender webContents id:', event.sender.id);
     
     // 直接广播到所有 shell 窗口，不需要查找 view
-    modules.core?.sendToRenderer?.('annotation:click', {
+    modules.core?.sendToRenderer?.('agentEditor:click', {
       ...data,
       viewId: event.sender.id
     });
-    console.log('[Step 1] Broadcasted to shell');
+    console.log('[Agent Editor] Broadcasted to shell');
   };
   
   // 使用 ipcMain.on 而不是 safeHandle，因为这是一个事件而不是请求
@@ -554,21 +554,31 @@ function setupIpcHandlers() {
   } catch {}
   ipcMain.on('view:annotationClick', annotationClickHandler);
   
-  // 监听完成标注按钮点击
-  const annotationDoneHandler = (event) => {
-    console.log('[Step 1] Done button clicked in overlay');
-    modules.core?.sendToRenderer?.('annotation:done', {});
+  // 监听 Agent Editor 关闭事件
+  const agentEditorCloseHandler = (event) => {
+    console.log('[Agent Editor] Close requested');
+    modules.core?.sendToRenderer?.('agentEditor:close', {});
   };
   try {
-    ipcMain.removeListener('view:annotationDone', annotationDoneHandler);
+    ipcMain.removeListener('view:agentEditorClose', agentEditorCloseHandler);
   } catch {}
-  ipcMain.on('view:annotationDone', annotationDoneHandler);
+  ipcMain.on('view:agentEditorClose', agentEditorCloseHandler);
+  
+  // 监听 Agent Editor 取消事件
+  const agentEditorCancelHandler = (event) => {
+    console.log('[Agent Editor] Cancel clicked, removing current marker');
+    modules.core?.sendToRenderer?.('agentEditor:cancel', {});
+  };
+  try {
+    ipcMain.removeListener('view:agentEditorCancel', agentEditorCancelHandler);
+  } catch {}
+  ipcMain.on('view:agentEditorCancel', agentEditorCancelHandler);
   
   // 监听坐标命名确认
   const annotationNameConfirmedHandler = async (event, data) => {
-    console.log('[Step 2] annotationNameConfirmedHandler CALLED');
-    console.log('[Step 2] Name confirmed, sender id:', event.sender?.id);
-    console.log('[Step 2] Received data:', data);
+    console.log('[Agent Editor] annotationNameConfirmedHandler CALLED');
+    console.log('[Agent Editor] Name confirmed, sender id:', event.sender?.id);
+    console.log('[Agent Editor] Received data:', data);
     
     // 获取当前 view 的截图
     const senderId = event.sender.id;
@@ -585,11 +595,11 @@ function setupIpcHandlers() {
       }
     }
     
-    console.log('[Step 2] Sender id:', senderId, 'Found view:', targetView ? 'yes' : 'no');
+    console.log('[Agent Editor] Sender id:', senderId, 'Found view:', targetView ? 'yes' : 'no');
     
     let screenshotPath = null;
     if (targetView?.view?.webContents) {
-      console.log('[Step 2] Capturing page...');
+      console.log('[Agent Editor] Capturing page...');
       try {
         const image = await targetView.view.webContents.capturePage();
         
@@ -611,17 +621,17 @@ function setupIpcHandlers() {
         
         // 保存图片
         await fs.writeFile(screenshotPath, image.toPNG());
-        console.log('[Step 2] Screenshot saved to:', screenshotPath);
+        console.log('[Agent Editor] Screenshot saved to:', screenshotPath);
       } catch (err) {
-        console.error('[Step 2] Failed to save screenshot:', err.message);
+        console.error('[Agent Editor] Failed to save screenshot:', err.message);
       }
     } else {
-      console.log('[Step 2] No view found for screenshot');
+      console.log('[Agent Editor] No view found for screenshot');
     }
     
     // 广播完整数据到 shell（包含截图路径）
-    console.log('[Step 2] Broadcasting to shell, sendToRenderer exists:', !!modules.core?.sendToRenderer);
-    console.log('[Step 2] screenshotPath to send:', screenshotPath);
+    console.log('[Agent Editor] Broadcasting to shell, sendToRenderer exists:', !!modules.core?.sendToRenderer);
+    console.log('[Agent Editor] screenshotPath to send:', screenshotPath);
     const dataToSend = {
       name: data.name,
       viewportX: data.viewportX,
@@ -637,12 +647,12 @@ function setupIpcHandlers() {
       url: data.url,
       screenshotPath: screenshotPath  // 文件路径，不是 base64
     };
-    console.log('[Step 2] Full data to send:', JSON.stringify(dataToSend, null, 2));
+    console.log('[Agent Editor] Full data to send:', JSON.stringify(dataToSend, null, 2));
     if (modules.core?.sendToRenderer) {
-      modules.core.sendToRenderer('annotation:nameConfirmed', dataToSend);
-      console.log('[Step 2] Data sent to renderer');
+      modules.core.sendToRenderer('agentEditor:nameConfirmed', dataToSend);
+      console.log('[Agent Editor] Data sent to renderer');
     } else {
-      console.log('[Step 2] sendToRenderer not available');
+      console.log('[Agent Editor] sendToRenderer not available');
     }
   };
   try {
@@ -650,103 +660,265 @@ function setupIpcHandlers() {
   } catch {}
   ipcMain.on('view:annotationNameConfirmed', annotationNameConfirmedHandler);
   
-  safeHandle('annotation:injectTest', async (event, viewId, customScript) => {
+  safeHandle('agentEditor:inject', async (event, viewId, customScript) => {
     try {
-      console.log('[Step 1] Inject test overlay for view:', viewId);
+      console.log('[Agent Editor] Inject for view:', viewId);
       
       const view = modules.core?.tabManager?.getView?.(viewId);
       if (!view) {
-        console.log('[Step 1] View not found:', viewId);
+        console.log('[Agent Editor] View not found:', viewId);
         return { success: false, error: 'View not found' };
       }
       
       // 如果传入自定义脚本，直接执行
       if (customScript) {
-        console.log('[Step 1] Executing custom script');
+        console.log('[Agent Editor] Executing custom script');
         const result = await view.webContents.executeJavaScript(customScript, true);
         return { success: true, result };
       }
       
-      console.log('[Step 1] View found, webContents id:', view.webContents.id);
+      console.log('[Agent Editor] View found, webContents id:', view.webContents.id);
       
       const script = `
         (function() {
-          console.log('[Siliu Overlay] Script executing in page context');
-          if (document.getElementById('__test_annotation__')) {
-            console.log('[Siliu Overlay] Already exists');
+          console.log('[Agent Editor] Script executing in page context');
+          if (document.getElementById('__agent_editor_overlay__')) {
+            console.log('[Agent Editor] Already exists');
             return 'already-exists';
           }
           
           const overlay = document.createElement('div');
-          overlay.id = '__test_annotation__';
+          overlay.id = '__agent_editor_overlay__';
           overlay.style.cssText = 
             'position:fixed;top:0;left:0;width:100%;height:100%;' +
             'z-index:2147483647;cursor:crosshair;background:rgba(233,69,96,0.2);';
           
-          // 创建工具栏容器
-          const toolbar = document.createElement('div');
-          toolbar.id = '__siliu_toolbar__';
-          toolbar.style.cssText = 
+          // 创建左上角手风琴面板（Agent Editor）
+          const historyPanel = document.createElement('div');
+          historyPanel.id = '__agent_editor_panel__';
+          historyPanel.style.cssText = 
             'position:fixed;' +
-            'bottom:20px;' +
-            'left:50%;' +
-            'transform:translateX(-50%);' +
+            'top:16px;' +
+            'left:16px;' +
+            'width:320px;' +
             'z-index:2147483649;' +
+            'background:#ffffff;' +
+            'border:1px solid rgba(0,0,0,0.08);' +
+            'border-radius:16px;' +
+            'box-shadow:0 20px 60px rgba(0,0,0,0.12), 0 8px 24px rgba(0,0,0,0.08);' +
+            'pointer-events:auto;' +
             'display:flex;' +
-            'gap:12px;' +
-            'padding:12px 24px;' +
-            'background:rgba(255,255,255,0.95);' +
-            'border:2px solid #E94560;' +
-            'border-radius:12px;' +
-            'box-shadow:0 8px 32px rgba(0,0,0,0.4);' +
-            'pointer-events:auto;'; // 允许点击穿透蒙版
+            'flex-direction:column;' +
+            'overflow:hidden;' +
+            'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;';
           
-          // 完成标注按钮
-          const doneBtn = document.createElement('button');
-          doneBtn.textContent = '完成标注';
-          doneBtn.style.cssText = 
-            'padding:10px 20px;' +
-            'background:linear-gradient(135deg, #34A853 0%, #2E7D32 100%);' +
-            'color:white;' +
-            'border:none;' +
-            'border-radius:8px;' +
-            'cursor:pointer;' +
-            'font-size:15px;' +
-            'font-weight:600;' +
-            'box-shadow:0 4px 12px rgba(52,168,83,0.4);' +
-            'pointer-events:auto;'; // 确保按钮可点击
-          doneBtn.addEventListener('click', (e) => {
-            e.stopPropagation(); // 阻止冒泡到蒙版
-            e.preventDefault();
-            console.log('[Siliu Overlay] Done button clicked');
-            window.postMessage({ type: 'TEST_ANNOTATION_DONE' }, '*');
+          // Panel 1: 可点击展开的头部（包含三个 icon 按钮 + 展开箭头）
+          const panelHeader = document.createElement('div');
+          panelHeader.id = '__agent_editor_header__';
+          panelHeader.style.cssText = 
+            'padding:14px 16px;' +
+            'background:#ffffff;' +
+            'display:flex;' +
+            'align-items:center;' +
+            'justify-content:space-between;' +
+            'cursor:grab;' +
+            'transition:background 0.15s;';
+          panelHeader.onmouseenter = () => { panelHeader.style.background = '#fafafa'; };
+          panelHeader.onmouseleave = () => { panelHeader.style.background = '#ffffff'; };
+          
+          // 左侧：图标 + 标题 + 计数
+          const panelLeft = document.createElement('div');
+          panelLeft.style.cssText = 'display:flex;align-items:center;gap:10px;overflow:hidden;';
+          panelLeft.innerHTML = 
+            '<div style="width:32px;height:32px;flex-shrink:0;background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%);border-radius:8px;display:flex;align-items:center;justify-content:center;">' +
+            '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2">' +
+            '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3" fill="white"/>' +
+            '</svg></div>' +
+            '<div style="overflow:hidden;">' +
+            '<div style="font-size:13px;font-weight:600;color:#111827;white-space:nowrap;">Agent 编辑器</div>' +
+            '<div style="font-size:11px;color:#6b7280;white-space:nowrap;">已标注 <span id="__agent_editor_count__">0</span> 处</div>' +
+            '</div>';
+          
+          // 右侧：三个 icon 按钮 + 展开箭头
+          const panelRight = document.createElement('div');
+          panelRight.style.cssText = 'display:flex;align-items:center;gap:4px;flex-shrink:0;';
+          
+          // 取消按钮（icon only）
+          const cancelBtn = document.createElement('button');
+          cancelBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>';
+          cancelBtn.title = '取消';
+          cancelBtn.style.cssText = 
+            'width:28px;height:28px;display:flex;align-items:center;justify-content:center;' +
+            'background:transparent;color:#9ca3af;border:none;border-radius:6px;cursor:pointer;' +
+            'transition:all 0.15s;';
+          cancelBtn.onmouseenter = () => { cancelBtn.style.background = '#fee2e2'; cancelBtn.style.color = '#dc2626'; };
+          cancelBtn.onmouseleave = () => { cancelBtn.style.background = 'transparent'; cancelBtn.style.color = '#9ca3af'; };
+          cancelBtn.onclick = (e) => { e.stopPropagation(); };
+          
+          // 暂存按钮（icon only）
+          const pauseBtn = document.createElement('button');
+          pauseBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>';
+          pauseBtn.title = '暂存';
+          pauseBtn.style.cssText = 
+            'width:28px;height:28px;display:flex;align-items:center;justify-content:center;' +
+            'background:transparent;color:#9ca3af;border:none;border-radius:6px;cursor:pointer;' +
+            'transition:all 0.15s;';
+          pauseBtn.onmouseenter = () => { pauseBtn.style.background = '#fef3c7'; pauseBtn.style.color = '#d97706'; };
+          pauseBtn.onmouseleave = () => { pauseBtn.style.background = 'transparent'; pauseBtn.style.color = '#9ca3af'; };
+          pauseBtn.onclick = (e) => { e.stopPropagation(); };
+          
+          // 保存按钮（icon only）
+          const saveBtn = document.createElement('button');
+          saveBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>';
+          saveBtn.title = '保存为 Agent';
+          saveBtn.style.cssText = 
+            'width:28px;height:28px;display:flex;align-items:center;justify-content:center;' +
+            'background:transparent;color:#9ca3af;border:none;border-radius:6px;cursor:pointer;' +
+            'transition:all 0.15s;';
+          saveBtn.onmouseenter = () => { saveBtn.style.background = '#d1fae5'; saveBtn.style.color = '#059669'; };
+          saveBtn.onmouseleave = () => { saveBtn.style.background = 'transparent'; saveBtn.style.color = '#9ca3af'; };
+          saveBtn.onclick = (e) => { e.stopPropagation(); };
+          
+          // 展开箭头
+          const expandArrow = document.createElement('div');
+          expandArrow.id = '__agent_editor_expand_arrow__';
+          expandArrow.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>';
+          expandArrow.style.cssText = 'width:24px;height:24px;display:flex;align-items:center;justify-content:center;transition:transform 0.2s;cursor:pointer;';
+          
+          panelRight.appendChild(cancelBtn);
+          panelRight.appendChild(pauseBtn);
+          panelRight.appendChild(saveBtn);
+          panelRight.appendChild(expandArrow);
+          
+          panelHeader.appendChild(panelLeft);
+          panelHeader.appendChild(panelRight);
+          
+          // Panel 2: 可折叠的标注列表
+          const coordListPanel = document.createElement('div');
+          coordListPanel.id = '__agent_editor_list_panel__';
+          coordListPanel.style.cssText = 
+            'max-height:0;' +
+            'overflow:hidden;' +
+            'transition:max-height 0.3s ease;' +
+            'background:#fafafb;' +
+            'border-top:1px solid transparent;';
+          
+          const coordList = document.createElement('div');
+          coordList.id = '__agent_editor_list__';
+          coordList.style.cssText = 'padding:16px;max-height:320px;overflow-y:auto;';
+          coordList.innerHTML = 
+            '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 20px;color:#9ca3af;">' +
+            '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:10px;opacity:0.4;">' +
+            '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>' +
+            '<span style="font-size:13px;">点击页面添加标注</span>' +
+            '</div>';
+          
+          coordListPanel.appendChild(coordList);
+          
+          // 拖拽功能
+          let isDragging = false;
+          let hasDragged = false;
+          let dragOffsetX = 0;
+          let dragOffsetY = 0;
+          let dragStartX = 0;
+          let dragStartY = 0;
+          
+          // 在 header 上按下开始拖拽
+          panelHeader.addEventListener('mousedown', (e) => {
+            // 如果点击的是按钮或展开箭头，不触发拖拽
+            if (e.target.closest('button') || e.target.closest('#__agent_editor_expand_arrow__')) return;
+            
+            isDragging = true;
+            hasDragged = false;
+            dragStartX = e.clientX;
+            dragStartY = e.clientY;
+            const rect = historyPanel.getBoundingClientRect();
+            dragOffsetX = e.clientX - rect.left;
+            dragOffsetY = e.clientY - rect.top;
+            panelHeader.style.cursor = 'grabbing';
+            panelHeader.style.userSelect = 'none';
           });
           
-          // 标注数量显示
-          const countLabel = document.createElement('span');
-          countLabel.id = '__siliu_count__';
-          countLabel.textContent = '已标注: 0';
-          countLabel.style.cssText = 
-            'color:#333;' +
-            'font-size:15px;' +
-            'font-weight:500;' +
-            'line-height:40px;' +
-            'padding:0 12px;' +
-            'pointer-events:none;'; // 数量显示不需要点击
+          // 全局鼠标移动
+          document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
+            
+            // 检测是否真正移动了（超过 5px 认为是拖拽）
+            if (Math.abs(e.clientX - dragStartX) > 5 || Math.abs(e.clientY - dragStartY) > 5) {
+              hasDragged = true;
+            }
+            
+            let newX = e.clientX - dragOffsetX;
+            let newY = e.clientY - dragOffsetY;
+            
+            // 限制在视口内
+            const rect = historyPanel.getBoundingClientRect();
+            const maxX = window.innerWidth - rect.width;
+            const maxY = window.innerHeight - rect.height;
+            
+            newX = Math.max(0, Math.min(newX, maxX));
+            newY = Math.max(0, Math.min(newY, maxY));
+            
+            historyPanel.style.left = newX + 'px';
+            historyPanel.style.top = newY + 'px';
+          });
           
-          toolbar.appendChild(countLabel);
-          toolbar.appendChild(doneBtn);
+          // 全局鼠标释放
+          document.addEventListener('mouseup', () => {
+            if (isDragging) {
+              isDragging = false;
+              panelHeader.style.cursor = 'grab';
+              panelHeader.style.userSelect = '';
+            }
+          });
+          
+          // 手风琴展开/收起逻辑
+          let isExpanded = false;
+          panelHeader.addEventListener('click', (e) => {
+            // 如果点击的是按钮或曾经拖拽过，不触发展开
+            if (e.target.closest('button') || hasDragged) return;
+            
+            isExpanded = !isExpanded;
+            if (isExpanded) {
+              coordListPanel.style.maxHeight = '400px';
+              coordListPanel.style.borderTopColor = 'rgba(0,0,0,0.06)';
+              expandArrow.style.transform = 'rotate(180deg)';
+            } else {
+              coordListPanel.style.maxHeight = '0';
+              coordListPanel.style.borderTopColor = 'transparent';
+              expandArrow.style.transform = 'rotate(0deg)';
+            }
+          });
+          
+          // 展开箭头的独立点击事件
+          expandArrow.addEventListener('click', (e) => {
+            e.stopPropagation();
+            isExpanded = !isExpanded;
+            if (isExpanded) {
+              coordListPanel.style.maxHeight = '400px';
+              coordListPanel.style.borderTopColor = 'rgba(0,0,0,0.06)';
+              expandArrow.style.transform = 'rotate(180deg)';
+            } else {
+              coordListPanel.style.maxHeight = '0';
+              coordListPanel.style.borderTopColor = 'transparent';
+              expandArrow.style.transform = 'rotate(0deg)';
+            }
+          });
+          
+          historyPanel.appendChild(panelHeader);
+          historyPanel.appendChild(coordListPanel);
           
           // 跟踪滚动位置，让标记点跟随内容
           let scrollX = window.scrollX || 0;
           let scrollY = window.scrollY || 0;
-          let markerCount = 0;
+          let coordCount = 0;
           
           const updateScroll = () => {
             scrollX = window.scrollX || 0;
             scrollY = window.scrollY || 0;
             // 更新所有标记点的位置
-            document.querySelectorAll('.__siliu_marker__').forEach(marker => {
+            document.querySelectorAll('.__agent_editor_marker__').forEach(marker => {
               const docX = parseFloat(marker.dataset.docX || 0);
               const docY = parseFloat(marker.dataset.docY || 0);
               marker.style.left = (docX - scrollX) + 'px';
@@ -757,32 +929,27 @@ function setupIpcHandlers() {
           window.addEventListener('scroll', updateScroll, { passive: true });
           
           overlay.addEventListener('click', (e) => {
-            console.log('[Siliu Overlay] Click detected at:', e.clientX, e.clientY);
+            console.log('[Agent Editor] Click detected at:', e.clientX, e.clientY);
             e.preventDefault();
             e.stopPropagation();
             
             // 检查是否有未完成的标注输入框
-            const existingNaming = document.getElementById('__siliu_naming__');
+            const existingNaming = document.getElementById('__agent_editor_naming__');
             if (existingNaming) {
-              console.log('[Siliu Overlay] Found unfinished annotation, removing previous marker');
+              console.log('[Agent Editor] Found unfinished annotation, removing previous marker');
               // 删除最后一个红点（未完成的标注）
-              const markers = document.querySelectorAll('.__siliu_marker__');
+              const markers = document.querySelectorAll('.__agent_editor_marker__[data-temp="true"]');
               if (markers.length > 0) {
                 markers[markers.length - 1].remove();
-                markerCount--;
               }
               // 删除可能存在的 tooltip
-              const tooltips = document.querySelectorAll('.__siliu_marker_tooltip__');
+              const tooltips = document.querySelectorAll('.__agent_editor_tooltip__');
               if (tooltips.length > 0) {
                 tooltips[tooltips.length - 1].remove();
               }
               // 删除输入框
               existingNaming.remove();
-              // 更新计数
-              const countDisplay = document.getElementById('__siliu_count__');
-              if (countDisplay) {
-                countDisplay.textContent = '已标注: ' + markerCount;
-              }
+              // 注意：临时标记不增加计数，所以也不需要减少
             }
             
             // 记录多种坐标信息
@@ -809,7 +976,7 @@ function setupIpcHandlers() {
             
             // 创建红点标记（fixed 定位，但基于文档坐标）
             const marker = document.createElement('div');
-            marker.className = '__siliu_marker__';
+            marker.className = '__agent_editor_marker__';
             marker.dataset.docX = docX;
             marker.dataset.docY = docY;
             marker.dataset.temp = 'true'; // 标记为临时，等待命名
@@ -828,18 +995,12 @@ function setupIpcHandlers() {
               'cursor:pointer;' +
               'pointer-events:auto;'; // 允许鼠标交互
             document.body.appendChild(marker);
-            markerCount++;
+            // 注意：coordCount 只在确认添加时增加，临时标记不增加计数
             
-            // 更新计数显示
-            const countDisplay = document.getElementById('__siliu_count__');
-            if (countDisplay) {
-              countDisplay.textContent = '已标注: ' + markerCount;
-            }
-            
-            console.log('[Siliu Overlay] Red marker created at doc:', docX, docY, 'tag:', tag, 'selector:', selector);
+            console.log('[Agent Editor] Red marker created at doc:', docX, docY, 'tag:', tag, 'selector:', selector);
             
             window.postMessage({
-              type: 'TEST_ANNOTATION_CLICK',
+              type: 'AGENT_EDITOR_CLICK',
               viewportX: viewportX,      // 视口比例坐标 (0-1)
               viewportY: viewportY,      // 视口比例坐标 (0-1)
               docX: docX,                // 文档绝对 X (像素)
@@ -855,15 +1016,15 @@ function setupIpcHandlers() {
           
           if (document.body) {
             document.body.appendChild(overlay);
-            document.body.appendChild(toolbar);
-            console.log('[Siliu Overlay] Overlay and toolbar appended to body');
+            document.body.appendChild(historyPanel);
+            console.log('[Agent Editor] Overlay and history panel appended to body');
           } else {
-            console.log('[Siliu Overlay] Body not ready, waiting...');
+            console.log('[Agent Editor] Body not ready, waiting...');
             setTimeout(() => {
               if (document.body) {
                 document.body.appendChild(overlay);
-                document.body.appendChild(toolbar);
-                console.log('[Siliu Overlay] Appended to body (delayed)');
+                document.body.appendChild(historyPanel);
+                console.log('[Agent Editor] Appended to body (delayed)');
               }
             }, 100);
           }
@@ -871,18 +1032,18 @@ function setupIpcHandlers() {
         })()
       `;
       
-      console.log('[Step 1] Executing script...');
+      console.log('[Agent Editor] Executing script...');
       const result = await view.webContents.executeJavaScript(script, true);
-      console.log('[Step 1] Inject result:', result);
+      console.log('[Agent Editor] Inject result:', result);
       
       return { success: true, result };
     } catch (err) {
-      console.error('[Step 1] Inject failed:', err);
+      console.error('[Agent Editor] Inject failed:', err);
       return { success: false, error: err.message };
     }
   });
   
-  safeHandle('annotation:removeTest', async (event, viewId) => {
+  safeHandle('agentEditor:remove', async (event, viewId) => {
     try {
       const view = modules.core?.tabManager?.getView?.(viewId);
       if (!view) {
@@ -891,25 +1052,35 @@ function setupIpcHandlers() {
       
       const script = `
         (function() {
-          const overlay = document.getElementById('__test_annotation__');
-          const toolbar = document.getElementById('__siliu_toolbar__');
+          const overlay = document.getElementById('__agent_editor_overlay__');
+          const historyPanel = document.getElementById('__agent_editor_panel__');
+          const coordListPanel = document.getElementById('__agent_editor_list_panel__');
+          const namingModal = document.getElementById('__agent_editor_naming__');
           let result = '';
           if (overlay) {
             overlay.remove();
             result += 'overlay-removed ';
           }
-          if (toolbar) {
-            toolbar.remove();
-            result += 'toolbar-removed ';
+          if (historyPanel) {
+            historyPanel.remove();
+            result += 'history-removed ';
+          }
+          if (coordListPanel) {
+            coordListPanel.remove();
+            result += 'coordlist-removed ';
+          }
+          if (namingModal) {
+            namingModal.remove();
+            result += 'naming-removed ';
           }
           // 同时移除所有红点标记
-          const markers = document.querySelectorAll('.__siliu_marker__');
+          const markers = document.querySelectorAll('.__agent_editor_marker__');
           markers.forEach(m => m.remove());
           if (markers.length > 0) {
             result += 'markers-' + markers.length + ' ';
           }
           // 同时移除所有 tooltip
-          const tooltips = document.querySelectorAll('.__siliu_marker_tooltip__');
+          const tooltips = document.querySelectorAll('.__agent_editor_tooltip__');
           tooltips.forEach(t => t.remove());
           if (tooltips.length > 0) {
             result += 'tooltips-' + tooltips.length + ' ';
