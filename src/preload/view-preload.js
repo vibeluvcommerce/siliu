@@ -55,6 +55,14 @@ window.addEventListener('message', (e) => {
   }
 });
 
+// 监听来自主进程的更新工具栏计数消息
+ipcRenderer.on('annotation:updateCount', (event, count) => {
+  const countDisplay = document.getElementById('__siliu_count__');
+  if (countDisplay) {
+    countDisplay.textContent = '已标注: ' + count;
+  }
+});
+
 // 主滚动条美化 CSS - 只针对 html/body
 const MAIN_SCROLLBAR_CSS = `
   html::-webkit-scrollbar,

@@ -1610,6 +1610,163 @@
     .settings-toast.error i {
       color: var(--chrome-danger);
     }
+    /* ========== Step 2: 坐标命名弹窗 ========== */
+    .coord-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10001;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s ease;
+    }
+
+    .coord-modal-overlay.show {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .coord-modal {
+      background: white;
+      border-radius: 12px;
+      width: 360px;
+      max-width: 90vw;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+      overflow: hidden;
+    }
+
+    .coord-modal-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--chrome-border);
+    }
+
+    .coord-modal-header h3 {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--chrome-text);
+      margin: 0;
+    }
+
+    .coord-modal-body {
+      padding: 20px;
+    }
+
+    .coord-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      padding: 10px 12px;
+      background: var(--chrome-bg);
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    .coord-info span {
+      color: var(--chrome-text-secondary);
+    }
+
+    .coord-info code {
+      font-family: 'SF Mono', Monaco, monospace;
+      color: var(--chrome-text);
+      font-size: 13px;
+    }
+
+    .coord-input-group {
+      margin-bottom: 8px;
+    }
+
+    .coord-input-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--chrome-text-secondary);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .coord-input-group input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid var(--chrome-border);
+      border-radius: 8px;
+      font-size: 14px;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+
+    .coord-input-group input:focus {
+      outline: none;
+      border-color: #1A73E8;
+      box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1);
+    }
+
+    .coord-suggestions {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+
+    .coord-suggestion-tag {
+      padding: 4px 10px;
+      background: rgba(26, 115, 232, 0.1);
+      color: #1A73E8;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .coord-suggestion-tag:hover {
+      background: rgba(26, 115, 232, 0.2);
+    }
+
+    .coord-modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      padding: 12px 20px 16px;
+      border-top: 1px solid var(--chrome-border);
+    }
+
+    .coord-btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+
+    .coord-btn-primary {
+      background: linear-gradient(135deg, #1A73E8 0%, #4285F4 100%);
+      color: white;
+    }
+
+    .coord-btn-primary:hover {
+      box-shadow: 0 2px 8px rgba(26, 115, 232, 0.3);
+    }
+
+    .coord-btn-secondary {
+      background: var(--chrome-bg);
+      color: var(--chrome-text);
+    }
+
+    .coord-btn-secondary:hover {
+      background: var(--chrome-hover);
+    }
+
   </style>
 </head>
 <body>
@@ -2023,6 +2180,115 @@
       showToast(`已切换到: ${agentName}`);
     }
 
+    // ========== Step 2: 坐标命名与存储 ==========
+    let annotationSession = {
+      coordinates: [], // 存储命名后的坐标
+      currentCoord: null // 临时存储当前点击的坐标
+    };
+    
+    // 显示坐标命名弹窗
+    function showCoordModal(x, y, tag) {
+      annotationSession.currentCoord = { x, y, tag };
+      
+      // 更新位置显示
+      document.getElementById('coord-position').textContent = 
+        `x: ${x.toFixed(4)}, y: ${y.toFixed(4)}`;
+      
+      // 重置输入
+      const input = document.getElementById('coord-name-input');
+      input.value = '';
+      
+      // 生成命名建议
+      const suggestions = generateCoordSuggestions(tag);
+      const suggestionsEl = document.getElementById('coord-suggestions');
+      suggestionsEl.innerHTML = suggestions.map(s => 
+        `<span class="coord-suggestion-tag" onclick="setCoordName('${s}')">${s}</span>`
+      ).join('');
+      
+      // 显示弹窗
+      document.getElementById('coord-name-modal').classList.add('show');
+      input.focus();
+    }
+    
+    // 生成坐标命名建议
+    function generateCoordSuggestions(tag) {
+      const map = {
+        'INPUT': ['search_box', 'username', 'password', 'email'],
+        'BUTTON': ['search_btn', 'submit', 'login_btn', 'buy_now'],
+        'A': ['link', 'nav_home', 'nav_profile'],
+        'IMG': ['product_img', 'banner', 'avatar']
+      };
+      return map[tag] || ['element_1', 'click_target'];
+    }
+    
+    // 设置坐标名称
+    function setCoordName(name) {
+      document.getElementById('coord-name-input').value = name;
+    }
+    
+    // 关闭弹窗
+    function closeCoordModal() {
+      document.getElementById('coord-name-modal').classList.remove('show');
+      annotationSession.currentCoord = null;
+    }
+    
+    // 确认坐标名称
+    function confirmCoordName() {
+      const name = document.getElementById('coord-name-input').value.trim();
+      
+      if (!name) {
+        showToast('请输入坐标名称');
+        return;
+      }
+      
+      if (!/^[a-z][a-z0-9_]*$/.test(name)) {
+        showToast('名称需以小写字母开头，只能包含小写字母、数字和下划线');
+        return;
+      }
+      
+      // 检查是否已存在
+      if (annotationSession.coordinates.find(c => c.name === name)) {
+        showToast('该名称已存在');
+        return;
+      }
+      
+      // 保存坐标
+      const coord = {
+        name: name,
+        x: annotationSession.currentCoord.x,
+        y: annotationSession.currentCoord.y,
+        tag: annotationSession.currentCoord.tag,
+        createdAt: new Date().toISOString()
+      };
+      
+      annotationSession.coordinates.push(coord);
+      console.log('[Step 2] Coordinate saved:', coord);
+      
+      // 更新工具栏计数
+      updateToolbarCount();
+      
+      closeCoordModal();
+      showToast(`已保存: ${name}`);
+    }
+    
+    // 更新工具栏计数（简化实现：通过重新注入蒙版更新计数）
+    async function updateToolbarCount() {
+      if (!testOverlayActive || !currentViewId) return;
+      
+      const count = annotationSession.coordinates.length;
+      // 通过 executeJavaScript 直接更新 BrowserView 内的计数
+      try {
+        await window.siliuAPI?.executeScript?.(`
+          const countDisplay = document.getElementById('__siliu_count__');
+          if (countDisplay) {
+            countDisplay.textContent = '已标注: ${count}';
+          }
+        `);
+      } catch (e) {
+        console.log('[Step 2] Failed to update toolbar:', e);
+      }
+    }
+
     // ========== Step 1: 测试 JS 注入蒙版 ==========
     let testOverlayActive = false;
     
@@ -2059,7 +2325,8 @@
     window.siliuAPI?.on?.('annotation:click', (data) => {
       console.log('[Step 1] Received annotation:click in shell:', data);
       if (data?.type === 'TEST_ANNOTATION_CLICK') {
-        showToast(`点击坐标: x=${data.x.toFixed(3)}, y=${data.y.toFixed(3)}`);
+        // Step 2: 显示命名弹窗
+        showCoordModal(data.x, data.y, data.tag || 'element');
       }
     });
     
@@ -3593,5 +3860,31 @@ ${contentPreview}${content?.content?.length > 800 ? '\n...' : ''}
       setupShellContextMenu();
     }
   </script>
+  <!-- Step 2: 坐标命名弹窗 -->
+  <div class="coord-modal-overlay" id="coord-name-modal">
+    <div class="coord-modal">
+      <div class="coord-modal-header">
+        <h3>添加坐标</h3>
+      </div>
+      <div class="coord-modal-body">
+        <div class="coord-info">
+          <span>位置:</span>
+          <code id="coord-position">x: 0.00, y: 0.00</code>
+        </div>
+        <div class="coord-input-group">
+          <label>坐标名称</label>
+          <input type="text" id="coord-name-input" placeholder="例如: search_box">
+          <div class="coord-suggestions" id="coord-suggestions">
+            <!-- 动态生成建议 -->
+          </div>
+        </div>
+      </div>
+      <div class="coord-modal-footer">
+        <button class="coord-btn coord-btn-secondary" onclick="closeCoordModal()">跳过</button>
+        <button class="coord-btn coord-btn-primary" onclick="confirmCoordName()">确定</button>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
