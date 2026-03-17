@@ -570,22 +570,26 @@ function setupIpcHandlers() {
     
     // 获取当前 view 的截图
     const senderId = event.sender.id;
-    const views = modules.core?.tabManager?.getAllViews?.() || [];
-    console.log('[Step 2] Total views:', views.length, 'senderId:', senderId);
+    const tabManager = modules.core?.tabManager;
     
-    // 列出所有 view 的 webContents id
-    views.forEach((v, i) => {
-      console.log(`[Step 2] View ${i}: webContents id =`, v.view?.webContents?.id);
-    });
+    // 从 views Map 中查找（getAllViews 返回的是简化数据）
+    let targetView = null;
+    if (tabManager?.views) {
+      for (const [viewId, viewData] of tabManager.views.entries()) {
+        if (viewData.view?.webContents?.id === senderId) {
+          targetView = viewData;
+          break;
+        }
+      }
+    }
     
-    const view = views.find(v => v.view?.webContents?.id === senderId);
-    console.log('[Step 2] Found view:', view ? 'yes' : 'no');
+    console.log('[Step 2] Sender id:', senderId, 'Found view:', targetView ? 'yes' : 'no');
     
     let screenshotBase64 = null;
-    if (view?.view?.webContents) {
+    if (targetView?.view?.webContents) {
       console.log('[Step 2] Capturing page...');
       try {
-        const image = await view.view.webContents.capturePage();
+        const image = await targetView.view.webContents.capturePage();
         screenshotBase64 = image.toDataURL();
         console.log('[Step 2] Screenshot captured, size:', screenshotBase64.length);
       } catch (err) {
