@@ -580,20 +580,44 @@ function setupIpcHandlers() {
             'position:fixed;top:0;left:0;width:100%;height:100%;' +
             'z-index:2147483647;cursor:crosshair;background:rgba(233,69,96,0.2);';
           
+          // 跟踪滚动位置，让标记点跟随内容
+          let scrollX = window.scrollX || 0;
+          let scrollY = window.scrollY || 0;
+          
+          const updateScroll = () => {
+            scrollX = window.scrollX || 0;
+            scrollY = window.scrollY || 0;
+            // 更新所有标记点的位置
+            document.querySelectorAll('.__siliu_marker__').forEach(marker => {
+              const docX = parseFloat(marker.dataset.docX || 0);
+              const docY = parseFloat(marker.dataset.docY || 0);
+              marker.style.left = (docX - scrollX) + 'px';
+              marker.style.top = (docY - scrollY) + 'px';
+            });
+          };
+          
+          window.addEventListener('scroll', updateScroll, { passive: true });
+          
           overlay.addEventListener('click', (e) => {
             console.log('[Siliu Overlay] Click detected at:', e.clientX, e.clientY);
             e.preventDefault();
             e.stopPropagation();
+            
+            // 计算相对于文档的坐标
+            const docX = e.clientX + scrollX;
+            const docY = e.clientY + scrollY;
             const x = e.clientX / window.innerWidth;
             const y = e.clientY / window.innerHeight;
             
-            // 创建红点标记
+            // 创建红点标记（fixed 定位，但基于文档坐标）
             const marker = document.createElement('div');
             marker.className = '__siliu_marker__';
+            marker.dataset.docX = docX;
+            marker.dataset.docY = docY;
             marker.style.cssText = 
               'position:fixed;' +
-              'left:' + e.clientX + 'px;' +
-              'top:' + e.clientY + 'px;' +
+              'left:' + (docX - scrollX) + 'px;' +
+              'top:' + (docY - scrollY) + 'px;' +
               'width:16px;' +
               'height:16px;' +
               'background:#E94560;' +
@@ -601,9 +625,10 @@ function setupIpcHandlers() {
               'border-radius:50%;' +
               'transform:translate(-50%,-50%);' +
               'z-index:2147483648;' +
-              'box-shadow:0 2px 8px rgba(233,69,96,0.5);';
+              'box-shadow:0 2px 8px rgba(233,69,96,0.5);' +
+              'pointer-events:none;'; // 让点击穿透到下方
             document.body.appendChild(marker);
-            console.log('[Siliu Overlay] Red marker created at:', e.clientX, e.clientY);
+            console.log('[Siliu Overlay] Red marker created at doc:', docX, docY);
             
             window.postMessage({
               type: 'TEST_ANNOTATION_CLICK',
@@ -652,7 +677,12 @@ function setupIpcHandlers() {
           const overlay = document.getElementById('__test_annotation__');
           let result = '';
           if (overlay) {
-            overlay.remove();
+            // 清理滚动监听（通过克隆节点移除所有事件监听器）
+            const newOverlay = overlay.cloneNode(true);
+            if (overlay.parentNode) {
+              overlay.parentNode.replaceChild(newOverlay, overlay);
+              newOverlay.remove();
+            }
             result += 'overlay-removed ';
           }
           // 同时移除所有红点标记
