@@ -533,6 +533,30 @@ function setupIpcHandlers() {
   });
 
   // ========== Step 1: 测试标注蒙版注入 ==========
+  
+  // 接收 BrowserView 的标注点击消息并转发到 shell
+  const annotationClickHandler = (event, data) => {
+    // 找到消息来自哪个 view
+    const senderId = event.sender.id;
+    const views = modules.core?.tabManager?.getAllViews?.() || [];
+    const view = views.find(v => v.view?.webContents?.id === senderId);
+    
+    if (view) {
+      console.log('[Step 1] Annotation click from view:', view.id, 'data:', data);
+      // 广播到所有 shell 窗口
+      modules.core?.sendToRenderer?.('annotation:click', {
+        ...data,
+        viewId: view.id
+      });
+    }
+  };
+  
+  // 使用 ipcMain.on 而不是 safeHandle，因为这是一个事件而不是请求
+  try {
+    ipcMain.removeListener('view:annotationClick', annotationClickHandler);
+  } catch {}
+  ipcMain.on('view:annotationClick', annotationClickHandler);
+  
   safeHandle('annotation:injectTest', async (event, viewId) => {
     try {
       console.log('[Step 1] Inject test overlay for view:', viewId);

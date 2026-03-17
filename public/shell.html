@@ -2052,11 +2052,11 @@
       }
     }
     
-    // 监听测试蒙版的点击消息
-    window.addEventListener('message', (e) => {
-      if (e.data?.type === 'TEST_ANNOTATION_CLICK') {
-        console.log('[Step 1] Coordinate captured:', e.data.x, e.data.y);
-        showToast(`点击坐标: x=${e.data.x.toFixed(3)}, y=${e.data.y.toFixed(3)}`);
+    // 监听测试蒙版的点击消息（通过 IPC 广播）
+    window.siliuAPI?.on?.('annotation:click', (data) => {
+      console.log('[Step 1] Coordinate captured via IPC:', data);
+      if (data?.type === 'TEST_ANNOTATION_CLICK') {
+        showToast(`点击坐标: x=${data.x.toFixed(3)}, y=${data.y.toFixed(3)}`);
       }
     });
 

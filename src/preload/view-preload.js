@@ -32,6 +32,22 @@ contextBridge.exposeInMainWorld('siliuAPI', {
   }
 });
 
+// ========== Step 1: 标注点击消息转发 ==========
+// 监听页面内脚本发来的 postMessage，转发到主进程
+window.addEventListener('message', (e) => {
+  if (e.data?.type === 'TEST_ANNOTATION_CLICK' || e.data?.type === 'SILIU_ANNOTATION_CLICK') {
+    // 转发到主进程
+    ipcRenderer.send('view:annotationClick', {
+      type: e.data.type,
+      x: e.data.x,
+      y: e.data.y,
+      tag: e.data.tag,
+      url: e.data.url,
+      viewId: null // 主进程会根据 sender 识别
+    });
+  }
+});
+
 // 主滚动条美化 CSS - 只针对 html/body
 const MAIN_SCROLLBAR_CSS = `
   html::-webkit-scrollbar,
