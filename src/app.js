@@ -536,8 +536,10 @@ function setupIpcHandlers() {
   
   // 接收 BrowserView 的标注点击消息并转发到 shell
   const annotationClickHandler = (event, data) => {
+    console.log('[Step 1] Received annotation click in main process:', data);
     // 找到消息来自哪个 view
     const senderId = event.sender.id;
+    console.log('[Step 1] Sender webContents id:', senderId);
     const views = modules.core?.tabManager?.getAllViews?.() || [];
     const view = views.find(v => v.view?.webContents?.id === senderId);
     
@@ -548,6 +550,9 @@ function setupIpcHandlers() {
         ...data,
         viewId: view.id
       });
+      console.log('[Step 1] Broadcasted to shell');
+    } else {
+      console.log('[Step 1] Could not find view for sender:', senderId);
     }
   };
   
@@ -563,12 +568,17 @@ function setupIpcHandlers() {
       
       const view = modules.core?.tabManager?.getView?.(viewId);
       if (!view) {
+        console.log('[Step 1] View not found:', viewId);
         return { success: false, error: 'View not found' };
       }
       
+      console.log('[Step 1] View found, webContents id:', view.webContents.id);
+      
       const script = `
         (function() {
+          console.log('[Siliu Overlay] Script executing in page context');
           if (document.getElementById('__test_annotation__')) {
+            console.log('[Siliu Overlay] Already exists');
             return 'already-exists';
           }
           
@@ -579,6 +589,7 @@ function setupIpcHandlers() {
             'z-index:2147483647;cursor:crosshair;background:rgba(233,69,96,0.2);';
           
           overlay.addEventListener('click', (e) => {
+            console.log('[Siliu Overlay] Click detected at:', e.clientX, e.clientY);
             e.preventDefault();
             e.stopPropagation();
             const x = e.clientX / window.innerWidth;
@@ -588,14 +599,27 @@ function setupIpcHandlers() {
               x: x,
               y: y
             }, '*');
+            console.log('[Siliu Overlay] Message posted');
           });
           
-          document.body.appendChild(overlay);
+          if (document.body) {
+            document.body.appendChild(overlay);
+            console.log('[Siliu Overlay] Appended to body');
+          } else {
+            console.log('[Siliu Overlay] Body not ready, waiting...');
+            setTimeout(() => {
+              if (document.body) {
+                document.body.appendChild(overlay);
+                console.log('[Siliu Overlay] Appended to body (delayed)');
+              }
+            }, 100);
+          }
           return 'injected';
         })()
       `;
       
-      const result = await view.webContents.executeJavaScript(script);
+      console.log('[Step 1] Executing script...');
+      const result = await view.webContents.executeJavaScript(script, true);
       console.log('[Step 1] Inject result:', result);
       
       return { success: true, result };

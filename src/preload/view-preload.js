@@ -34,8 +34,11 @@ contextBridge.exposeInMainWorld('siliuAPI', {
 
 // ========== Step 1: 标注点击消息转发 ==========
 // 监听页面内脚本发来的 postMessage，转发到主进程
+console.log('[Siliu Preload] Setting up annotation message listener');
 window.addEventListener('message', (e) => {
+  console.log('[Siliu Preload] Message received:', e.data);
   if (e.data?.type === 'TEST_ANNOTATION_CLICK' || e.data?.type === 'SILIU_ANNOTATION_CLICK') {
+    console.log('[Siliu Preload] Forwarding annotation click to main process');
     // 转发到主进程
     ipcRenderer.send('view:annotationClick', {
       type: e.data.type,
