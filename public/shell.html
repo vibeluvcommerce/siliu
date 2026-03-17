@@ -2392,6 +2392,8 @@
             const tempMarkers = document.querySelectorAll('.__agent_editor_marker__[data-temp="true"]');
             if (tempMarkers.length > 0) {
               const lastMarker = tempMarkers[tempMarkers.length - 1];
+              // HTML 转义 desc 避免 XSS 和破坏 HTML
+              const htmlDesc = desc.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
               lastMarker.dataset.desc = desc;
               lastMarker.dataset.temp = 'false';
               
@@ -2415,9 +2417,9 @@
               
               // 构建 tooltip 内容
               let tooltipContent = 
-                '<div style="font-weight:600;font-size:14px;margin-bottom:4px;color:#fff;">' + desc + '</div>' +
+                '<div style="font-weight:600;font-size:14px;margin-bottom:4px;color:#fff;">' + htmlDesc + '</div>' +
                 '<div style="color:#aaa;margin-bottom:2px;font-size:11px;">x:' + ${data.viewportX.toFixed(3)} + ' y:' + ${data.viewportY.toFixed(3)} + '</div>' +
-                '<div style="color:#888;font-size:11px;">' + ${JSON.stringify(data.tag)} + '</div>';
+                '<div style="color:#888;font-size:11px;">${data.tag}</div>';
               
               tooltip.innerHTML = tooltipContent;
               document.body.appendChild(tooltip);
@@ -2436,18 +2438,19 @@
               });
             }
             
-            // 确认添加，更新计数（动态计算已确认的标记数）
-            const confirmedMarkers = document.querySelectorAll('.__agent_editor_marker__:not([data-temp="true"])');
-            const count = confirmedMarkers.length + 1; // +1 包含当前刚确认的
-            const countDisplay = document.getElementById('__agent_editor_count__');
-            if (countDisplay) {
-              countDisplay.textContent = count;
+            // 确认添加，标记转为已确认（计数由 shell 统一处理）
+            const tempMarkers = document.querySelectorAll('.__agent_editor_marker__[data-temp="true"]');
+            if (tempMarkers.length > 0) {
+              tempMarkers[tempMarkers.length - 1].dataset.temp = 'false';
             }
+            
+            // 转义 desc 避免破坏 postMessage
+            const safeDesc = desc.replace(/</g, '\\x3c').replace(/>/g, '\\x3e');
             
             console.log('[Agent Editor] Posting AGENT_EDITOR_NAME_CONFIRMED message');
             window.postMessage({
               type: 'AGENT_EDITOR_NAME_CONFIRMED',
-              name: desc,
+              name: safeDesc,
               viewportX: ${data.viewportX},
               viewportY: ${data.viewportY},
               docX: ${data.docX},
