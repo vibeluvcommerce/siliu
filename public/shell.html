@@ -2553,12 +2553,6 @@
     
     // 保存坐标（包含完整信息和截图路径）
     function saveCoordinate(name, data) {
-      // 检查是否已存在
-      if (annotationSession.coordinates.find(c => c.name === name)) {
-        showToast('该名称已存在');
-        return false;
-      }
-      
       // 获取网站/页面标识
       const { siteKey, pageKey, fullKey } = getSiteAndPageKey(data.url);
       
