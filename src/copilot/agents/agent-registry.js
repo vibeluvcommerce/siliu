@@ -13,6 +13,8 @@ const path = require('path');
 // 内置 Agent（确保至少有一个可用）
 const { GeneralAgent } = require('./builtin/general-agent');
 const { DataAgent } = require('./builtin/data-agent');
+const { BilibiliAgent } = require('./builtin/bilibili-agent');
+const { TaobaoAgent } = require('./builtin/taobao-agent');
 
 class AgentRegistry {
   constructor() {
@@ -44,8 +46,11 @@ class AgentRegistry {
     // 数据采集
     this.register(new DataAgent());
     
-    // 注意：B站助手和淘宝助手现在通过 YAML 配置加载
-    // 位于 ~/.siliu/workspace/agents/bilibili.yaml 和 taobao.yaml
+    // B站助手
+    this.register(new BilibiliAgent());
+    
+    // 淘宝助手
+    this.register(new TaobaoAgent());
     
     console.log('[AgentRegistry] Built-in agents registered');
   }
