@@ -77,6 +77,10 @@ window.addEventListener('message', (e) => {
     console.log('[Agent Editor Preload] Cancel clicked, forwarding to shell');
     ipcRenderer.send('view:agentEditorCancel', {});
   }
+  if (e.data?.type === 'AGENT_EDITOR_CLOSE') {
+    console.log('[Agent Editor Preload] Close clicked, forwarding to shell');
+    ipcRenderer.send('view:agentEditorClose', {});
+  }
 });
 
 // 主滚动条美化 CSS - 只针对 html/body
