@@ -217,14 +217,24 @@ class DynamicAgentLoader {
       const filename = `${config.metadata.id}.yaml`;
       const filePath = path.join(this.agentsDir, filename);
 
-      // 清理内部字段
+      // 清理内部字段，保留所有必要数据
       const cleanConfig = {
-        metadata: config.metadata,
-        domains: config.domains || [],
-        coordinates: config.coordinates || {},
-        knowledge: config.knowledge || {},
-        behavior: config.behavior || {}
+        metadata: {
+          ...config.metadata,
+          updatedAt: new Date().toISOString()
+        }
       };
+      
+      // 添加 sites 配置（新格式，支持多站点多页面）
+      if (config.sites) {
+        cleanConfig.sites = config.sites;
+      }
+      
+      // 兼容旧格式
+      if (config.domains) cleanConfig.domains = config.domains;
+      if (config.coordinates) cleanConfig.coordinates = config.coordinates;
+      if (config.knowledge) cleanConfig.knowledge = config.knowledge;
+      if (config.behavior) cleanConfig.behavior = config.behavior;
 
       // 转换为 YAML
       const yamlContent = yaml.dump(cleanConfig, {
