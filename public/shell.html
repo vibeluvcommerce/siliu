@@ -2605,25 +2605,51 @@
       return true;
     }
     
-    // 更新坐标计数（在 Agent Editor 面板中）
+    // 更新坐标计数和列表（在 Agent Editor 面板中）
     async function updateCoordCount() {
       if (!currentViewId) return;
       
       const count = annotationSession.coordinates.length;
+      
+      // 构建坐标列表 HTML
+      let listHtml = '';
+      if (count === 0) {
+        listHtml = '<div style="padding:20px;color:#9ca3af;font-size:13px;text-align:center;">点击页面添加标注</div>';
+      } else {
+        listHtml = annotationSession.coordinates.map((coord, index) => {
+          const shortName = coord.name.length > 12 ? coord.name.substring(0, 12) + '...' : coord.name;
+          return `
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#f9fafb;border-radius:8px;margin-bottom:6px;">
+              <div style="width:24px;height:24px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:6px;display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:600;">${index + 1}</div>
+              <div style="flex:1;overflow:hidden;">
+                <div style="font-size:13px;font-weight:500;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${shortName}</div>
+                <div style="font-size:11px;color:#9ca3af;">${coord.tag} · ${coord.viewportX.toFixed(3)}, ${coord.viewportY.toFixed(3)}</div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+      
       const script = `
         (function() {
+          // 更新计数
           const countDisplay = document.getElementById('__agent_editor_count__');
           if (countDisplay) {
             countDisplay.textContent = ${count};
           }
-          return 'count-updated';
+          // 更新列表
+          const listContainer = document.getElementById('__agent_editor_list__');
+          if (listContainer) {
+            listContainer.innerHTML = ${JSON.stringify(listHtml)};
+          }
+          return 'updated';
         })()
       `;
       
       try {
         await window.siliuAPI?.agentEditorInject?.(currentViewId, script);
       } catch (e) {
-        console.log('[Agent Editor] Failed to update count:', e);
+        console.log('[Agent Editor] Failed to update panel:', e);
       }
     }
 
