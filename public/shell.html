@@ -2186,78 +2186,170 @@
       currentCoord: null // 临时存储当前点击的坐标
     };
     
-    // 显示坐标命名弹窗
-    function showCoordModal(x, y, tag) {
-      annotationSession.currentCoord = { x, y, tag };
+    // 显示坐标命名输入（通过注入到 BrowserView）
+    async function showCoordNamingInput(viewId, x, y, tag) {
+      annotationSession.currentCoord = { x, y, tag, viewId };
       
-      // 更新位置显示
-      document.getElementById('coord-position').textContent = 
-        `x: ${x.toFixed(4)}, y: ${y.toFixed(4)}`;
-      
-      // 重置输入
-      const input = document.getElementById('coord-name-input');
-      input.value = '';
-      
-      // 生成命名建议
       const suggestions = generateCoordSuggestions(tag);
-      const suggestionsEl = document.getElementById('coord-suggestions');
-      suggestionsEl.innerHTML = suggestions.map(s => 
-        `<span class="coord-suggestion-tag" onclick="setCoordName('${s}')">${s}</span>`
-      ).join('');
+      const script = `
+        (function() {
+          // 如果已存在命名输入，先移除
+          const existing = document.getElementById('__siliu_naming__');
+          if (existing) existing.remove();
+          
+          // 创建命名输入容器
+          const container = document.createElement('div');
+          container.id = '__siliu_naming__';
+          container.style.cssText = 
+            'position:fixed;' +
+            'bottom:80px;' +
+            'left:50%;' +
+            'transform:translateX(-50%);' +
+            'z-index:2147483650;' +
+            'display:flex;' +
+            'gap:8px;' +
+            'padding:12px 16px;' +
+            'background:rgba(255,255,255,0.98);' +
+            'border:2px solid #1A73E8;' +
+            'border-radius:10px;' +
+            'box-shadow:0 8px 32px rgba(0,0,0,0.3);' +
+            'pointer-events:auto;';
+          
+          // 位置信息显示
+          const posLabel = document.createElement('span');
+          posLabel.textContent = 'x:${x.toFixed(3)} y:${y.toFixed(3)}';
+          posLabel.style.cssText = 
+            'font-family:monospace;' +
+            'font-size:12px;' +
+            'color:#666;' +
+            'line-height:36px;' +
+            'padding:0 8px;' +
+            'background:#f5f5f5;' +
+            'border-radius:4px;';
+          
+          // 名称输入框
+          const input = document.createElement('input');
+          input.id = '__siliu_name_input__';
+          input.placeholder = '坐标名称';
+          input.style.cssText = 
+            'width:150px;' +
+            'padding:8px 12px;' +
+            'border:1px solid #ddd;' +
+            'border-radius:6px;' +
+            'font-size:14px;' +
+            'outline:none;';
+          
+          // 建议标签容器
+          const suggestionsDiv = document.createElement('div');
+          suggestionsDiv.style.cssText = 
+            'display:flex;' +
+            'gap:4px;' +
+            'align-items:center;';
+          
+          ${JSON.stringify(suggestions)}.forEach(s => {
+            const tag = document.createElement('span');
+            tag.textContent = s;
+            tag.style.cssText = 
+              'padding:4px 8px;' +
+              'background:rgba(26,115,232,0.1);' +
+              'color:#1A73E8;' +
+              'border-radius:4px;' +
+              'font-size:12px;' +
+              'cursor:pointer;';
+            tag.onclick = () => {
+              input.value = s;
+              input.focus();
+            };
+            suggestionsDiv.appendChild(tag);
+          });
+          
+          // 确定按钮
+          const confirmBtn = document.createElement('button');
+          confirmBtn.textContent = '确定';
+          confirmBtn.style.cssText = 
+            'padding:8px 16px;' +
+            'background:linear-gradient(135deg, #1A73E8, #4285F4);' +
+            'color:white;' +
+            'border:none;' +
+            'border-radius:6px;' +
+            'cursor:pointer;' +
+            'font-size:14px;' +
+            'font-weight:500;';
+          confirmBtn.onclick = () => {
+            const name = input.value.trim();
+            if (!name) {
+              alert('请输入坐标名称');
+              return;
+            }
+            if (!/^[a-z][a-z0-9_]*$/.test(name)) {
+              alert('名称需以小写字母开头，只能包含小写字母、数字和下划线');
+              return;
+            }
+            window.postMessage({
+              type: 'ANNOTATION_NAME_CONFIRMED',
+              name: name,
+              x: ${x},
+              y: ${y},
+              tag: '${tag}'
+            }, '*');
+            container.remove();
+          };
+          
+          // 跳过按钮
+          const skipBtn = document.createElement('button');
+          skipBtn.textContent = '跳过';
+          skipBtn.style.cssText = 
+            'padding:8px 16px;' +
+            'background:#f5f5f5;' +
+            'color:#666;' +
+            'border:none;' +
+            'border-radius:6px;' +
+            'cursor:pointer;' +
+            'font-size:14px;';
+          skipBtn.onclick = () => {
+            container.remove();
+          };
+          
+          container.appendChild(posLabel);
+          container.appendChild(input);
+          container.appendChild(suggestionsDiv);
+          container.appendChild(skipBtn);
+          container.appendChild(confirmBtn);
+          
+          document.body.appendChild(container);
+          input.focus();
+          
+          console.log('[Siliu Naming] Input displayed');
+        })()
+      `;
       
-      // 显示弹窗
-      document.getElementById('coord-name-modal').classList.add('show');
-      input.focus();
+      await window.siliuAPI?.executeScript?.(script);
     }
     
     // 生成坐标命名建议
     function generateCoordSuggestions(tag) {
       const map = {
-        'INPUT': ['search_box', 'username', 'password', 'email'],
-        'BUTTON': ['search_btn', 'submit', 'login_btn', 'buy_now'],
-        'A': ['link', 'nav_home', 'nav_profile'],
-        'IMG': ['product_img', 'banner', 'avatar']
+        'INPUT': ['search_box', 'username', 'password'],
+        'BUTTON': ['search_btn', 'submit', 'login'],
+        'A': ['link', 'nav_home'],
+        'IMG': ['img', 'banner']
       };
-      return map[tag] || ['element_1', 'click_target'];
+      return map[tag] || ['element_1'];
     }
     
-    // 设置坐标名称
-    function setCoordName(name) {
-      document.getElementById('coord-name-input').value = name;
-    }
-    
-    // 关闭弹窗
-    function closeCoordModal() {
-      document.getElementById('coord-name-modal').classList.remove('show');
-      annotationSession.currentCoord = null;
-    }
-    
-    // 确认坐标名称
-    function confirmCoordName() {
-      const name = document.getElementById('coord-name-input').value.trim();
-      
-      if (!name) {
-        showToast('请输入坐标名称');
-        return;
-      }
-      
-      if (!/^[a-z][a-z0-9_]*$/.test(name)) {
-        showToast('名称需以小写字母开头，只能包含小写字母、数字和下划线');
-        return;
-      }
-      
+    // 保存坐标
+    function saveCoordinate(name, x, y, tag) {
       // 检查是否已存在
       if (annotationSession.coordinates.find(c => c.name === name)) {
         showToast('该名称已存在');
-        return;
+        return false;
       }
       
-      // 保存坐标
       const coord = {
         name: name,
-        x: annotationSession.currentCoord.x,
-        y: annotationSession.currentCoord.y,
-        tag: annotationSession.currentCoord.tag,
+        x: x,
+        y: y,
+        tag: tag,
         createdAt: new Date().toISOString()
       };
       
@@ -2266,24 +2358,24 @@
       
       // 更新工具栏计数
       updateToolbarCount();
-      
-      closeCoordModal();
       showToast(`已保存: ${name}`);
+      return true;
     }
     
-    // 更新工具栏计数（简化实现：通过重新注入蒙版更新计数）
+    // 更新工具栏计数
     async function updateToolbarCount() {
-      if (!testOverlayActive || !currentViewId) return;
+      if (!currentViewId) return;
       
       const count = annotationSession.coordinates.length;
-      // 通过 executeJavaScript 直接更新 BrowserView 内的计数
+      const script = `
+        const countDisplay = document.getElementById('__siliu_count__');
+        if (countDisplay) {
+          countDisplay.textContent = '已标注: ${count}';
+        }
+      `;
+      
       try {
-        await window.siliuAPI?.executeScript?.(`
-          const countDisplay = document.getElementById('__siliu_count__');
-          if (countDisplay) {
-            countDisplay.textContent = '已标注: ${count}';
-          }
-        `);
+        await window.siliuAPI?.injectTestOverlay?.(currentViewId, script);
       } catch (e) {
         console.log('[Step 2] Failed to update toolbar:', e);
       }
@@ -2325,8 +2417,16 @@
     window.siliuAPI?.on?.('annotation:click', (data) => {
       console.log('[Step 1] Received annotation:click in shell:', data);
       if (data?.type === 'TEST_ANNOTATION_CLICK') {
-        // Step 2: 显示命名弹窗
-        showCoordModal(data.x, data.y, data.tag || 'element');
+        // Step 2: 在 BrowserView 内显示命名输入
+        showCoordNamingInput(currentViewId, data.x, data.y, data.tag || 'element');
+      }
+    });
+    
+    // 监听坐标命名确认
+    window.siliuAPI?.on?.('annotation:nameConfirmed', (data) => {
+      console.log('[Step 2] Name confirmed:', data);
+      if (data?.name) {
+        saveCoordinate(data.name, data.x, data.y, data.tag);
       }
     });
     

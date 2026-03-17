@@ -89,8 +89,9 @@ contextBridge.exposeInMainWorld('siliuAPI', {
   switchToAgent: (agentId) => ipcRenderer.invoke('agents:switch', agentId),
   
   // ========== Step 1: 测试标注蒙版 ==========
-  injectTestOverlay: (viewId) => ipcRenderer.invoke('annotation:injectTest', viewId),
+  injectTestOverlay: (viewId, customScript) => ipcRenderer.invoke('annotation:injectTest', viewId, customScript),
   removeTestOverlay: (viewId) => ipcRenderer.invoke('annotation:removeTest', viewId),
+  executeScript: (code) => ipcRenderer.invoke('siliu:executeScript', code),
 
   // ========== Shell 输入框右键菜单 ==========
   showShellContextMenu: (isEditable, hasSelection, text) => ipcRenderer.invoke('shell:contextmenu', { isEditable, hasSelection, text }),
@@ -148,9 +149,10 @@ contextBridge.exposeInMainWorld('siliuAPI', {
       'shell:editor-copy',
       'shell:editor-paste',
       'shell:editor-select-all',
-      // Step 1: 标注点击事件
+      // Step 1-2: 标注点击事件
       'annotation:click',
-      'annotation:done'
+      'annotation:done',
+      'annotation:nameConfirmed'
     ];
     if (validChannels.includes(channel)) {
       ipcRenderer.on(channel, (event, data) => {

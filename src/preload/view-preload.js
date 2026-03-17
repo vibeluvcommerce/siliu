@@ -53,13 +53,14 @@ window.addEventListener('message', (e) => {
     console.log('[Siliu Preload] Forwarding done button click to main process');
     ipcRenderer.send('view:annotationDone', {});
   }
-});
-
-// 监听来自主进程的更新工具栏计数消息
-ipcRenderer.on('annotation:updateCount', (event, count) => {
-  const countDisplay = document.getElementById('__siliu_count__');
-  if (countDisplay) {
-    countDisplay.textContent = '已标注: ' + count;
+  if (e.data?.type === 'ANNOTATION_NAME_CONFIRMED') {
+    console.log('[Siliu Preload] Forwarding name confirmed to main process');
+    ipcRenderer.send('view:annotationNameConfirmed', {
+      name: e.data.name,
+      x: e.data.x,
+      y: e.data.y,
+      tag: e.data.tag
+    });
   }
 });
 

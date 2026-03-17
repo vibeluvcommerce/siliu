@@ -564,7 +564,17 @@ function setupIpcHandlers() {
   } catch {}
   ipcMain.on('view:annotationDone', annotationDoneHandler);
   
-  safeHandle('annotation:injectTest', async (event, viewId) => {
+  // 监听坐标命名确认
+  const annotationNameConfirmedHandler = (event, data) => {
+    console.log('[Step 2] Name confirmed:', data);
+    modules.core?.sendToRenderer?.('annotation:nameConfirmed', data);
+  };
+  try {
+    ipcMain.removeListener('view:annotationNameConfirmed', annotationNameConfirmedHandler);
+  } catch {}
+  ipcMain.on('view:annotationNameConfirmed', annotationNameConfirmedHandler);
+  
+  safeHandle('annotation:injectTest', async (event, viewId, customScript) => {
     try {
       console.log('[Step 1] Inject test overlay for view:', viewId);
       
@@ -572,6 +582,13 @@ function setupIpcHandlers() {
       if (!view) {
         console.log('[Step 1] View not found:', viewId);
         return { success: false, error: 'View not found' };
+      }
+      
+      // 如果传入自定义脚本，直接执行
+      if (customScript) {
+        console.log('[Step 1] Executing custom script');
+        const result = await view.webContents.executeJavaScript(customScript, true);
+        return { success: true, result };
       }
       
       console.log('[Step 1] View found, webContents id:', view.webContents.id);
