@@ -753,7 +753,10 @@ function setupIpcHandlers() {
             'transition:all 0.15s;';
           cancelBtn.onmouseenter = () => { cancelBtn.style.background = '#fee2e2'; cancelBtn.style.color = '#dc2626'; };
           cancelBtn.onmouseleave = () => { cancelBtn.style.background = 'transparent'; cancelBtn.style.color = '#9ca3af'; };
-          cancelBtn.onclick = (e) => { e.stopPropagation(); };
+          cancelBtn.onclick = (e) => {
+            e.stopPropagation();
+            window.postMessage({ type: 'AGENT_EDITOR_CLOSE' }, '*');
+          };
           
           // 暂存按钮（icon only）
           const pauseBtn = document.createElement('button');
