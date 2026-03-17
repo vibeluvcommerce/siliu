@@ -532,6 +532,80 @@ function setupIpcHandlers() {
     }
   });
 
+  // ========== Step 1: 测试标注蒙版注入 ==========
+  safeHandle('annotation:injectTest', async (event, viewId) => {
+    try {
+      console.log('[Step 1] Inject test overlay for view:', viewId);
+      
+      const view = modules.core?.tabManager?.getView?.(viewId);
+      if (!view) {
+        return { success: false, error: 'View not found' };
+      }
+      
+      const script = `
+        (function() {
+          if (document.getElementById('__test_annotation__')) {
+            return 'already-exists';
+          }
+          
+          const overlay = document.createElement('div');
+          overlay.id = '__test_annotation__';
+          overlay.style.cssText = 
+            'position:fixed;top:0;left:0;width:100%;height:100%;' +
+            'z-index:2147483647;cursor:crosshair;background:rgba(233,69,96,0.2);';
+          
+          overlay.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const x = e.clientX / window.innerWidth;
+            const y = e.clientY / window.innerHeight;
+            window.postMessage({
+              type: 'TEST_ANNOTATION_CLICK',
+              x: x,
+              y: y
+            }, '*');
+          });
+          
+          document.body.appendChild(overlay);
+          return 'injected';
+        })()
+      `;
+      
+      const result = await view.webContents.executeJavaScript(script);
+      console.log('[Step 1] Inject result:', result);
+      
+      return { success: true, result };
+    } catch (err) {
+      console.error('[Step 1] Inject failed:', err);
+      return { success: false, error: err.message };
+    }
+  });
+  
+  safeHandle('annotation:removeTest', async (event, viewId) => {
+    try {
+      const view = modules.core?.tabManager?.getView?.(viewId);
+      if (!view) {
+        return { success: false, error: 'View not found' };
+      }
+      
+      const script = `
+        (function() {
+          const overlay = document.getElementById('__test_annotation__');
+          if (overlay) {
+            overlay.remove();
+            return 'removed';
+          }
+          return 'not-found';
+        })()
+      `;
+      
+      const result = await view.webContents.executeJavaScript(script);
+      return { success: true, result };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  });
+
   safeHandle('siliu:executeScript', async (event, code) => {
     return modules.controller.executeScript(code);
   });

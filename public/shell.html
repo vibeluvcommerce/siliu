@@ -2023,11 +2023,42 @@
       showToast(`已切换到: ${agentName}`);
     }
 
-    function addNewAgent() {
-      console.log('[AgentPanel] Add new agent');
-      // TODO: 打开创建 Agent 的界面
-      showToast('创建 Agent 功能开发中...');
+    // ========== Step 1: 测试 JS 注入蒙版 ==========
+    let testOverlayActive = false;
+    
+    async function addNewAgent() {
+      console.log('[Step 1] Testing annotation overlay injection...');
+      
+      const activeView = await window.siliuAPI?.getActiveView?.();
+      if (!activeView) {
+        showToast('请先打开一个网页');
+        return;
+      }
+      
+      if (!testOverlayActive) {
+        // 注入测试蒙版
+        const result = await window.siliuAPI?.injectTestOverlay?.(activeView.id);
+        if (result?.success) {
+          showToast('✅ 蒙版注入成功！点击页面任意位置测试');
+          testOverlayActive = true;
+        } else {
+          showToast('❌ 注入失败: ' + (result?.error || '未知错误'));
+        }
+      } else {
+        // 移除蒙版
+        await window.siliuAPI?.removeTestOverlay?.(activeView.id);
+        showToast('蒙版已移除');
+        testOverlayActive = false;
+      }
     }
+    
+    // 监听测试蒙版的点击消息
+    window.addEventListener('message', (e) => {
+      if (e.data?.type === 'TEST_ANNOTATION_CLICK') {
+        console.log('[Step 1] Coordinate captured:', e.data.x, e.data.y);
+        showToast(`点击坐标: x=${e.data.x.toFixed(3)}, y=${e.data.y.toFixed(3)}`);
+      }
+    });
 
     function openAgentSettings() {
       console.log('[AgentPanel] Open agent settings');

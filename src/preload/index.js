@@ -87,6 +87,10 @@ contextBridge.exposeInMainWorld('siliuAPI', {
   getAllAgents: () => ipcRenderer.invoke('agents:getAll'),
   getCurrentAgent: () => ipcRenderer.invoke('agents:getCurrent'),
   switchToAgent: (agentId) => ipcRenderer.invoke('agents:switch', agentId),
+  
+  // ========== Step 1: 测试标注蒙版 ==========
+  injectTestOverlay: (viewId) => ipcRenderer.invoke('annotation:injectTest', viewId),
+  removeTestOverlay: (viewId) => ipcRenderer.invoke('annotation:removeTest', viewId),
 
   // ========== Shell 输入框右键菜单 ==========
   showShellContextMenu: (isEditable, hasSelection, text) => ipcRenderer.invoke('shell:contextmenu', { isEditable, hasSelection, text }),
