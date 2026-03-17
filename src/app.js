@@ -801,7 +801,20 @@ function setupIpcHandlers() {
   });
 
   safeHandle('siliu:executeScript', async (event, code) => {
-    return modules.controller.executeScript(code);
+    try {
+      const viewId = modules.controller.getActiveViewId?.();
+      if (!viewId) {
+        return { success: false, error: 'No active view' };
+      }
+      const view = modules.core?.tabManager?.getView?.(viewId);
+      if (!view) {
+        return { success: false, error: 'View not found' };
+      }
+      const result = await view.webContents.executeJavaScript(code, true);
+      return { success: true, result };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
   });
 
   safeHandle('siliu:waitForSelector', async (event, selector, timeout) => {

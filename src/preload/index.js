@@ -91,7 +91,6 @@ contextBridge.exposeInMainWorld('siliuAPI', {
   // ========== Step 1: 测试标注蒙版 ==========
   injectTestOverlay: (viewId, customScript) => ipcRenderer.invoke('annotation:injectTest', viewId, customScript),
   removeTestOverlay: (viewId) => ipcRenderer.invoke('annotation:removeTest', viewId),
-  executeScript: (code) => ipcRenderer.invoke('siliu:executeScript', code),
 
   // ========== Shell 输入框右键菜单 ==========
   showShellContextMenu: (isEditable, hasSelection, text) => ipcRenderer.invoke('shell:contextmenu', { isEditable, hasSelection, text }),
