@@ -60,6 +60,7 @@ window.addEventListener('message', (e) => {
   }
   if (e.data?.type === 'ANNOTATION_NAME_CONFIRMED') {
     console.log('[Siliu Preload] ANNOTATION_NAME_CONFIRMED received, forwarding to main:', e.data.name);
+    // 转发所有必要字段到主进程
     ipcRenderer.send('view:annotationNameConfirmed', {
       name: e.data.name,
       viewportX: e.data.viewportX,
@@ -73,7 +74,7 @@ window.addEventListener('message', (e) => {
       tag: e.data.tag,
       selector: e.data.selector,
       url: e.data.url
-      // 截图已保存到文件，不需要通过 IPC 传递
+      // 注意：截图由主进程捕获并保存，不通过 IPC 传递
     });
   }
 });

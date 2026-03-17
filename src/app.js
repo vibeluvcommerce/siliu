@@ -621,8 +621,8 @@ function setupIpcHandlers() {
     
     // 广播完整数据到 shell（包含截图路径）
     console.log('[Step 2] Broadcasting to shell, sendToRenderer exists:', !!modules.core?.sendToRenderer);
-    if (modules.core?.sendToRenderer) {
-      modules.core.sendToRenderer('annotation:nameConfirmed', {
+    console.log('[Step 2] screenshotPath to send:', screenshotPath);
+    const dataToSend = {
       name: data.name,
       viewportX: data.viewportX,
       viewportY: data.viewportY,
@@ -636,7 +636,11 @@ function setupIpcHandlers() {
       selector: data.selector,
       url: data.url,
       screenshotPath: screenshotPath  // 文件路径，不是 base64
-      });
+    };
+    console.log('[Step 2] Full data to send:', JSON.stringify(dataToSend, null, 2));
+    if (modules.core?.sendToRenderer) {
+      modules.core.sendToRenderer('annotation:nameConfirmed', dataToSend);
+      console.log('[Step 2] Data sent to renderer');
     } else {
       console.log('[Step 2] sendToRenderer not available');
     }
