@@ -567,7 +567,21 @@ function setupIpcHandlers() {
   // 监听坐标命名确认
   const annotationNameConfirmedHandler = (event, data) => {
     console.log('[Step 2] Name confirmed:', data);
-    modules.core?.sendToRenderer?.('annotation:nameConfirmed', data);
+    // 直接广播完整数据到 shell
+    modules.core?.sendToRenderer?.('annotation:nameConfirmed', {
+      name: data.name,
+      viewportX: data.viewportX,
+      viewportY: data.viewportY,
+      docX: data.docX,
+      docY: data.docY,
+      scrollX: data.scrollX,
+      scrollY: data.scrollY,
+      viewportWidth: data.viewportWidth,
+      viewportHeight: data.viewportHeight,
+      tag: data.tag,
+      selector: data.selector,
+      url: data.url
+    });
   };
   try {
     ipcMain.removeListener('view:annotationNameConfirmed', annotationNameConfirmedHandler);
@@ -685,15 +699,27 @@ function setupIpcHandlers() {
             e.preventDefault();
             e.stopPropagation();
             
-            // 计算相对于文档的坐标
-            const docX = e.clientX + scrollX;
-            const docY = e.clientY + scrollY;
-            const x = e.clientX / window.innerWidth;
-            const y = e.clientY / window.innerHeight;
+            // 记录多种坐标信息
+            const viewportX = e.clientX / window.innerWidth;   // 视口比例坐标 (0-1)
+            const viewportY = e.clientY / window.innerHeight;  // 视口比例坐标 (0-1)
+            const docX = e.clientX + scrollX;                  // 文档绝对坐标 (像素)
+            const docY = e.clientY + scrollY;                  // 文档绝对坐标 (像素)
             
             // 获取点击位置的元素
             const el = document.elementFromPoint(e.clientX, e.clientY);
             const tag = el?.tagName || 'element';
+            
+            // 尝试获取元素的简单选择器
+            let selector = '';
+            if (el) {
+              if (el.id) {
+                selector = '#' + el.id;
+              } else if (el.className) {
+                const className = el.className.split(' ')[0];
+                if (className) selector = '.' + className;
+              }
+              selector = el.tagName.toLowerCase() + (selector ? selector : '');
+            }
             
             // 创建红点标记（fixed 定位，但基于文档坐标）
             const marker = document.createElement('div');
@@ -722,16 +748,21 @@ function setupIpcHandlers() {
               countDisplay.textContent = '已标注: ' + markerCount;
             }
             
-            console.log('[Siliu Overlay] Red marker created at doc:', docX, docY, 'tag:', tag);
+            console.log('[Siliu Overlay] Red marker created at doc:', docX, docY, 'tag:', tag, 'selector:', selector);
             
             window.postMessage({
               type: 'TEST_ANNOTATION_CLICK',
-              x: x,
-              y: y,
-              tag: tag,
-              url: location.href
+              viewportX: viewportX,      // 视口比例坐标 (0-1)
+              viewportY: viewportY,      // 视口比例坐标 (0-1)
+              docX: docX,                // 文档绝对 X (像素)
+              docY: docY,                // 文档绝对 Y (像素)
+              scrollX: scrollX,          // 滚动位置 X
+              scrollY: scrollY,          // 滚动位置 Y
+              tag: tag,                  // 元素标签
+              selector: selector,        // CSS 选择器
+              url: location.href         // 页面 URL
             }, '*');
-            console.log('[Siliu Overlay] Message posted');
+            console.log('[Siliu Overlay] Message posted with full coordinate data');
           });
           
           if (document.body) {

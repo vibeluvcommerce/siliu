@@ -2187,10 +2187,10 @@
     };
     
     // 显示坐标命名输入（通过注入到 BrowserView）
-    async function showCoordNamingInput(viewId, x, y, tag) {
-      annotationSession.currentCoord = { x, y, tag, viewId };
+    async function showCoordNamingInput(viewId, data) {
+      annotationSession.currentCoord = { ...data, viewId };
       
-      const suggestions = generateCoordSuggestions(tag);
+      const suggestions = generateCoordSuggestions(data.tag);
       const script = `
         (function() {
           // 如果已存在命名输入，先移除
@@ -2288,9 +2288,17 @@
             window.postMessage({
               type: 'ANNOTATION_NAME_CONFIRMED',
               name: name,
-              x: ${x},
-              y: ${y},
-              tag: '${tag}'
+              viewportX: ${data.viewportX},
+              viewportY: ${data.viewportY},
+              docX: ${data.docX},
+              docY: ${data.docY},
+              scrollX: ${data.scrollX},
+              scrollY: ${data.scrollY},
+              viewportWidth: window.innerWidth,
+              viewportHeight: window.innerHeight,
+              tag: '${data.tag}',
+              selector: '${data.selector || ''}',
+              url: location.href
             }, '*');
             container.remove();
           };
@@ -2337,8 +2345,8 @@
       return map[tag] || ['element_1'];
     }
     
-    // 保存坐标
-    function saveCoordinate(name, x, y, tag) {
+    // 保存坐标（包含完整信息）
+    function saveCoordinate(name, data) {
       // 检查是否已存在
       if (annotationSession.coordinates.find(c => c.name === name)) {
         showToast('该名称已存在');
@@ -2347,9 +2355,22 @@
       
       const coord = {
         name: name,
-        x: x,
-        y: y,
-        tag: tag,
+        // 视口比例坐标（用于 responsive 适配）
+        viewportX: data.viewportX,
+        viewportY: data.viewportY,
+        // 文档绝对坐标（用于精确定位）
+        docX: data.docX,
+        docY: data.docY,
+        // 滚动位置（用于上下文）
+        scrollX: data.scrollX,
+        scrollY: data.scrollY,
+        // 视口大小（用于判断页面变化）
+        viewportWidth: data.viewportWidth,
+        viewportHeight: data.viewportHeight,
+        // 元素信息
+        tag: data.tag,
+        selector: data.selector,
+        url: data.url,
         createdAt: new Date().toISOString()
       };
       
@@ -2358,7 +2379,7 @@
       
       // 更新工具栏计数
       updateToolbarCount();
-      showToast(`已保存: ${name}`);
+      showToast(`已保存: ${name} (${data.tag})`);
       return true;
     }
     
@@ -2421,7 +2442,7 @@
       console.log('[Step 1] Received annotation:click in shell:', data);
       if (data?.type === 'TEST_ANNOTATION_CLICK') {
         // Step 2: 在 BrowserView 内显示命名输入
-        showCoordNamingInput(currentViewId, data.x, data.y, data.tag || 'element');
+        showCoordNamingInput(currentViewId, data);
       }
     });
     
@@ -2429,7 +2450,7 @@
     window.siliuAPI?.on?.('annotation:nameConfirmed', (data) => {
       console.log('[Step 2] Name confirmed:', data);
       if (data?.name) {
-        saveCoordinate(data.name, data.x, data.y, data.tag);
+        saveCoordinate(data.name, data);
       }
     });
     

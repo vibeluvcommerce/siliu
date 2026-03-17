@@ -39,12 +39,17 @@ window.addEventListener('message', (e) => {
   console.log('[Siliu Preload] Message received:', e.data);
   if (e.data?.type === 'TEST_ANNOTATION_CLICK' || e.data?.type === 'SILIU_ANNOTATION_CLICK') {
     console.log('[Siliu Preload] Forwarding annotation click to main process, data:', e.data);
-    // 转发到主进程
+    // 转发到主进程（包含完整坐标信息）
     ipcRenderer.send('view:annotationClick', {
       type: e.data.type,
-      x: e.data.x,
-      y: e.data.y,
+      viewportX: e.data.viewportX,
+      viewportY: e.data.viewportY,
+      docX: e.data.docX,
+      docY: e.data.docY,
+      scrollX: e.data.scrollX,
+      scrollY: e.data.scrollY,
       tag: e.data.tag || 'element',
+      selector: e.data.selector || '',
       url: e.data.url || location.href,
       viewId: null // 主进程会根据 sender 识别
     });
@@ -57,9 +62,17 @@ window.addEventListener('message', (e) => {
     console.log('[Siliu Preload] Forwarding name confirmed to main process');
     ipcRenderer.send('view:annotationNameConfirmed', {
       name: e.data.name,
-      x: e.data.x,
-      y: e.data.y,
-      tag: e.data.tag
+      viewportX: e.data.viewportX,
+      viewportY: e.data.viewportY,
+      docX: e.data.docX,
+      docY: e.data.docY,
+      scrollX: e.data.scrollX,
+      scrollY: e.data.scrollY,
+      viewportWidth: e.data.viewportWidth,
+      viewportHeight: e.data.viewportHeight,
+      tag: e.data.tag,
+      selector: e.data.selector,
+      url: e.data.url
     });
   }
 });
