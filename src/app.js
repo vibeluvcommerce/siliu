@@ -604,7 +604,8 @@ function setupIpcHandlers() {
             'padding:10px 20px;' +
             'background:rgba(0,0,0,0.8);' +
             'border-radius:8px;' +
-            'box-shadow:0 4px 12px rgba(0,0,0,0.3);';
+            'box-shadow:0 4px 12px rgba(0,0,0,0.3);' +
+            'pointer-events:auto;'; // 允许点击穿透蒙版
           
           // 完成标注按钮
           const doneBtn = document.createElement('button');
@@ -617,9 +618,11 @@ function setupIpcHandlers() {
             'border-radius:6px;' +
             'cursor:pointer;' +
             'font-size:14px;' +
-            'font-weight:500;';
+            'font-weight:500;' +
+            'pointer-events:auto;'; // 确保按钮可点击
           doneBtn.addEventListener('click', (e) => {
             e.stopPropagation(); // 阻止冒泡到蒙版
+            e.preventDefault();
             console.log('[Siliu Overlay] Done button clicked');
             window.postMessage({ type: 'TEST_ANNOTATION_DONE' }, '*');
           });
@@ -632,7 +635,8 @@ function setupIpcHandlers() {
             'color:white;' +
             'font-size:14px;' +
             'line-height:32px;' +
-            'padding:0 10px;';
+            'padding:0 10px;' +
+            'pointer-events:none;'; // 数量显示不需要点击
           
           toolbar.appendChild(countLabel);
           toolbar.appendChild(doneBtn);
