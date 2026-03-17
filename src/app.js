@@ -600,25 +600,27 @@ function setupIpcHandlers() {
             'transform:translateX(-50%);' +
             'z-index:2147483649;' +
             'display:flex;' +
-            'gap:10px;' +
-            'padding:10px 20px;' +
-            'background:rgba(0,0,0,0.8);' +
-            'border-radius:8px;' +
-            'box-shadow:0 4px 12px rgba(0,0,0,0.3);' +
+            'gap:12px;' +
+            'padding:12px 24px;' +
+            'background:rgba(255,255,255,0.95);' +
+            'border:2px solid #E94560;' +
+            'border-radius:12px;' +
+            'box-shadow:0 8px 32px rgba(0,0,0,0.4);' +
             'pointer-events:auto;'; // 允许点击穿透蒙版
           
           // 完成标注按钮
           const doneBtn = document.createElement('button');
           doneBtn.textContent = '完成标注';
           doneBtn.style.cssText = 
-            'padding:8px 16px;' +
-            'background:#34A853;' +
+            'padding:10px 20px;' +
+            'background:linear-gradient(135deg, #34A853 0%, #2E7D32 100%);' +
             'color:white;' +
             'border:none;' +
-            'border-radius:6px;' +
+            'border-radius:8px;' +
             'cursor:pointer;' +
-            'font-size:14px;' +
-            'font-weight:500;' +
+            'font-size:15px;' +
+            'font-weight:600;' +
+            'box-shadow:0 4px 12px rgba(52,168,83,0.4);' +
             'pointer-events:auto;'; // 确保按钮可点击
           doneBtn.addEventListener('click', (e) => {
             e.stopPropagation(); // 阻止冒泡到蒙版
@@ -632,10 +634,11 @@ function setupIpcHandlers() {
           countLabel.id = '__siliu_count__';
           countLabel.textContent = '已标注: 0';
           countLabel.style.cssText = 
-            'color:white;' +
-            'font-size:14px;' +
-            'line-height:32px;' +
-            'padding:0 10px;' +
+            'color:#333;' +
+            'font-size:15px;' +
+            'font-weight:500;' +
+            'line-height:40px;' +
+            'padding:0 12px;' +
             'pointer-events:none;'; // 数量显示不需要点击
           
           toolbar.appendChild(countLabel);
@@ -708,18 +711,16 @@ function setupIpcHandlers() {
             console.log('[Siliu Overlay] Message posted');
           });
           
-          document.body.appendChild(overlay);
-          document.body.appendChild(toolbar);
-          console.log('[Siliu Overlay] Overlay and toolbar appended to body');
-          
           if (document.body) {
             document.body.appendChild(overlay);
-            console.log('[Siliu Overlay] Appended to body');
+            document.body.appendChild(toolbar);
+            console.log('[Siliu Overlay] Overlay and toolbar appended to body');
           } else {
             console.log('[Siliu Overlay] Body not ready, waiting...');
             setTimeout(() => {
               if (document.body) {
                 document.body.appendChild(overlay);
+                document.body.appendChild(toolbar);
                 console.log('[Siliu Overlay] Appended to body (delayed)');
               }
             }, 100);
