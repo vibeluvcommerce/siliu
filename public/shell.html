@@ -2288,6 +2288,49 @@
               alert('名称需以小写字母开头，只能包含小写字母、数字和下划线');
               return;
             }
+            // 为最后一个红点添加 tooltip 功能
+            const markers = document.querySelectorAll('.__siliu_marker__');
+            if (markers.length > 0) {
+              const lastMarker = markers[markers.length - 1];
+              lastMarker.dataset.name = name;
+              lastMarker.dataset.temp = 'false';
+              
+              // 创建 tooltip 元素
+              const tooltip = document.createElement('div');
+              tooltip.className = '__siliu_marker_tooltip__';
+              tooltip.style.cssText = 
+                'position:fixed;' +
+                'padding:8px 12px;' +
+                'background:rgba(0,0,0,0.85);' +
+                'color:white;' +
+                'font-size:12px;' +
+                'border-radius:6px;' +
+                'white-space:nowrap;' +
+                'z-index:2147483650;' +
+                'pointer-events:none;' +
+                'opacity:0;' +
+                'transition:opacity 0.2s;' +
+                'box-shadow:0 4px 12px rgba(0,0,0,0.3);';
+              tooltip.innerHTML = 
+                '<strong>' + name + '</strong><br>' +
+                'x:' + ${data.viewportX.toFixed(3)} + ' y:' + ${data.viewportY.toFixed(3)} + '<br>' +
+                '${data.tag}';
+              document.body.appendChild(tooltip);
+              
+              // 鼠标悬停事件
+              lastMarker.addEventListener('mouseenter', () => {
+                const rect = lastMarker.getBoundingClientRect();
+                tooltip.style.left = (rect.left + rect.width / 2) + 'px';
+                tooltip.style.top = (rect.top - 10) + 'px';
+                tooltip.style.transform = 'translate(-50%, -100%)';
+                tooltip.style.opacity = '1';
+              });
+              
+              lastMarker.addEventListener('mouseleave', () => {
+                tooltip.style.opacity = '0';
+              });
+            }
+            
             window.postMessage({
               type: 'ANNOTATION_NAME_CONFIRMED',
               name: name,
@@ -2321,7 +2364,14 @@
             // 删除对应的红点标记（最后一个添加的）
             const markers = document.querySelectorAll('.__siliu_marker__');
             if (markers.length > 0) {
-              markers[markers.length - 1].remove();
+              const lastMarker = markers[markers.length - 1];
+              // 如果有对应的 tooltip，也删除
+              const tooltips = document.querySelectorAll('.__siliu_marker_tooltip__');
+              // 删除最后一个 tooltip（如果有的话）
+              if (tooltips.length > 0) {
+                tooltips[tooltips.length - 1].remove();
+              }
+              lastMarker.remove();
               markerCount--;
               // 更新计数显示
               const countDisplay = document.getElementById('__siliu_count__');

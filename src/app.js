@@ -709,6 +709,11 @@ function setupIpcHandlers() {
                 markers[markers.length - 1].remove();
                 markerCount--;
               }
+              // 删除可能存在的 tooltip
+              const tooltips = document.querySelectorAll('.__siliu_marker_tooltip__');
+              if (tooltips.length > 0) {
+                tooltips[tooltips.length - 1].remove();
+              }
               // 删除输入框
               existingNaming.remove();
               // 更新计数
@@ -745,6 +750,7 @@ function setupIpcHandlers() {
             marker.className = '__siliu_marker__';
             marker.dataset.docX = docX;
             marker.dataset.docY = docY;
+            marker.dataset.temp = 'true'; // 标记为临时，等待命名
             marker.style.cssText = 
               'position:fixed;' +
               'left:' + (docX - scrollX) + 'px;' +
@@ -757,7 +763,8 @@ function setupIpcHandlers() {
               'transform:translate(-50%,-50%);' +
               'z-index:2147483648;' +
               'box-shadow:0 2px 8px rgba(233,69,96,0.5);' +
-              'pointer-events:none;'; // 让点击穿透到下方
+              'cursor:pointer;' +
+              'pointer-events:auto;'; // 允许鼠标交互
             document.body.appendChild(marker);
             markerCount++;
             
@@ -838,6 +845,12 @@ function setupIpcHandlers() {
           markers.forEach(m => m.remove());
           if (markers.length > 0) {
             result += 'markers-' + markers.length + ' ';
+          }
+          // 同时移除所有 tooltip
+          const tooltips = document.querySelectorAll('.__siliu_marker_tooltip__');
+          tooltips.forEach(t => t.remove());
+          if (tooltips.length > 0) {
+            result += 'tooltips-' + tooltips.length + ' ';
           }
           return result || 'not-found';
         })()
