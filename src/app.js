@@ -565,9 +565,26 @@ function setupIpcHandlers() {
   ipcMain.on('view:annotationDone', annotationDoneHandler);
   
   // 监听坐标命名确认
-  const annotationNameConfirmedHandler = (event, data) => {
+  const annotationNameConfirmedHandler = async (event, data) => {
     console.log('[Step 2] Name confirmed:', data);
-    // 直接广播完整数据到 shell
+    
+    // 获取当前 view 的截图
+    const senderId = event.sender.id;
+    const views = modules.core?.tabManager?.getAllViews?.() || [];
+    const view = views.find(v => v.view?.webContents?.id === senderId);
+    
+    let screenshotBase64 = null;
+    if (view?.view?.webContents) {
+      try {
+        const image = await view.view.webContents.capturePage();
+        screenshotBase64 = image.toDataURL();
+        console.log('[Step 2] Screenshot captured, size:', screenshotBase64.length);
+      } catch (err) {
+        console.error('[Step 2] Failed to capture screenshot:', err.message);
+      }
+    }
+    
+    // 广播完整数据到 shell（包含截图）
     modules.core?.sendToRenderer?.('annotation:nameConfirmed', {
       name: data.name,
       viewportX: data.viewportX,
@@ -580,7 +597,8 @@ function setupIpcHandlers() {
       viewportHeight: data.viewportHeight,
       tag: data.tag,
       selector: data.selector,
-      url: data.url
+      url: data.url,
+      screenshot: screenshotBase64  // 添加截图
     });
   };
   try {

@@ -2194,6 +2194,9 @@
       const suggestions = generateCoordSuggestions(data.tag);
       console.log('[Step 2] Suggestions:', suggestions);
       
+      // 存储截图数据（用于后续保存时关联）
+      const screenshotData = data.screenshot || null;
+      
       const script = `
         (function() {
           // 如果已存在命名输入，先移除
@@ -2300,21 +2303,34 @@
               tooltip.className = '__siliu_marker_tooltip__';
               tooltip.style.cssText = 
                 'position:fixed;' +
-                'padding:8px 12px;' +
-                'background:rgba(0,0,0,0.85);' +
+                'padding:10px 14px;' +
+                'background:rgba(0,0,0,0.9);' +
                 'color:white;' +
                 'font-size:12px;' +
-                'border-radius:6px;' +
+                'border-radius:8px;' +
                 'white-space:nowrap;' +
                 'z-index:2147483650;' +
                 'pointer-events:none;' +
                 'opacity:0;' +
                 'transition:opacity 0.2s;' +
-                'box-shadow:0 4px 12px rgba(0,0,0,0.3);';
-              tooltip.innerHTML = 
-                '<strong>' + name + '</strong><br>' +
-                'x:' + ${data.viewportX.toFixed(3)} + ' y:' + ${data.viewportY.toFixed(3)} + '<br>' +
-                '${data.tag}';
+                'box-shadow:0 4px 16px rgba(0,0,0,0.4);' +
+                'max-width:280px;';
+              
+              // 构建 tooltip 内容
+              let tooltipContent = 
+                '<div style="font-weight:600;font-size:14px;margin-bottom:4px;">' + name + '</div>' +
+                '<div style="color:#aaa;margin-bottom:2px;">x:' + ${data.viewportX.toFixed(3)} + ' y:' + ${data.viewportY.toFixed(3)} + '</div>' +
+                '<div style="color:#888;">${data.tag}</div>';
+              
+              // 如果有截图，显示缩略图
+              if ('${data.screenshot}' && '${data.screenshot}'.startsWith('data:image')) {
+                tooltipContent += 
+                  '<div style="margin-top:8px;border-top:1px solid #444;padding-top:8px;">' +
+                  '<img src="${data.screenshot}" style="max-width:200px;max-height:120px;border-radius:4px;display:block;">' +
+                  '</div>';
+              }
+              
+              tooltip.innerHTML = tooltipContent;
               document.body.appendChild(tooltip);
               
               // 鼠标悬停事件
@@ -2417,7 +2433,33 @@
       return map[tag] || ['element_1'];
     }
     
-    // 保存坐标（包含完整信息）
+    // 截图存储（按网站+页面维度）
+    let screenshotStore = {
+      // key: siteKey_pageKey, value: base64Screenshot
+    };
+    
+    // 获取当前网站和页面标识
+    function getSiteAndPageKey(url) {
+      try {
+        const urlObj = new URL(url);
+        const hostname = urlObj.hostname.replace(/^www\./, '');
+        const pathname = urlObj.pathname || '/';
+        const siteKey = hostname.split('.')[0] || 'site';
+        // 简化页面 key：首页用 'home'，其他用路径第一个段
+        let pageKey = 'page';
+        if (pathname === '/' || pathname === '') {
+          pageKey = 'home';
+        } else {
+          const pathSeg = pathname.split('/').filter(p => p)[0];
+          if (pathSeg) pageKey = pathSeg.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20);
+        }
+        return { siteKey, pageKey, fullKey: `${siteKey}_${pageKey}` };
+      } catch (e) {
+        return { siteKey: 'unknown', pageKey: 'page', fullKey: 'unknown_page' };
+      }
+    }
+    
+    // 保存坐标（包含完整信息和截图）
     function saveCoordinate(name, data) {
       // 检查是否已存在
       if (annotationSession.coordinates.find(c => c.name === name)) {
@@ -2425,8 +2467,20 @@
         return false;
       }
       
+      // 获取网站/页面标识
+      const { siteKey, pageKey, fullKey } = getSiteAndPageKey(data.url);
+      
+      // 如果有新截图，保存到截图存储
+      if (data.screenshot) {
+        screenshotStore[fullKey] = data.screenshot;
+        console.log('[Step 2] Screenshot saved for:', fullKey);
+      }
+      
       const coord = {
         name: name,
+        // 网站/页面标识
+        siteKey: siteKey,
+        pageKey: pageKey,
         // 视口比例坐标（用于 responsive 适配）
         viewportX: data.viewportX,
         viewportY: data.viewportY,
@@ -2443,6 +2497,9 @@
         tag: data.tag,
         selector: data.selector,
         url: data.url,
+        // 截图引用
+        screenshotKey: fullKey,
+        hasScreenshot: !!data.screenshot,
         createdAt: new Date().toISOString()
       };
       

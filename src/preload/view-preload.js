@@ -72,7 +72,8 @@ window.addEventListener('message', (e) => {
       viewportHeight: e.data.viewportHeight,
       tag: e.data.tag,
       selector: e.data.selector,
-      url: e.data.url
+      url: e.data.url,
+      screenshot: e.data.screenshot  // 转发截图
     });
   }
 });
