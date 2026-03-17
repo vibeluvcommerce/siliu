@@ -155,7 +155,10 @@ contextBridge.exposeInMainWorld('siliuAPI', {
     ];
     if (validChannels.includes(channel)) {
       ipcRenderer.on(channel, (event, data) => {
-        console.log('[Preload] Event received:', channel, data);
+        console.log('[Preload] Event received:', channel);
+        if (data?.screenshot) {
+          console.log('[Preload] Screenshot size:', data.screenshot.length);
+        }
         callback(data);
       });
     }

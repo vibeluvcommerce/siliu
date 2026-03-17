@@ -2577,7 +2577,11 @@
     
     // 监听坐标命名确认
     window.siliuAPI?.on?.('annotation:nameConfirmed', (data) => {
-      console.log('[Step 2] Name confirmed:', data);
+      console.log('[Step 2] Name confirmed in shell:', data?.name);
+      console.log('[Step 2] Has screenshot:', !!data?.screenshot);
+      if (data?.screenshot) {
+        console.log('[Step 2] Screenshot length:', data.screenshot.length);
+      }
       if (data?.name) {
         saveCoordinate(data.name, data);
       }
