@@ -2574,7 +2574,7 @@
     }
     
     // 保存坐标（包含完整信息和截图路径）
-    function saveCoordinate(name, data) {
+    async function saveCoordinate(name, data) {
       // 获取网站/页面标识
       const { siteKey, pageKey, fullKey } = getSiteAndPageKey(data.url);
       
@@ -2616,10 +2616,10 @@
       console.log('[Agent Editor] Coordinate saved:', coord);
       
       // 同步坐标数据到主进程
-      window.siliuAPI?.syncAgentEditorData?.(currentViewId, annotationSession.coordinates);
+      await window.siliuAPI?.syncAgentEditorData?.(currentViewId, annotationSession.coordinates);
       
-      // 直接更新页面内的 savedCoordinates
-      window.savedCoordinates = annotationSession.coordinates.slice();
+      // 更新 BrowserView 中的 savedCoordinates（必须在 BrowserView 中设置才有效）
+      await window.siliuAPI?.updateAgentEditorData?.(currentViewId, annotationSession.coordinates);
       
       // 更新工具栏计数
       updateCoordCount();
@@ -2690,8 +2690,8 @@
       currentViewId = activeView.id;
       
       if (!testOverlayActive) {
-        // 注入 Agent Editor
-        const result = await window.siliuAPI?.agentEditorInject?.(activeView.id);
+        // 注入 Agent Editor，直接传入当前坐标数据
+        const result = await window.siliuAPI?.agentEditorInject?.(activeView.id, null, annotationSession.coordinates);
         if (result?.success) {
           showToast('Agent Editor 已打开');
           testOverlayActive = true;
@@ -2720,12 +2720,12 @@
     console.log('[Agent Editor] Setting up nameConfirmed listener');
     console.log('[Agent Editor] siliuAPI exists:', !!window.siliuAPI);
     console.log('[Agent Editor] siliuAPI.on exists:', !!window.siliuAPI?.on);
-    window.siliuAPI?.on?.('agentEditor:nameConfirmed', (data) => {
+    window.siliuAPI?.on?.('agentEditor:nameConfirmed', async (data) => {
       console.log('[Agent Editor] ====== Name confirmed in shell ======');
       console.log('[Agent Editor] Data received:', data);
       console.log('[Agent Editor] Screenshot path:', data?.screenshotPath || 'none');
       if (data?.name) {
-        saveCoordinate(data.name, data);
+        await saveCoordinate(data.name, data);
       }
     });
     
@@ -2772,10 +2772,10 @@
         console.log('[Agent Editor] Restored', coordinates.length, 'coordinates');
       }
       
-      // 重新注入 Agent Editor
+      // 重新注入 Agent Editor，直接传入坐标数据
       try {
         console.log('[Agent Editor] Calling agentEditorInject for view:', viewId);
-        const result = await window.siliuAPI.agentEditorInject(viewId);
+        const result = await window.siliuAPI.agentEditorInject(viewId, null, annotationSession.coordinates);
         console.log('[Agent Editor] Re-injected after navigation:', result);
         
         if (result?.success) {
@@ -2810,13 +2810,9 @@
         console.log('[Agent Editor] No coordinates inherited');
       }
       
-      // 同步坐标数据和暂存状态到主进程，这样注入时才能读取到
-      window.siliuAPI?.syncAgentEditorData?.(viewId, annotationSession.coordinates, isPaused);
-      console.log('[Agent Editor] Synced data to main process - coords:', annotationSession.coordinates.length, 'paused:', isPaused);
-      
-      // 打开 Agent Editor
+      // 打开 Agent Editor，直接传入坐标数据
       try {
-        const result = await window.siliuAPI?.agentEditorInject?.(viewId);
+        const result = await window.siliuAPI?.agentEditorInject?.(viewId, null, annotationSession.coordinates);
         if (result?.success) {
           testOverlayActive = true;
           const totalCount = annotationSession.coordinates.length;
@@ -2843,13 +2839,10 @@
       // 更新显示
       updateCoordCount();
       
-      // 如果当前已经打开了 Agent Editor，使用 updateData 更新 savedCoordinates
+      // 如果当前已经打开了 Agent Editor，更新 savedCoordinates
       if (testOverlayActive) {
-        console.log('[Agent Editor] Updating savedCoordinates via updateData');
-        const result = await window.siliuAPI?.updateAgentEditorData?.(viewId, annotationSession.coordinates);
-        if (result?.success) {
-          console.log('[Agent Editor] savedCoordinates updated successfully');
-        }
+        console.log('[Agent Editor] Updating savedCoordinates');
+        await window.siliuAPI?.updateAgentEditorData?.(viewId, annotationSession.coordinates);
       }
       
       console.log('[Agent Editor] Display updated with current tab data');

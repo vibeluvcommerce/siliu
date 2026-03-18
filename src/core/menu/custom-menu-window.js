@@ -600,12 +600,12 @@ class CustomMenuWindow {
 }
 
 // 注册 IPC 处理器
-ipcMain.on('menu:action', (e, { action, viewId }) => {
+ipcMain?.on?.('menu:action', (e, { action, viewId }) => {
   const instance = CustomMenuWindow.getInstance(e.sender.id);
   instance?.handleAction(action, viewId);
 });
 
-ipcMain.on('menu:link-action', (e, { action }) => {
+ipcMain?.on?.('menu:link-action', (e, { action }) => {
   const instance = CustomMenuWindow.getInstance(e.sender.id);
   instance?.handleLinkAction(action);
 });

@@ -9,21 +9,31 @@
 const { app } = require('electron');
 const path = require('path');
 
-// 禁用 sandbox（Linux 无 root 权限时需要）
-app.commandLine.appendSwitch('--no-sandbox');
-app.commandLine.appendSwitch('--disable-setuid-sandbox');
-
 // 启用远程调试协议（用于 CDP 模式）
 const DEBUG_PORT = process.env.SILIU_DEBUG_PORT || 9223;
-app.commandLine.appendSwitch('remote-debugging-port', String(DEBUG_PORT));
-console.log(`[Siliu] Remote debugging enabled on port ${DEBUG_PORT}`);
+
+// 注意：commandLine 需要在 app ready 之前设置，但需要在 electron 模块加载之后
+// 使用 try-catch 避免在某些环境中出错
+try {
+  // 禁用 sandbox（Linux 无 root 权限时需要）
+  app?.commandLine?.appendSwitch('--no-sandbox');
+  app?.commandLine?.appendSwitch('--disable-setuid-sandbox');
+  app?.commandLine?.appendSwitch('remote-debugging-port', String(DEBUG_PORT));
+  console.log(`[Siliu] Remote debugging enabled on port ${DEBUG_PORT}`);
+} catch (e) {
+  console.log('[Siliu] Command line switches not applied:', e.message);
+}
 
 // castLabs Electron 已内置 Widevine (Windows)，Linux 需要手动配置
 const widevinePath = path.join(__dirname, '../node_modules/electron/dist/WidevineCdm/_platform_specific/linux_x64/libwidevinecdm.so');
 if (process.platform === 'linux') {
-  app.commandLine.appendSwitch('widevine-cdm-path', widevinePath);
-  app.commandLine.appendSwitch('widevine-cdm-version', '4.10.2710.0');
-  console.log('[Siliu] Linux Widevine CDM path:', widevinePath);
+  try {
+    app?.commandLine?.appendSwitch('widevine-cdm-path', widevinePath);
+    app?.commandLine?.appendSwitch('widevine-cdm-version', '4.10.2710.0');
+    console.log('[Siliu] Linux Widevine CDM path:', widevinePath);
+  } catch (e) {
+    console.log('[Siliu] Widevine switches not applied:', e.message);
+  }
 } else {
   console.log('[Siliu] Using castLabs Electron built-in Widevine (Windows)');
 }
@@ -38,28 +48,32 @@ process.on('uncaughtException', (error) => {
 });
 
 // 禁用可能干扰视频的限制
-app.commandLine.appendSwitch('disable-features', 'UseChromeOSDirectVideoDecoder');
-
-// WebRTC 支持（YouTube 直播使用）
-app.commandLine.appendSwitch('enable-features', 'WebRtcHideLocalIpsWithMdns');
-
-// 添加更多视频编解码器支持
-app.commandLine.appendSwitch('enable-features', 'WebRTCPipeWireCapturer');
-
-// 禁用 GPU 沙盒（某些 Linux 系统需要）
-app.commandLine.appendSwitch('disable-gpu-sandbox');
-
-// 启用 GPU 加速
-app.commandLine.appendSwitch('ignore-gpu-blocklist');
-app.commandLine.appendSwitch('enable-gpu-rasterization');
-app.commandLine.appendSwitch('enable-zero-copy');
-
-// 禁用实验性扩展 API（避免检测）
-app.commandLine.appendSwitch('disable-extensions-except', '');
-app.commandLine.appendSwitch('disable-extensions', '');
+try {
+  app?.commandLine?.appendSwitch('disable-features', 'UseChromeOSDirectVideoDecoder');
+  app?.commandLine?.appendSwitch('enable-features', 'WebRtcHideLocalIpsWithMdns,WebRTCPipeWireCapturer');
+  app?.commandLine?.appendSwitch('disable-gpu-sandbox');
+  app?.commandLine?.appendSwitch('ignore-gpu-blocklist');
+} catch (e) {
+  console.log('[Siliu] Video switches not applied:', e.message);
+}
+// GPU 和扩展设置
+try {
+  app?.commandLine?.appendSwitch('enable-gpu-rasterization');
+  app?.commandLine?.appendSwitch('enable-zero-copy');
+  app?.commandLine?.appendSwitch('disable-extensions-except', '');
+  app?.commandLine?.appendSwitch('disable-extensions', '');
+} catch (e) {
+  console.log('[Siliu] GPU switches not applied:', e.message);
+}
 
 // 请求单实例锁
-const gotTheLock = app.requestSingleInstanceLock();
+let gotTheLock = false;
+try {
+  gotTheLock = app?.requestSingleInstanceLock?.() ?? true;
+} catch (e) {
+  console.log('[Siliu] Single instance lock not available:', e.message);
+  gotTheLock = true;
+}
 if (!gotTheLock) {
   console.log('[Siliu] Another instance is already running, quitting...');
   app.quit();
@@ -850,7 +864,7 @@ function setupIpcHandlers() {
   } catch {}
   ipcMain.on('view:annotationNameConfirmed', annotationNameConfirmedHandler);
   
-  safeHandle('agentEditor:inject', async (event, viewId, customScript) => {
+  safeHandle('agentEditor:inject', async (event, viewId, customScript, coordinates) => {
     try {
       console.log('[Agent Editor] Inject for view:', viewId);
       
@@ -871,7 +885,10 @@ function setupIpcHandlers() {
       
       // 从主进程读取暂存状态和坐标数据
       const wasPausedBefore = agentEditorPausedState.get(viewId) || false;
-      const savedCoordinates = agentEditorData.get(viewId) || [];
+      // 优先使用传入的 coordinates 参数，否则从 Map 读取
+      const savedCoordinates = coordinates !== undefined ? coordinates : (agentEditorData.get(viewId) || []);
+      console.log('[Agent Editor] Was paused before navigation:', wasPausedBefore);
+      console.log('[Agent Editor] Coordinates to restore:', savedCoordinates.length);
       console.log('[Agent Editor] Was paused before navigation:', wasPausedBefore);
       console.log('[Agent Editor] Coordinates to restore:', savedCoordinates.length);
       

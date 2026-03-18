@@ -7,7 +7,7 @@ const path = require('path');
 const fs = require('fs');
 
 // 默认 16x16 空白图标
-const FALLBACK_ICON = nativeImage.createFromDataURL(
+const FALLBACK_ICON = nativeImage?.createFromDataURL?.(
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAXklEQVQ4T2NkoBAwUqifYdQABjrQ0tLyn0zlTExMGBgYGJiYmJig9CMzSIYx0NXV9R9ZkI2NjQGZgWQYAy0tLf+RdVy+fPk/xIB//4lxAEmGAZ8+ffqP7EO8XoDLawDkNl2qM/8v9AAAAABJRU5ErkJggg=='
 );
 
