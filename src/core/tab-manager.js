@@ -276,6 +276,8 @@ class TabManager extends EventEmitter {
       if (remaining.length > 0) {
         this.setActiveView(remaining[remaining.length - 1], this.sidebarOpen);
       } else {
+        // 触发最后一个标签页关闭事件，让外部清理状态（如 Agent Editor）
+        this.emit('view:last-closed');
         this.createView(null, this.sidebarOpen); // 创建新标签
       }
     }

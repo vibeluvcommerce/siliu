@@ -247,6 +247,15 @@ async function startup() {
       }
     });
     
+    // 监听最后一个标签页关闭，清理 Agent Editor 状态（避免新标签页自动继承）
+    modules.core.tabManager.on('view:last-closed', () => {
+      console.log('[Agent Editor] Last tab closed, clearing all Agent Editor state');
+      agentEditorActiveViews.clear();
+      agentEditorData.clear();
+      agentEditorPausedState.clear();
+      lastActiveAgentEditorView = null;
+    });
+    
     // 监听新标签页创建，如果有任何标签页开启了 Agent Editor，则在新标签页也自动打开
     modules.core.tabManager.on('view:created', async ({ viewId, url }) => {
       // 检查是否有任何视图开启了 Agent Editor
