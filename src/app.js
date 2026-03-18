@@ -1289,11 +1289,17 @@ function setupIpcHandlers() {
     }
   });
   
-  safeHandle('agentEditor:syncData', async (event, viewId, coordinates) => {
+  safeHandle('agentEditor:syncData', async (event, viewId, coordinates, isPaused) => {
     try {
       // 保存坐标数据到主进程内存
       agentEditorData.set(viewId, coordinates);
-      console.log('[Agent Editor] Coordinates synced for', viewId, ':', coordinates.length, 'coords');
+      // 如果传入了暂存状态，也保存
+      if (isPaused !== undefined) {
+        agentEditorPausedState.set(viewId, isPaused);
+        console.log('[Agent Editor] Coordinates and pause state synced for', viewId, ':', coordinates.length, 'coords, paused:', isPaused);
+      } else {
+        console.log('[Agent Editor] Coordinates synced for', viewId, ':', coordinates.length, 'coords');
+      }
       return { success: true };
     } catch (err) {
       console.error('[Agent Editor] Failed to sync coordinates:', err);
