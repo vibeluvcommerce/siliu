@@ -231,40 +231,39 @@ async function startup() {
       }
     });
     
-    // 监听新标签页创建，如果当前活动标签页开启了 Agent Editor，则在新标签页也自动打开
+    // 监听新标签页创建，如果有任何标签页开启了 Agent Editor，则在新标签页也自动打开
     modules.core.tabManager.on('view:created', async ({ viewId, url }) => {
-      // 获取当前活动视图
-      const activeViewId = modules.core.tabManager.getActiveViewId?.();
+      // 检查是否有任何视图开启了 Agent Editor
+      if (agentEditorActiveViews.size === 0) return;
       
-      // 如果当前活动视图开启了 Agent Editor，则在新标签页也打开
-      if (activeViewId && agentEditorActiveViews.has(activeViewId)) {
-        console.log('[Agent Editor] New tab created while Agent Editor active, injecting to new tab:', viewId);
-        
-        const view = modules.core?.tabManager?.getView?.(viewId);
-        if (!view) return;
-        
-        // 等待页面加载完成
-        if (view.webContents?.isLoading?.()) {
-          await new Promise(resolve => {
-            view.webContents.once('did-finish-load', resolve);
-          });
-        }
-        
-        // 延迟确保页面稳定
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // 获取当前标签页的坐标数据作为基础
-        const savedCoordinates = agentEditorData.get(activeViewId) || [];
-        
-        // 通知 shell 在新标签页打开 Agent Editor
-        if (modules.core?.sendToRenderer) {
-          modules.core.sendToRenderer('agentEditor:newTab', { 
-            viewId, 
-            url, 
-            coordinates: savedCoordinates,
-            fromViewId: activeViewId 
-          });
-        }
+      // 获取第一个开启了 Agent Editor 的视图（作为数据来源）
+      const sourceViewId = Array.from(agentEditorActiveViews)[0];
+      console.log('[Agent Editor] New tab created while Agent Editor active, injecting to new tab:', viewId, 'from:', sourceViewId);
+      
+      const view = modules.core?.tabManager?.getView?.(viewId);
+      if (!view) return;
+      
+      // 等待页面加载完成
+      if (view.webContents?.isLoading?.()) {
+        await new Promise(resolve => {
+          view.webContents.once('did-finish-load', resolve);
+        });
+      }
+      
+      // 延迟确保页面稳定
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // 获取源视图的坐标数据作为基础
+      const savedCoordinates = agentEditorData.get(sourceViewId) || [];
+      
+      // 通知 shell 在新标签页打开 Agent Editor
+      if (modules.core?.sendToRenderer) {
+        modules.core.sendToRenderer('agentEditor:newTab', { 
+          viewId, 
+          url, 
+          coordinates: savedCoordinates,
+          fromViewId: sourceViewId 
+        });
       }
     });
 
