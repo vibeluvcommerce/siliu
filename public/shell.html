@@ -2792,8 +2792,8 @@
     });
     
     // 监听新标签页创建事件（当前标签页开启了 Agent Editor 时，新标签页也自动打开）
-    window.siliuAPI?.on?.('agentEditor:newTab', async ({ viewId, url, coordinates, fromViewId }) => {
-      console.log('[Agent Editor] New tab event received:', viewId, 'coordinates:', coordinates?.length || 0);
+    window.siliuAPI?.on?.('agentEditor:newTab', async ({ viewId, url, coordinates, isPaused, fromViewId }) => {
+      console.log('[Agent Editor] New tab event received:', viewId, 'coordinates:', coordinates?.length || 0, 'paused:', isPaused);
       
       // 更新当前视图 ID
       currentViewId = viewId;
@@ -2802,11 +2802,24 @@
       if (coordinates && coordinates.length > 0) {
         annotationSession.coordinates = coordinates;
         console.log('[Agent Editor] Inherited', coordinates.length, 'coordinates from previous tab');
-        // 将坐标数据同步到主进程，这样注入时才能读取到
-        window.siliuAPI?.syncAgentEditorData?.(viewId, annotationSession.coordinates);
       } else {
         annotationSession.coordinates = [];
         console.log('[Agent Editor] No coordinates inherited');
+      }
+      
+      // 同步坐标数据和暂存状态到主进程，这样注入时才能读取到
+      window.siliuAPI?.syncAgentEditorData?.(viewId, annotationSession.coordinates);
+      
+      // 同步暂存状态
+      if (isPaused) {
+        // 通过一个特殊的同步方式设置暂存状态
+        await window.siliuAPI?.agentEditorInject?.(viewId, `
+          (function() {
+            localStorage.setItem('__agent_editor_paused__', 'true');
+            return 'paused-state-set';
+          })()
+        `);
+        console.log('[Agent Editor] Pause state synced to new tab');
       }
       
       // 打开 Agent Editor
@@ -2817,7 +2830,8 @@
           const totalCount = annotationSession.coordinates.length;
           // 更新坐标列表显示
           updateCoordCount();
-          showToast(`Agent Editor 已在新标签页打开，累计 ${totalCount} 个标注`);
+          const statusText = isPaused ? '（暂存状态）' : '';
+          showToast(`Agent Editor 已在新标签页打开${statusText}，累计 ${totalCount} 个标注`);
         }
       } catch (err) {
         console.error('[Agent Editor] Failed to open in new tab:', err);

@@ -253,10 +253,10 @@ async function startup() {
       // 延迟确保页面稳定
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      // 获取源视图的坐标数据作为基础
+      // 获取源视图的坐标数据和暂存状态
       const savedCoordinates = agentEditorData.get(sourceViewId) || [];
-      console.log('[Agent Editor] Sending coordinates to new tab:', savedCoordinates.length, 'from', sourceViewId);
-      console.log('[Agent Editor] agentEditorData keys:', Array.from(agentEditorData.keys()));
+      const isPaused = agentEditorPausedState.get(sourceViewId) || false;
+      console.log('[Agent Editor] Sending to new tab - coordinates:', savedCoordinates.length, 'paused:', isPaused, 'from:', sourceViewId);
       
       // 通知 shell 在新标签页打开 Agent Editor
       if (modules.core?.sendToRenderer) {
@@ -264,9 +264,10 @@ async function startup() {
           viewId, 
           url, 
           coordinates: savedCoordinates,
+          isPaused: isPaused,
           fromViewId: sourceViewId 
         });
-        console.log('[Agent Editor] Sent newTab event with', savedCoordinates.length, 'coordinates');
+        console.log('[Agent Editor] Sent newTab event');
       }
     });
 
@@ -1199,10 +1200,10 @@ function setupIpcHandlers() {
               selector = el.tagName.toLowerCase() + (selector ? selector : '');
             }
             
-            // 计算当前是第几个标注（已确认 + 临时）
-            const confirmedCount = document.querySelectorAll('.__agent_editor_marker__:not([data-temp="true"])').length;
-            const tempCount = document.querySelectorAll('.__agent_editor_marker__[data-temp="true"]').length;
-            const markerNumber = confirmedCount + tempCount + 1;
+            // 计算当前是第几个标注（从已保存的坐标数量开始计数）
+            coordCount++;
+            const markerNumber = coordCount;
+            console.log('[Agent Editor] Creating marker number:', markerNumber, 'total saved:', savedCoordinates.length);
             
             // 创建带序号的红点标记（fixed 定位，但基于文档坐标）
             const marker = document.createElement('div');
