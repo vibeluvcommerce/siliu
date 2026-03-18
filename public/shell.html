@@ -2802,7 +2802,8 @@
       if (coordinates && coordinates.length > 0) {
         annotationSession.coordinates = coordinates;
         console.log('[Agent Editor] Inherited', coordinates.length, 'coordinates from previous tab');
-        console.log('[Agent Editor] Coordinates:', JSON.stringify(coordinates));
+        // 将坐标数据同步到主进程，这样注入时才能读取到
+        window.siliuAPI?.syncAgentEditorData?.(viewId, annotationSession.coordinates);
       } else {
         annotationSession.coordinates = [];
         console.log('[Agent Editor] No coordinates inherited');
