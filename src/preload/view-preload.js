@@ -81,6 +81,10 @@ window.addEventListener('message', (e) => {
     console.log('[Agent Editor Preload] Close clicked, forwarding to shell');
     ipcRenderer.send('view:agentEditorClose', {});
   }
+  if (e.data?.type === 'AGENT_EDITOR_PAUSE_STATE') {
+    console.log('[Agent Editor Preload] Pause state change:', e.data.isPaused);
+    ipcRenderer.send('view:agentEditorPauseState', { isPaused: e.data.isPaused });
+  }
 });
 
 // 主滚动条美化 CSS - 只针对 html/body

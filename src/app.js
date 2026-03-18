@@ -98,6 +98,8 @@ let ipcHandlersRegistered = false;
 const agentEditorActiveViews = new Set();
 // 存储每个视图的坐标数据（用于页面导航后恢复）
 const agentEditorData = new Map();
+// 存储每个视图的暂存状态（用于页面导航后恢复）
+const agentEditorPausedState = new Map();
 
 // ========== 启动流程 ==========
 async function startup() {
@@ -649,6 +651,21 @@ function setupIpcHandlers() {
   } catch {}
   ipcMain.on('view:agentEditorClose', agentEditorCloseHandler);
   
+  // 监听 Agent Editor 暂存状态变更
+  const agentEditorPauseStateHandler = (event, { isPaused }) => {
+    // 获取发送者的 webContents ID，找到对应的 viewId
+    const senderId = event.sender.id;
+    const view = modules.core?.tabManager?.views?.find(v => v.view.webContents.id === senderId);
+    if (view) {
+      agentEditorPausedState.set(view.id, isPaused);
+      console.log('[Agent Editor] Pause state updated for', view.id, ':', isPaused);
+    }
+  };
+  try {
+    ipcMain.removeListener('view:agentEditorPauseState', agentEditorPauseStateHandler);
+  } catch {}
+  ipcMain.on('view:agentEditorPauseState', agentEditorPauseStateHandler);
+  
   // 监听 Agent Editor 取消事件
   const agentEditorCancelHandler = (event) => {
     console.log('[Agent Editor] Cancel clicked, removing current marker');
@@ -764,12 +781,17 @@ function setupIpcHandlers() {
       
       console.log('[Agent Editor] View found, webContents id:', view.webContents.id);
       
+      // 从主进程读取暂存状态
+      const wasPausedBefore = agentEditorPausedState.get(viewId) || false;
+      console.log('[Agent Editor] Was paused before navigation:', wasPausedBefore);
+      
       const script = `
         (function() {
           console.log('[Agent Editor] Script executing in page context');
           
-          // 暂存状态管理
-          let isPaused = false;
+          // 暂存状态管理 - 从传入的参数恢复
+          let isPaused = ${wasPausedBefore};
+          console.log('[Agent Editor] Initial isPaused:', isPaused);
           
           if (document.getElementById('__agent_editor_overlay__')) {
             console.log('[Agent Editor] Already exists');
@@ -780,7 +802,8 @@ function setupIpcHandlers() {
           overlay.id = '__agent_editor_overlay__';
           overlay.style.cssText = 
             'position:fixed;top:0;left:0;width:100%;height:100%;' +
-            'z-index:2147483647;cursor:crosshair;background:rgba(233,69,96,0.2);';
+            'z-index:2147483647;cursor:crosshair;background:rgba(233,69,96,0.2);' +
+            (isPaused ? 'display:none;pointer-events:none;' : '');
           
           // 创建左上角手风琴面板（Agent Editor）
           const historyPanel = document.createElement('div');
@@ -849,11 +872,14 @@ function setupIpcHandlers() {
           
           // 暂存按钮（icon only）
           const pauseBtn = document.createElement('button');
-          pauseBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>';
-          pauseBtn.title = '暂存';
+          // 根据传入的暂存状态设置初始图标
+          pauseBtn.innerHTML = isPaused 
+            ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>'
+            : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>';
+          pauseBtn.title = isPaused ? '继续' : '暂存';
           pauseBtn.style.cssText = 
             'width:28px;height:28px;display:flex;align-items:center;justify-content:center;' +
-            'background:transparent;color:#9ca3af;border:none;border-radius:6px;cursor:pointer;' +
+            'background:transparent;color:' + (isPaused ? '#2563eb' : '#9ca3af') + ';border:none;border-radius:6px;cursor:pointer;' +
             'transition:all 0.15s;';
           pauseBtn.onmouseenter = () => { 
             if (!isPaused) {
@@ -864,7 +890,10 @@ function setupIpcHandlers() {
               pauseBtn.style.color = '#2563eb'; 
             }
           };
-          pauseBtn.onmouseleave = () => { pauseBtn.style.background = 'transparent'; pauseBtn.style.color = '#9ca3af'; };
+          pauseBtn.onmouseleave = () => { 
+            pauseBtn.style.background = 'transparent'; 
+            pauseBtn.style.color = isPaused ? '#2563eb' : '#9ca3af';
+          };
           
           // 暂存/继续切换功能
           pauseBtn.onclick = (e) => { 
@@ -874,6 +903,10 @@ function setupIpcHandlers() {
             if (!overlay) return;
             
             isPaused = !isPaused;
+            
+            // 通过 postMessage 通知主进程更新状态
+            window.postMessage({ type: 'AGENT_EDITOR_PAUSE_STATE', isPaused: isPaused }, '*');
+            console.log('[Agent Editor] Pause state change sent:', isPaused);
             
             if (isPaused) {
               // 暂存：隐藏遮罩层，恢复页面操作
@@ -1248,6 +1281,7 @@ function setupIpcHandlers() {
       // 从激活状态集合中移除该视图
       agentEditorActiveViews.delete(viewId);
       agentEditorData.delete(viewId);
+      agentEditorPausedState.delete(viewId); // 清除暂存状态
       console.log('[Agent Editor] View removed from active set:', viewId);
       
       return { success: true, result };
