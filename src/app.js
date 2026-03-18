@@ -236,9 +236,22 @@ async function startup() {
       // 检查是否有任何视图开启了 Agent Editor
       if (agentEditorActiveViews.size === 0) return;
       
-      // 获取第一个开启了 Agent Editor 的视图（作为数据来源）
-      const sourceViewId = Array.from(agentEditorActiveViews)[0];
-      console.log('[Agent Editor] New tab created while Agent Editor active, injecting to new tab:', viewId, 'from:', sourceViewId);
+      // 找到坐标数据最多的视图作为数据来源（确保继承最完整的数据）
+      let sourceViewId = null;
+      let maxCoords = 0;
+      for (const vid of agentEditorActiveViews) {
+        const coords = agentEditorData.get(vid)?.length || 0;
+        if (coords > maxCoords) {
+          maxCoords = coords;
+          sourceViewId = vid;
+        }
+      }
+      // 如果没有找到有数据的，取最后一个（最新的）
+      if (!sourceViewId) {
+        const viewsArray = Array.from(agentEditorActiveViews);
+        sourceViewId = viewsArray[viewsArray.length - 1];
+      }
+      console.log('[Agent Editor] New tab created while Agent Editor active, injecting to new tab:', viewId, 'from:', sourceViewId, 'with', maxCoords, 'coords');
       
       const view = modules.core?.tabManager?.getView?.(viewId);
       if (!view) return;
