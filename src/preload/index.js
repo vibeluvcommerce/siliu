@@ -92,6 +92,7 @@ contextBridge.exposeInMainWorld('siliuAPI', {
   agentEditorInject: (viewId, customScript) => ipcRenderer.invoke('agentEditor:inject', viewId, customScript),
   agentEditorRemove: (viewId) => ipcRenderer.invoke('agentEditor:remove', viewId),
   syncAgentEditorData: (viewId, coordinates, isPaused) => ipcRenderer.invoke('agentEditor:syncData', viewId, coordinates, isPaused),
+  updateAgentEditorData: (viewId, coordinates) => ipcRenderer.invoke('agentEditor:updateData', viewId, coordinates),
 
   // ========== Shell 输入框右键菜单 ==========
   showShellContextMenu: (isEditable, hasSelection, text) => ipcRenderer.invoke('shell:contextmenu', { isEditable, hasSelection, text }),

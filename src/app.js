@@ -886,9 +886,9 @@ function setupIpcHandlers() {
           let isPaused = ${wasPausedBefore};
           console.log('[Agent Editor] Initial isPaused:', isPaused);
           
-          // 坐标数据 - 从传入的参数恢复
-          const savedCoordinates = ${coordinatesJson};
-          console.log('[Agent Editor] Restoring', savedCoordinates.length, 'markers');
+          // 坐标数据 - 从传入的参数恢复（使用 window 全局变量以便外部更新）
+          window.savedCoordinates = ${coordinatesJson};
+          console.log('[Agent Editor] Restoring', window.savedCoordinates.length, 'markers');
           
           if (document.getElementById('__agent_editor_overlay__')) {
             console.log('[Agent Editor] Already exists');
@@ -1177,7 +1177,7 @@ function setupIpcHandlers() {
           let scrollX = window.scrollX || 0;
           let scrollY = window.scrollY || 0;
           // 坐标计数从之前保存的坐标数量开始（实现跨页面序号连续）
-          let coordCount = savedCoordinates.length;
+          let coordCount = window.savedCoordinates.length;
           console.log('[Agent Editor] Starting coordCount from previous:', coordCount);
           
           const updateScroll = () => {
@@ -1242,8 +1242,8 @@ function setupIpcHandlers() {
             
             // 计算当前是第几个标注（包含之前页面保存的 + 当前页面已确认的）
             const currentConfirmed = document.querySelectorAll('.__agent_editor_marker__:not([data-temp="true"])').length;
-            const markerNumber = savedCoordinates.length + currentConfirmed + 1;
-            console.log('[Agent Editor] Creating marker number:', markerNumber, 'saved:', savedCoordinates.length, 'currentConfirmed:', currentConfirmed);
+            const markerNumber = window.savedCoordinates.length + currentConfirmed + 1;
+            console.log('[Agent Editor] Creating marker number:', markerNumber, 'saved:', window.savedCoordinates.length, 'currentConfirmed:', currentConfirmed);
             
             // 创建带序号的红点标记（fixed 定位，但基于文档坐标）
             const marker = document.createElement('div');
@@ -1346,6 +1346,36 @@ function setupIpcHandlers() {
       return { success: true };
     } catch (err) {
       console.error('[Agent Editor] Failed to sync coordinates:', err);
+      return { success: false, error: err.message };
+    }
+  });
+  
+  // 更新 Agent Editor 的数据（不重新注入，只更新 savedCoordinates）
+  safeHandle('agentEditor:updateData', async (event, viewId, coordinates) => {
+    try {
+      const view = modules.core?.tabManager?.getView?.(viewId);
+      if (!view) {
+        return { success: false, error: 'View not found' };
+      }
+      
+      // 通过 executeJavaScript 更新页面内的 savedCoordinates
+      const script = `
+        (function() {
+          // 更新全局的 savedCoordinates 变量
+          if (typeof window.savedCoordinates !== 'undefined') {
+            window.savedCoordinates = ${JSON.stringify(coordinates || [])};
+            console.log('[Agent Editor] savedCoordinates updated:', window.savedCoordinates.length);
+            return { success: true, count: window.savedCoordinates.length };
+          }
+          return { success: false, error: 'savedCoordinates not found' };
+        })()
+      `;
+      
+      const result = await view.webContents.executeJavaScript(script, true);
+      console.log('[Agent Editor] Data update result:', result);
+      return result;
+    } catch (err) {
+      console.error('[Agent Editor] Failed to update data:', err);
       return { success: false, error: err.message };
     }
   });

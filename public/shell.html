@@ -2840,14 +2840,12 @@
       // 更新显示
       updateCoordCount();
       
-      // 如果当前已经打开了 Agent Editor，需要重新注入以更新 savedCoordinates
+      // 如果当前已经打开了 Agent Editor，使用 updateData 更新 savedCoordinates
       if (testOverlayActive) {
-        console.log('[Agent Editor] Re-injecting to update savedCoordinates');
-        // 先移除再重新注入
-        await window.siliuAPI?.agentEditorRemove?.(viewId);
-        const result = await window.siliuAPI?.agentEditorInject?.(viewId);
+        console.log('[Agent Editor] Updating savedCoordinates via updateData');
+        const result = await window.siliuAPI?.updateAgentEditorData?.(viewId, annotationSession.coordinates);
         if (result?.success) {
-          console.log('[Agent Editor] Re-injected successfully');
+          console.log('[Agent Editor] savedCoordinates updated successfully');
         }
       }
       
