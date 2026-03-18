@@ -2615,13 +2615,11 @@
       annotationSession.coordinates.push(coord);
       console.log('[Agent Editor] Coordinate saved:', coord);
       
-      // 同步坐标数据到主进程（用于页面导航后恢复）
+      // 同步坐标数据到主进程
       window.siliuAPI?.syncAgentEditorData?.(currentViewId, annotationSession.coordinates);
       
-      // 使用全局函数更新 savedCoordinates
-      if (typeof window.updateSavedCoordinates === 'function') {
-        window.updateSavedCoordinates([...annotationSession.coordinates]);
-      }
+      // 直接更新页面内的 savedCoordinates
+      window.savedCoordinates = annotationSession.coordinates.slice();
       
       // 更新工具栏计数
       updateCoordCount();

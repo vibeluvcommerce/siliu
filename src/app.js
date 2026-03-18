@@ -888,19 +888,7 @@ function setupIpcHandlers() {
           
           // 坐标数据 - 从传入的参数恢复（使用 window 全局变量以便外部更新）
           window.savedCoordinates = ${coordinatesJson};
-          console.log('[Agent Editor] Restoring', window.savedCoordinates.length, 'markers');
-          
-          // 添加调试函数
-          window.checkSavedCoordinates = function() {
-            console.log('[Agent Editor Debug] savedCoordinates.length:', window.savedCoordinates ? window.savedCoordinates.length : 'undefined');
-            return window.savedCoordinates ? window.savedCoordinates.length : 0;
-          };
-          
-          // 添加更新函数
-          window.updateSavedCoordinates = function(newCoords) {
-            window.savedCoordinates = newCoords;
-            console.log('[Agent Editor Debug] savedCoordinates updated to:', window.savedCoordinates.length);
-          };
+          console.log('[Agent Editor] Initial savedCoordinates:', window.savedCoordinates.length);
           
           if (document.getElementById('__agent_editor_overlay__')) {
             console.log('[Agent Editor] Already exists');
@@ -1253,9 +1241,16 @@ function setupIpcHandlers() {
             }
             
             // 计算当前是第几个标注
-            const currentLength = window.checkSavedCoordinates ? window.checkSavedCoordinates() : 0;
-            const markerNumber = currentLength + 1;
-            console.log('[Agent Editor] Creating marker:', markerNumber, 'from length:', currentLength);
+            let markerNumber = 1;
+            try {
+              markerNumber = (window.savedCoordinates?.length || 0) + 1;
+            } catch(e) {}
+            
+            // 同时检查页面上已确认的标记数量
+            const confirmedMarkers = document.querySelectorAll('.__agent_editor_marker__:not([data-temp="true"])').length;
+            if (confirmedMarkers + 1 > markerNumber) {
+              markerNumber = confirmedMarkers + 1;
+            }
             
             // 创建带序号的红点标记（fixed 定位，但基于文档坐标）
             const marker = document.createElement('div');
