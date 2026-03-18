@@ -1241,8 +1241,9 @@ function setupIpcHandlers() {
             }
             
             // 计算当前是第几个标注（savedCoordinates 已经包含所有已确认的标注）
-            const markerNumber = window.savedCoordinates.length + 1;
-            console.log('[Agent Editor] Creating marker number:', markerNumber, 'total saved:', window.savedCoordinates.length);
+            const savedCount = window.savedCoordinates ? window.savedCoordinates.length : 0;
+            const markerNumber = savedCount + 1;
+            console.log('[Agent Editor] Click detected, savedCoordinates.length:', savedCount, 'markerNumber:', markerNumber);
             
             // 创建带序号的红点标记（fixed 定位，但基于文档坐标）
             const marker = document.createElement('div');
