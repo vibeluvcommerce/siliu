@@ -2743,6 +2743,41 @@
         console.log('[Agent Editor] Current coord removed from session');
       }
     });
+    
+    // 监听 Agent Editor 页面导航事件（暂存后打开新页面，需要重新注入）
+    console.log('[Agent Editor] Setting up navigated listener');
+    window.siliuAPI?.on?.('agentEditor:navigated', async ({ viewId, url }) => {
+      console.log('[Agent Editor] Page navigated event received!', viewId, url);
+      
+      // 更新当前视图 ID
+      currentViewId = viewId;
+      console.log('[Agent Editor] Updated currentViewId:', currentViewId);
+      
+      // 检查 API 是否可用
+      if (!window.siliuAPI?.agentEditorInject) {
+        console.error('[Agent Editor] agentEditorInject API not available!');
+        showToast('Agent Editor API 不可用', 'error');
+        return;
+      }
+      
+      // 重新注入 Agent Editor
+      try {
+        console.log('[Agent Editor] Calling agentEditorInject for view:', viewId);
+        const result = await window.siliuAPI.agentEditorInject(viewId);
+        console.log('[Agent Editor] Re-injected after navigation:', result);
+        
+        if (result?.success) {
+          testOverlayActive = true;
+          showToast('Agent Editor 已在新页面恢复');
+        } else {
+          console.error('[Agent Editor] Re-inject returned error:', result);
+          showToast('Agent Editor 恢复失败: ' + (result?.error || '未知错误'), 'error');
+        }
+      } catch (err) {
+        console.error('[Agent Editor] Failed to re-inject after navigation:', err);
+        showToast('Agent Editor 恢复失败', 'error');
+      }
+    });
 
     function openAgentSettings() {
       console.log('[AgentPanel] Open agent settings');

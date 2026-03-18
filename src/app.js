@@ -93,6 +93,12 @@ const modules = {
 // ========== IPC 处理器状态 ==========
 let ipcHandlersRegistered = false;
 
+// ========== Agent Editor 状态跟踪 ==========
+// 跟踪处于 Agent Editor 激活状态的视图（用于页面导航后重新注入）
+const agentEditorActiveViews = new Set();
+// 存储每个视图的坐标数据（用于页面导航后恢复）
+const agentEditorData = new Map();
+
 // ========== 启动流程 ==========
 async function startup() {
   console.log('[Siliu] Starting...');
@@ -179,6 +185,45 @@ async function startup() {
     console.log('[Siliu] Creating main window...');
     await modules.core.createWindow();
     console.log('[Siliu] Window created');
+    
+    // 监听页面导航事件，在 Agent Editor 激活的视图导航后重新注入
+    modules.core.tabManager.on('view:url-changed', async ({ viewId, url }) => {
+      if (agentEditorActiveViews.has(viewId)) {
+        console.log('[Agent Editor] View navigated, re-injecting:', viewId, url);
+        
+        const view = modules.core?.tabManager?.getView?.(viewId);
+        if (!view) {
+          console.log('[Agent Editor] View not found for re-inject');
+          return;
+        }
+        
+        console.log('[Agent Editor] Waiting for page to finish loading...');
+        
+        // 等待页面完全加载
+        if (view.webContents?.isLoading?.()) {
+          console.log('[Agent Editor] Page is loading, waiting for did-finish-load');
+          await new Promise(resolve => {
+            view.webContents.once('did-finish-load', resolve);
+          });
+          console.log('[Agent Editor] Page finished loading');
+        } else {
+          console.log('[Agent Editor] Page not loading, continuing immediately');
+        }
+        
+        // 延迟一点时间确保页面稳定
+        console.log('[Agent Editor] Waiting 500ms for stability...');
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // 通知 shell 页面已导航
+        if (modules.core?.sendToRenderer) {
+          console.log('[Agent Editor] Sending agentEditor:navigated to shell');
+          modules.core.sendToRenderer('agentEditor:navigated', { viewId, url });
+          console.log('[Agent Editor] Sent agentEditor:navigated event');
+        } else {
+          console.log('[Agent Editor] sendToRenderer not available!');
+        }
+      }
+    });
 
     // ⑥ 初始化 SiliuController（在窗口创建后，传递 windowManager 和 tabManager）
     console.log('[Siliu] Loading SiliuController...');
@@ -368,6 +413,46 @@ async function reconnectAIService() {
   
   // 重新连接
   return await initializeAIService();
+}
+
+// ========== Agent Editor 脚本构建 ==========
+/**
+ * 构建 Agent Editor 注入脚本
+ * @param {Object} savedData - 之前保存的坐标数据（可选）
+ * @returns {string} 注入脚本
+ */
+function buildAgentEditorScript(savedData) {
+  // 这是一个简化版本，它会在页面加载后重新注入 Agent Editor
+  // 注：完整实现需要将原有的注入脚本提取出来作为可重用的函数
+  // 这里先使用一个占位符，实际使用时需要调用 agentEditor:inject IPC
+  return `
+    (function() {
+      if (document.getElementById('__agent_editor_overlay__')) {
+        return 'already-exists';
+      }
+      
+      // 创建提示标记，展示导航后重新注入的状态
+      const indicator = document.createElement('div');
+      indicator.id = '__agent_editor_reinject_indicator__';
+      indicator.style.cssText = 
+        'position:fixed;top:60px;left:16px;' +
+        'background:#1A73E8;color:white;' +
+        'padding:8px 16px;border-radius:8px;' +
+        'font-family:system-ui,sans-serif;font-size:13px;' +
+        'z-index:2147483649;box-shadow:0 4px 12px rgba(0,0,0,0.15);' +
+        'animation:slideIn 0.3s ease-out;';
+      indicator.innerHTML = '📝 Agent Editor 已恢复（页面导航）';
+      document.body.appendChild(indicator);
+      
+      setTimeout(() => {
+        indicator.style.transition = 'opacity 0.5s';
+        indicator.style.opacity = '0';
+        setTimeout(() => indicator.remove(), 500);
+      }, 2000);
+      
+      return 'reinject-indicator-shown';
+    })()
+  `;
 }
 
 // ========== IPC 处理器 ==========
@@ -682,6 +767,10 @@ function setupIpcHandlers() {
       const script = `
         (function() {
           console.log('[Agent Editor] Script executing in page context');
+          
+          // 暂存状态管理
+          let isPaused = false;
+          
           if (document.getElementById('__agent_editor_overlay__')) {
             console.log('[Agent Editor] Already exists');
             return 'already-exists';
@@ -766,9 +855,44 @@ function setupIpcHandlers() {
             'width:28px;height:28px;display:flex;align-items:center;justify-content:center;' +
             'background:transparent;color:#9ca3af;border:none;border-radius:6px;cursor:pointer;' +
             'transition:all 0.15s;';
-          pauseBtn.onmouseenter = () => { pauseBtn.style.background = '#fef3c7'; pauseBtn.style.color = '#d97706'; };
+          pauseBtn.onmouseenter = () => { 
+            if (!isPaused) {
+              pauseBtn.style.background = '#fef3c7'; 
+              pauseBtn.style.color = '#d97706'; 
+            } else {
+              pauseBtn.style.background = '#dbeafe'; 
+              pauseBtn.style.color = '#2563eb'; 
+            }
+          };
           pauseBtn.onmouseleave = () => { pauseBtn.style.background = 'transparent'; pauseBtn.style.color = '#9ca3af'; };
-          pauseBtn.onclick = (e) => { e.stopPropagation(); };
+          
+          // 暂存/继续切换功能
+          pauseBtn.onclick = (e) => { 
+            e.stopPropagation();
+            
+            const overlay = document.getElementById('__agent_editor_overlay__');
+            if (!overlay) return;
+            
+            isPaused = !isPaused;
+            
+            if (isPaused) {
+              // 暂存：隐藏遮罩层，恢复页面操作
+              overlay.style.display = 'none';
+              overlay.style.pointerEvents = 'none';
+              pauseBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
+              pauseBtn.title = '继续';
+              pauseBtn.style.color = '#2563eb';
+              console.log('[Agent Editor] Paused - overlay hidden');
+            } else {
+              // 继续：显示遮罩层，恢复标注能力
+              overlay.style.display = 'block';
+              overlay.style.pointerEvents = 'auto';
+              pauseBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>';
+              pauseBtn.title = '暂存';
+              pauseBtn.style.color = '#9ca3af';
+              console.log('[Agent Editor] Resumed - overlay shown');
+            }
+          };
           
           // 保存按钮（icon only）
           const saveBtn = document.createElement('button');
@@ -1060,6 +1184,12 @@ function setupIpcHandlers() {
       const result = await view.webContents.executeJavaScript(script, true);
       console.log('[Agent Editor] Inject result:', result);
       
+      // 记录该视图处于 Agent Editor 激活状态
+      if (result === 'injected' || result === 'already-exists') {
+        agentEditorActiveViews.add(viewId);
+        console.log('[Agent Editor] View marked as active:', viewId);
+      }
+      
       return { success: true, result };
     } catch (err) {
       console.error('[Agent Editor] Inject failed:', err);
@@ -1114,6 +1244,12 @@ function setupIpcHandlers() {
       `;
       
       const result = await view.webContents.executeJavaScript(script);
+      
+      // 从激活状态集合中移除该视图
+      agentEditorActiveViews.delete(viewId);
+      agentEditorData.delete(viewId);
+      console.log('[Agent Editor] View removed from active set:', viewId);
+      
       return { success: true, result };
     } catch (err) {
       return { success: false, error: err.message };
