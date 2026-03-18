@@ -2089,12 +2089,22 @@
     let allAgents = []; // 缓存 Agent 列表
 
     // 渲染 Agent 列表
+    // Agent 列表渲染重试计数器
+    let renderAgentListRetryCount = 0;
+    const MAX_AGENT_RETRY = 5;
+    
     async function renderAgentList() {
       try {
-        console.log('[AgentPanel] Rendering agents...');
+        console.log('[AgentPanel] Rendering agents... (retry:', renderAgentListRetryCount, ')');
         
         if (!window.siliuAPI?.getAllAgents) {
           console.error('[AgentPanel] siliuAPI.getAllAgents not available');
+          // 如果 API 不可用且未达到最大重试次数，稍后重试
+          if (renderAgentListRetryCount < MAX_AGENT_RETRY) {
+            renderAgentListRetryCount++;
+            console.log('[AgentPanel] Retrying in 200ms...');
+            setTimeout(renderAgentList, 200);
+          }
           return;
         }
         
@@ -2103,8 +2113,17 @@
         
         if (!agents || agents.length === 0) {
           console.warn('[AgentPanel] No agents returned');
+          // 如果返回为空且未达到最大重试次数，稍后重试
+          if (renderAgentListRetryCount < MAX_AGENT_RETRY) {
+            renderAgentListRetryCount++;
+            console.log('[AgentPanel] Retrying in 300ms...');
+            setTimeout(renderAgentList, 300);
+          }
           return;
         }
+        
+        // 成功获取到 agents，重置重试计数器
+        renderAgentListRetryCount = 0;
         
         allAgents = agents;
         const agentListEl = document.getElementById('agent-list');
@@ -3894,12 +3913,12 @@
       initTitlebarInteractions();
       setupEventListeners();
       
-      // 渲染 Agent 列表（延迟确保 preload 已加载）
+      // 渲染 Agent 列表（延迟确保 preload 和 IPC handlers 已加载）
       console.log('[Shell] Scheduling renderAgentList...');
       setTimeout(() => {
         console.log('[Shell] Calling renderAgentList');
         renderAgentList();
-      }, 100);
+      }, 300);
       
       // 等待第一个标签页创建后再展开 Copilot（确保 BrowserView 已初始化）
       const checkFirstTab = setInterval(() => {
@@ -3914,18 +3933,33 @@
       // 最大等待 2 秒
       setTimeout(() => clearInterval(checkFirstTab), 2000);
       
-      // 延迟检查 OpenClaw 连接状态（确保窗口已完全加载）
+      // 延迟检查 OpenClaw 连接状态（确保窗口已完全加载，IPC handlers 已注册）
       setTimeout(() => {
         console.log('[Shell] Calling checkOpenClawStatus from setTimeout');
         checkOpenClawStatus();
-      }, 800);
+      }, 1000);
     });
 
+    // OpenClaw 状态检查重试计数器
+    let checkOpenClawRetryCount = 0;
+    const MAX_OPENCLAW_RETRY = 5;
+    
     // 检查 OpenClaw 状态
     async function checkOpenClawStatus() {
       try {
+        // 检查 API 是否可用
+        if (!window.siliuAPI?.openclawStatus) {
+          console.log('[Shell] openclawStatus API not available yet');
+          if (checkOpenClawRetryCount < MAX_OPENCLAW_RETRY) {
+            checkOpenClawRetryCount++;
+            console.log('[Shell] Retrying checkOpenClawStatus in 300ms...');
+            setTimeout(checkOpenClawStatus, 300);
+          }
+          return;
+        }
+        
         // 使用新的 ai:getStatus API 获取连接信息
-        const status = await window.siliuAPI?.openclawStatus?.();
+        const status = await window.siliuAPI.openclawStatus();
         console.log('[Shell] checkOpenClawStatus received:', JSON.stringify(status));
         
         if (status) {
@@ -3946,9 +3980,25 @@
             console.log('[Shell] Updating UI to disconnected');
             updateOpenClawUI('disconnected');
           }
+          
+          // 成功获取状态，重置重试计数器
+          checkOpenClawRetryCount = 0;
+        } else {
+          // 返回空状态，稍后重试
+          if (checkOpenClawRetryCount < MAX_OPENCLAW_RETRY) {
+            checkOpenClawRetryCount++;
+            console.log('[Shell] Empty status, retrying in 400ms...');
+            setTimeout(checkOpenClawStatus, 400);
+          }
         }
       } catch (err) {
         console.log('[Shell] Status check failed:', err);
+        // 出错时重试
+        if (checkOpenClawRetryCount < MAX_OPENCLAW_RETRY) {
+          checkOpenClawRetryCount++;
+          console.log('[Shell] Retrying after error in 500ms...');
+          setTimeout(checkOpenClawStatus, 500);
+        }
       }
     }
 
