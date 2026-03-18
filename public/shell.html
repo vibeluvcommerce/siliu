@@ -2790,6 +2790,32 @@
         showToast('Agent Editor 恢复失败', 'error');
       }
     });
+    
+    // 监听新标签页创建事件（当前标签页开启了 Agent Editor 时，新标签页也自动打开）
+    window.siliuAPI?.on?.('agentEditor:newTab', async ({ viewId, url, coordinates, fromViewId }) => {
+      console.log('[Agent Editor] New tab event received, opening Agent Editor:', viewId);
+      
+      // 更新当前视图 ID
+      currentViewId = viewId;
+      
+      // 恢复坐标数据
+      if (coordinates && coordinates.length > 0) {
+        annotationSession.coordinates = [...annotationSession.coordinates, ...coordinates];
+        console.log('[Agent Editor] Inherited', coordinates.length, 'coordinates from previous tab');
+      }
+      
+      // 打开 Agent Editor
+      try {
+        const result = await window.siliuAPI?.agentEditorInject?.(viewId);
+        if (result?.success) {
+          testOverlayActive = true;
+          const totalCount = annotationSession.coordinates.length;
+          showToast(`Agent Editor 已在新标签页打开，累计 ${totalCount} 个标注`);
+        }
+      } catch (err) {
+        console.error('[Agent Editor] Failed to open in new tab:', err);
+      }
+    });
 
     function openAgentSettings() {
       console.log('[AgentPanel] Open agent settings');
