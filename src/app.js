@@ -1240,10 +1240,10 @@ function setupIpcHandlers() {
               selector = el.tagName.toLowerCase() + (selector ? selector : '');
             }
             
-            // 计算当前是第几个标注（从已保存的坐标数量开始计数）
-            coordCount++;
-            const markerNumber = coordCount;
-            console.log('[Agent Editor] Creating marker number:', markerNumber, 'total saved:', savedCoordinates.length);
+            // 计算当前是第几个标注（仅统计已确认的标记）
+            const confirmedCount = document.querySelectorAll('.__agent_editor_marker__:not([data-temp="true"])').length;
+            const markerNumber = confirmedCount + 1;
+            console.log('[Agent Editor] Creating marker number:', markerNumber, 'confirmed:', confirmedCount);
             
             // 创建带序号的红点标记（fixed 定位，但基于文档坐标）
             const marker = document.createElement('div');
