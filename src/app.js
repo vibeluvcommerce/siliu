@@ -100,6 +100,8 @@ const agentEditorActiveViews = new Set();
 const agentEditorData = new Map();
 // 存储每个视图的暂存状态（用于页面导航后恢复）
 const agentEditorPausedState = new Map();
+// 记录最后操作的标签页（用于切换时同步数据）
+let lastActiveAgentEditorView = null;
 
 // ========== 启动流程 ==========
 async function startup() {
@@ -284,40 +286,27 @@ async function startup() {
       }
     });
     
-    // 监听标签页切换，合并所有标签页的最新数据
+    // 监听标签页切换，同步最后操作标签页的数据
     modules.core.tabManager.on('view:activated', ({ viewId }) => {
       // 只处理开启了 Agent Editor 的视图
       if (!agentEditorActiveViews.has(viewId)) return;
       
-      // 收集所有开启 Agent Editor 标签页的坐标数据
-      const allCoords = [];
-      for (const vid of agentEditorActiveViews) {
-        const coords = agentEditorData.get(vid) || [];
-        allCoords.push(...coords);
-      }
+      // 如果没有最后操作的标签页，或者就是当前标签页，则不需要同步
+      if (!lastActiveAgentEditorView || lastActiveAgentEditorView === viewId) return;
       
-      // 去重（根据 name + url）
-      const seen = new Set();
-      const mergedCoords = [];
-      for (const coord of allCoords) {
-        const key = coord.name + '|' + coord.url;
-        if (!seen.has(key)) {
-          seen.add(key);
-          mergedCoords.push(coord);
-        }
-      }
+      // 获取最后操作标签页的数据
+      const sourceCoords = agentEditorData.get(lastActiveAgentEditorView) || [];
+      console.log('[Agent Editor] Tab activated, syncing from last active tab:', lastActiveAgentEditorView, 'to', viewId, ':', sourceCoords.length, 'coordinates');
       
-      console.log('[Agent Editor] Tab activated, merged', mergedCoords.length, 'coordinates from all tabs');
-      
-      // 更新当前标签页的数据为合并后的数据
-      agentEditorData.set(viewId, mergedCoords);
+      // 更新当前标签页的数据为最后操作标签页的数据
+      agentEditorData.set(viewId, [...sourceCoords]);
       
       // 通知 shell 更新显示
       if (modules.core?.sendToRenderer) {
         modules.core.sendToRenderer('agentEditor:tabActivated', {
           viewId,
-          coordinates: mergedCoords,
-          count: mergedCoords.length
+          coordinates: sourceCoords,
+          count: sourceCoords.length
         });
       }
     });
@@ -1344,6 +1333,9 @@ function setupIpcHandlers() {
     try {
       // 保存坐标数据到主进程内存
       agentEditorData.set(viewId, coordinates);
+      // 记录这是最后操作的标签页
+      lastActiveAgentEditorView = viewId;
+      console.log('[Agent Editor] Last active view updated:', viewId);
       // 如果传入了暂存状态，也保存
       if (isPaused !== undefined) {
         agentEditorPausedState.set(viewId, isPaused);
