@@ -2618,14 +2618,9 @@
       // 同步坐标数据到主进程（用于页面导航后恢复）
       window.siliuAPI?.syncAgentEditorData?.(currentViewId, annotationSession.coordinates);
       
-      // 同步更新页面内的 window.savedCoordinates（用于正确计算序号）
-      // 保持数组引用不变，只修改内容，确保闭包中的引用正确
-      if (typeof window.savedCoordinates !== 'undefined') {
-        // 清空数组但保持引用
-        window.savedCoordinates.length = 0;
-        // 推入新数据
-        window.savedCoordinates.push(...annotationSession.coordinates);
-        console.log('[Agent Editor] Updated window.savedCoordinates:', window.savedCoordinates.length);
+      // 使用全局函数更新 savedCoordinates
+      if (typeof window.updateSavedCoordinates === 'function') {
+        window.updateSavedCoordinates([...annotationSession.coordinates]);
       }
       
       // 更新工具栏计数
