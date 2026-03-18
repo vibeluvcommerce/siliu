@@ -1096,34 +1096,9 @@ function setupIpcHandlers() {
           // 跟踪滚动位置，让标记点跟随内容
           let scrollX = window.scrollX || 0;
           let scrollY = window.scrollY || 0;
-          let coordCount = 0;
-          
-          // 恢复之前的坐标标记
-          if (savedCoordinates.length > 0) {
-            savedCoordinates.forEach((coord, index) => {
-              const marker = document.createElement('div');
-              marker.className = '__agent_editor_marker__';
-              marker.dataset.docX = coord.docX || coord.x;
-              marker.dataset.docY = coord.docY || coord.y;
-              marker.dataset.number = index + 1;
-              marker.textContent = index + 1;
-              marker.style.cssText = 
-                'position:absolute;' +
-                'width:28px;height:28px;' +
-                'background:linear-gradient(135deg,#E94560 0%,#FF6B6B 100%);' +
-                'border:2px solid white;' +
-                'border-radius:50%;' +
-                'box-shadow:0 4px 12px rgba(233,69,96,0.4),0 2px 4px rgba(0,0,0,0.2);' +
-                'z-index:2147483648;' +
-                'display:flex;align-items:center;justify-content:center;' +
-                'color:white;font-size:12px;font-weight:600;' +
-                'left:' + ((coord.docX || coord.x) - scrollX) + 'px;' +
-                'top:' + ((coord.docY || coord.y) - scrollY) + 'px;';
-              document.body.appendChild(marker);
-              coordCount++;
-            });
-            console.log('[Agent Editor] Restored', savedCoordinates.length, 'markers');
-          }
+          // 坐标计数从之前保存的坐标数量开始（实现跨页面序号连续）
+          let coordCount = savedCoordinates.length;
+          console.log('[Agent Editor] Starting coordCount from previous:', coordCount);
           
           const updateScroll = () => {
             scrollX = window.scrollX || 0;

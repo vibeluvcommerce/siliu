@@ -2779,7 +2779,8 @@
           testOverlayActive = true;
           // 更新坐标列表显示
           updateCoordCount();
-          showToast(`Agent Editor 已在新页面恢复 (${annotationSession.coordinates.length} 个标注)`);
+          const prevCount = coordinates?.length || 0;
+          showToast(`Agent Editor 已在新页面恢复，已有 ${prevCount} 个标注，新标注序号从 ${prevCount + 1} 开始`);
         } else {
           console.error('[Agent Editor] Re-inject returned error:', result);
           showToast('Agent Editor 恢复失败: ' + (result?.error || '未知错误'), 'error');
