@@ -284,21 +284,40 @@ async function startup() {
       }
     });
     
-    // 监听标签页切换，同步当前标签页的数据到显示
+    // 监听标签页切换，合并所有标签页的最新数据
     modules.core.tabManager.on('view:activated', ({ viewId }) => {
       // 只处理开启了 Agent Editor 的视图
       if (!agentEditorActiveViews.has(viewId)) return;
       
-      // 获取当前标签页的坐标数据
-      const currentCoordinates = agentEditorData.get(viewId) || [];
-      console.log('[Agent Editor] Tab activated, syncing data for', viewId, ':', currentCoordinates.length, 'coordinates');
+      // 收集所有开启 Agent Editor 标签页的坐标数据
+      const allCoords = [];
+      for (const vid of agentEditorActiveViews) {
+        const coords = agentEditorData.get(vid) || [];
+        allCoords.push(...coords);
+      }
+      
+      // 去重（根据 name + url）
+      const seen = new Set();
+      const mergedCoords = [];
+      for (const coord of allCoords) {
+        const key = coord.name + '|' + coord.url;
+        if (!seen.has(key)) {
+          seen.add(key);
+          mergedCoords.push(coord);
+        }
+      }
+      
+      console.log('[Agent Editor] Tab activated, merged', mergedCoords.length, 'coordinates from all tabs');
+      
+      // 更新当前标签页的数据为合并后的数据
+      agentEditorData.set(viewId, mergedCoords);
       
       // 通知 shell 更新显示
       if (modules.core?.sendToRenderer) {
         modules.core.sendToRenderer('agentEditor:tabActivated', {
           viewId,
-          coordinates: currentCoordinates,
-          count: currentCoordinates.length
+          coordinates: mergedCoords,
+          count: mergedCoords.length
         });
       }
     });
