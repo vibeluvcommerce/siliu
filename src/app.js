@@ -655,10 +655,14 @@ function setupIpcHandlers() {
   const agentEditorPauseStateHandler = (event, { isPaused }) => {
     // 获取发送者的 webContents ID，找到对应的 viewId
     const senderId = event.sender.id;
-    const view = modules.core?.tabManager?.views?.find(v => v.view.webContents.id === senderId);
+    // views 是 Map，需要转换为数组再 find
+    const viewsArray = Array.from(modules.core?.tabManager?.views?.values?.() || []);
+    const view = viewsArray.find(v => v.view.webContents.id === senderId);
     if (view) {
       agentEditorPausedState.set(view.id, isPaused);
       console.log('[Agent Editor] Pause state updated for', view.id, ':', isPaused);
+    } else {
+      console.log('[Agent Editor] Could not find view for sender:', senderId);
     }
   };
   try {
