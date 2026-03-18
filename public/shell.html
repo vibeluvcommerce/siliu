@@ -2618,6 +2618,12 @@
       // 同步坐标数据到主进程（用于页面导航后恢复）
       window.siliuAPI?.syncAgentEditorData?.(currentViewId, annotationSession.coordinates);
       
+      // 同步更新页面内的 window.savedCoordinates（用于正确计算序号）
+      if (typeof window.savedCoordinates !== 'undefined') {
+        window.savedCoordinates = [...annotationSession.coordinates];
+        console.log('[Agent Editor] Updated window.savedCoordinates:', window.savedCoordinates.length);
+      }
+      
       // 更新工具栏计数
       updateCoordCount();
       showToast(`已保存: ${name} (${data.tag})`);
