@@ -890,6 +890,18 @@ function setupIpcHandlers() {
           window.savedCoordinates = ${coordinatesJson};
           console.log('[Agent Editor] Restoring', window.savedCoordinates.length, 'markers');
           
+          // 添加调试函数
+          window.checkSavedCoordinates = function() {
+            console.log('[Agent Editor Debug] savedCoordinates.length:', window.savedCoordinates ? window.savedCoordinates.length : 'undefined');
+            return window.savedCoordinates ? window.savedCoordinates.length : 0;
+          };
+          
+          // 添加更新函数
+          window.updateSavedCoordinates = function(newCoords) {
+            window.savedCoordinates = newCoords;
+            console.log('[Agent Editor Debug] savedCoordinates updated to:', window.savedCoordinates.length);
+          };
+          
           if (document.getElementById('__agent_editor_overlay__')) {
             console.log('[Agent Editor] Already exists');
             return 'already-exists';
@@ -1240,10 +1252,10 @@ function setupIpcHandlers() {
               selector = el.tagName.toLowerCase() + (selector ? selector : '');
             }
             
-            // 计算当前是第几个标注（savedCoordinates 已经包含所有已确认的标注）
-            const savedCount = window.savedCoordinates ? window.savedCoordinates.length : 0;
-            const markerNumber = savedCount + 1;
-            console.log('[Agent Editor] Click detected, savedCoordinates.length:', savedCount, 'markerNumber:', markerNumber);
+            // 计算当前是第几个标注
+            const currentLength = window.checkSavedCoordinates ? window.checkSavedCoordinates() : 0;
+            const markerNumber = currentLength + 1;
+            console.log('[Agent Editor] Creating marker:', markerNumber, 'from length:', currentLength);
             
             // 创建带序号的红点标记（fixed 定位，但基于文档坐标）
             const marker = document.createElement('div');
