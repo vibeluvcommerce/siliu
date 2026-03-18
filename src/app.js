@@ -787,6 +787,44 @@ function setupIpcHandlers() {
   } catch {}
   ipcMain.on('view:agentEditorCancel', agentEditorCancelHandler);
   
+  // 监听 Agent Editor 取消全部事件（关闭所有标签页并放弃所有标注）
+  const agentEditorCancelAllHandler = async (event) => {
+    console.log('[Agent Editor] Cancel all clicked, closing all tabs and clearing all data');
+    
+    // 1. 立即清理所有 Agent Editor 状态（必须在关闭标签页之前）
+    agentEditorActiveViews.clear();
+    agentEditorData.clear();
+    agentEditorPausedState.clear();
+    lastActiveAgentEditorView = null;
+    console.log('[Agent Editor] All Agent Editor state cleared');
+    
+    // 2. 通知 shell 清理状态
+    modules.core?.sendToRenderer?.('agentEditor:cancelAll', {});
+    console.log('[Agent Editor] Sent cancelAll event to shell');
+    
+    // 3. 获取所有视图 ID 并关闭
+    const tabManager = modules.core?.tabManager;
+    if (tabManager) {
+      const allViewIds = Array.from(tabManager.views?.keys?.() || []);
+      console.log('[Agent Editor] Closing all', allViewIds.length, 'tabs');
+      
+      // 关闭所有标签页
+      for (const viewId of allViewIds) {
+        try {
+          tabManager.closeView?.(viewId);
+        } catch (err) {
+          console.log('[Agent Editor] Error closing tab', viewId, ':', err.message);
+        }
+      }
+    }
+    
+    console.log('[Agent Editor] Cancel all completed');
+  };
+  try {
+    ipcMain.removeListener('view:agentEditorCancelAll', agentEditorCancelAllHandler);
+  } catch {}
+  ipcMain.on('view:agentEditorCancelAll', agentEditorCancelAllHandler);
+  
   // 监听坐标命名确认
   const annotationNameConfirmedHandler = async (event, data) => {
     console.log('[Agent Editor] annotationNameConfirmedHandler CALLED');
@@ -990,7 +1028,7 @@ function setupIpcHandlers() {
           cancelBtn.onmouseleave = () => { cancelBtn.style.background = 'transparent'; cancelBtn.style.color = '#9ca3af'; };
           cancelBtn.onclick = (e) => {
             e.stopPropagation();
-            window.postMessage({ type: 'AGENT_EDITOR_CLOSE' }, '*');
+            window.postMessage({ type: 'AGENT_EDITOR_CANCEL_ALL' }, '*');
           };
           
           // 暂存按钮（icon only）

@@ -2204,6 +2204,8 @@
       coordinates: [], // 存储命名后的坐标
       currentCoord: null // 临时存储当前点击的坐标
     };
+    // 标记是否已取消全部标注（防止事件乱序导致数据恢复）
+    let agentEditorCancelled = false;
     
     // 显示坐标命名输入（通过注入到 BrowserView）
     async function showCoordNamingInput(viewId, data) {
@@ -2681,6 +2683,15 @@
     async function addNewAgent() {
       console.log('[Agent Editor] Opening Agent Editor...');
       
+      // 安全检查：如果没有激活的Agent Editor但有残留数据，先清理（防止cancelAll事件未到达）
+      if (!testOverlayActive && annotationSession.coordinates.length > 0) {
+        console.log('[Agent Editor] Found residual data, clearing:', annotationSession.coordinates.length);
+        annotationSession.coordinates = [];
+        annotationSession.currentCoord = null;
+        agentEditorCancelled = false;
+        updateCoordCount();
+      }
+      
       const activeView = await window.siliuAPI?.getActiveView?.();
       if (!activeView) {
         showToast('请先打开一个网页');
@@ -2750,10 +2761,35 @@
       }
     });
     
+    // 监听 Agent Editor 取消全部事件（关闭所有标签页，放弃所有标注）
+    window.siliuAPI?.on?.('agentEditor:cancelAll', () => {
+      console.log('[Agent Editor] Cancel all event received - clearing all session data');
+      console.log('[Agent Editor] Before clear:', annotationSession.coordinates.length, 'coordinates');
+      // 设置取消标志，防止后续事件恢复数据
+      agentEditorCancelled = true;
+      // 清理所有标注数据
+      annotationSession.coordinates = [];
+      annotationSession.currentCoord = null;
+      testOverlayActive = false;
+      console.log('[Agent Editor] After clear:', annotationSession.coordinates.length, 'coordinates');
+      updateCoordCount();
+      showToast('已放弃所有标注，关闭所有标签页');
+    });
+    
     // 监听 Agent Editor 页面导航事件（暂存后打开新页面，需要重新注入）
     console.log('[Agent Editor] Setting up navigated listener');
     window.siliuAPI?.on?.('agentEditor:navigated', async ({ viewId, url, coordinates }) => {
-      console.log('[Agent Editor] Page navigated event received!', viewId, url, 'with', coordinates?.length || 0, 'coordinates');
+      console.log('[Agent Editor] Page navigated event received!', viewId, url, 'with', coordinates?.length || 0, 'coordinates', 'cancelled:', agentEditorCancelled);
+      
+      // 如果已经取消全部，则不接受任何数据恢复
+      if (agentEditorCancelled) {
+        console.log('[Agent Editor] Ignoring navigated data because cancelAll was triggered');
+        annotationSession.coordinates = [];
+        agentEditorCancelled = false; // 重置标志
+      } else if (coordinates && coordinates.length > 0) {
+        annotationSession.coordinates = coordinates;
+        console.log('[Agent Editor] Restored', coordinates.length, 'coordinates');
+      }
       
       // 更新当前视图 ID
       currentViewId = viewId;
@@ -2764,12 +2800,6 @@
         console.error('[Agent Editor] agentEditorInject API not available!');
         showToast('Agent Editor API 不可用', 'error');
         return;
-      }
-      
-      // 恢复坐标数据（如果有）
-      if (coordinates && coordinates.length > 0) {
-        annotationSession.coordinates = coordinates;
-        console.log('[Agent Editor] Restored', coordinates.length, 'coordinates');
       }
       
       // 重新注入 Agent Editor，直接传入坐标数据
@@ -2796,19 +2826,23 @@
     
     // 监听新标签页创建事件（当前标签页开启了 Agent Editor 时，新标签页也自动打开）
     window.siliuAPI?.on?.('agentEditor:newTab', async ({ viewId, url, coordinates, isPaused, fromViewId }) => {
-      console.log('[Agent Editor] New tab event received:', viewId, 'coordinates:', coordinates?.length || 0, 'paused:', isPaused);
+      console.log('[Agent Editor] New tab event received:', viewId, 'coordinates:', coordinates?.length || 0, 'paused:', isPaused, 'cancelled:', agentEditorCancelled);
       
-      // 更新当前视图 ID
-      currentViewId = viewId;
-      
-      // 恢复坐标数据（直接赋值，因为是新标签页）
-      if (coordinates && coordinates.length > 0) {
+      // 如果已经取消全部，则不接受任何数据恢复
+      if (agentEditorCancelled) {
+        console.log('[Agent Editor] Ignoring newTab data because cancelAll was triggered');
+        annotationSession.coordinates = [];
+        agentEditorCancelled = false; // 重置标志，允许下次正常使用
+      } else if (coordinates && coordinates.length > 0) {
         annotationSession.coordinates = coordinates;
         console.log('[Agent Editor] Inherited', coordinates.length, 'coordinates from previous tab');
       } else {
         annotationSession.coordinates = [];
         console.log('[Agent Editor] No coordinates inherited');
       }
+      
+      // 更新当前视图 ID
+      currentViewId = viewId;
       
       // 打开 Agent Editor，直接传入坐标数据
       try {
@@ -2828,13 +2862,19 @@
     
     // 监听标签页切换事件，更新显示当前标签页的数据
     window.siliuAPI?.on?.('agentEditor:tabActivated', async ({ viewId, coordinates, count }) => {
-      console.log('[Agent Editor] Tab activated, updating display:', viewId, count, 'coordinates');
+      console.log('[Agent Editor] Tab activated, updating display:', viewId, count, 'coordinates', 'cancelled:', agentEditorCancelled);
+      
+      // 如果已经取消全部，则不接受任何数据恢复
+      if (agentEditorCancelled) {
+        console.log('[Agent Editor] Ignoring tabActivated data because cancelAll was triggered');
+        annotationSession.coordinates = [];
+        agentEditorCancelled = false; // 重置标志
+      } else {
+        annotationSession.coordinates = coordinates || [];
+      }
       
       // 更新当前视图 ID
       currentViewId = viewId;
-      
-      // 更新坐标数据为当前标签页的数据
-      annotationSession.coordinates = coordinates || [];
       
       // 更新显示
       updateCoordCount();

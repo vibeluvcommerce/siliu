@@ -81,6 +81,10 @@ window.addEventListener('message', (e) => {
     console.log('[Agent Editor Preload] Close clicked, forwarding to shell');
     ipcRenderer.send('view:agentEditorClose', {});
   }
+  if (e.data?.type === 'AGENT_EDITOR_CANCEL_ALL') {
+    console.log('[Agent Editor Preload] Cancel all clicked, forwarding to shell');
+    ipcRenderer.send('view:agentEditorCancelAll', {});
+  }
   if (e.data?.type === 'AGENT_EDITOR_PAUSE_STATE') {
     console.log('[Agent Editor Preload] Pause state change:', e.data.isPaused);
     ipcRenderer.send('view:agentEditorPauseState', { isPaused: e.data.isPaused });
