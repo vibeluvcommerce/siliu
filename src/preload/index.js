@@ -155,7 +155,8 @@ contextBridge.exposeInMainWorld('siliuAPI', {
       'agentEditor:nameConfirmed',
       'agentEditor:cancel',
       'agentEditor:navigated',
-      'agentEditor:newTab'
+      'agentEditor:newTab',
+      'agentEditor:tabActivated'
     ];
     if (validChannels.includes(channel)) {
       ipcRenderer.on(channel, (event, data) => {

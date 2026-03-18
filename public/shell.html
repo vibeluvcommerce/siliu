@@ -2826,6 +2826,21 @@
         console.error('[Agent Editor] Failed to open in new tab:', err);
       }
     });
+    
+    // 监听标签页切换事件，更新显示当前标签页的数据
+    window.siliuAPI?.on?.('agentEditor:tabActivated', ({ viewId, coordinates, count }) => {
+      console.log('[Agent Editor] Tab activated, updating display:', viewId, count, 'coordinates');
+      
+      // 更新当前视图 ID
+      currentViewId = viewId;
+      
+      // 更新坐标数据为当前标签页的数据
+      annotationSession.coordinates = coordinates || [];
+      
+      // 更新显示
+      updateCoordCount();
+      console.log('[Agent Editor] Display updated with current tab data');
+    });
 
     function openAgentSettings() {
       console.log('[AgentPanel] Open agent settings');

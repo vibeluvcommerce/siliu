@@ -283,6 +283,25 @@ async function startup() {
         console.log('[Agent Editor] Sent newTab event');
       }
     });
+    
+    // 监听标签页切换，同步当前标签页的数据到显示
+    modules.core.tabManager.on('view:activated', ({ viewId }) => {
+      // 只处理开启了 Agent Editor 的视图
+      if (!agentEditorActiveViews.has(viewId)) return;
+      
+      // 获取当前标签页的坐标数据
+      const currentCoordinates = agentEditorData.get(viewId) || [];
+      console.log('[Agent Editor] Tab activated, syncing data for', viewId, ':', currentCoordinates.length, 'coordinates');
+      
+      // 通知 shell 更新显示
+      if (modules.core?.sendToRenderer) {
+        modules.core.sendToRenderer('agentEditor:tabActivated', {
+          viewId,
+          coordinates: currentCoordinates,
+          count: currentCoordinates.length
+        });
+      }
+    });
 
     // ⑥ 初始化 SiliuController（在窗口创建后，传递 windowManager 和 tabManager）
     console.log('[Siliu] Loading SiliuController...');
