@@ -2680,8 +2680,35 @@
     // ========== Step 1: 测试 JS 注入蒙版 ==========
     let testOverlayActive = false;
     
+    // 确认弹窗（使用主进程 dialog，避免 BrowserView 层级问题）
+    async function showConfirm(message, title = '确认') {
+      try {
+        console.log('[Agent Editor] showConfirm called:', title, message.substring(0, 30));
+        if (!window.siliuAPI?.showConfirmDialog) {
+          console.error('[Agent Editor] showConfirmDialog API not available');
+          // API 不可用时使用原生 confirm
+          return confirm(message);
+        }
+        const result = await window.siliuAPI.showConfirmDialog(message, title);
+        console.log('[Agent Editor] showConfirm result:', result);
+        return result === true;
+      } catch (err) {
+        console.error('[Agent Editor] showConfirm error:', err);
+        // 出错时使用原生 confirm
+        return confirm(message);
+      }
+    }
+    
     async function addNewAgent() {
-      console.log('[Agent Editor] Opening Agent Editor...');
+      console.log('[Agent Editor] ========== addNewAgent called ==========');
+      console.log('[Agent Editor] testOverlayActive:', testOverlayActive);
+      console.log('[Agent Editor] annotationSession.coordinates.length:', annotationSession.coordinates.length);
+      
+      // 安全检查：如果没有数据但标志仍为true（cancelAll事件未到达），强制重置
+      if (testOverlayActive && annotationSession.coordinates.length === 0) {
+        console.log('[Agent Editor] Resetting testOverlayActive flag (no data)');
+        testOverlayActive = false;
+      }
       
       // 安全检查：如果没有激活的Agent Editor但有残留数据，先清理（防止cancelAll事件未到达）
       if (!testOverlayActive && annotationSession.coordinates.length > 0) {
@@ -2701,21 +2728,81 @@
       currentViewId = activeView.id;
       
       if (!testOverlayActive) {
+        console.log('[Agent Editor] Opening branch, coordinates:', annotationSession.coordinates.length);
+        // 【打开】二次确认：如果有已有标注，提醒用户会放弃
+        if (annotationSession.coordinates.length > 0) {
+          console.log('[Agent Editor] Showing confirm dialog for open');
+          const confirmed = await showConfirm(
+            `当前已有 ${annotationSession.coordinates.length} 个标注，确定要放弃并重新开始吗？`,
+            '放弃标注确认'
+          );
+          console.log('[Agent Editor] Open confirm result:', confirmed);
+          if (!confirmed) {
+            return;
+          }
+          // 用户确认，清理旧数据
+          annotationSession.coordinates = [];
+          annotationSession.currentCoord = null;
+          updateCoordCount();
+        }
         // 注入 Agent Editor，直接传入当前坐标数据
+        console.log('[Agent Editor] Calling agentEditorInject for:', activeView.id);
         const result = await window.siliuAPI?.agentEditorInject?.(activeView.id, null, annotationSession.coordinates);
+        console.log('[Agent Editor] Inject result:', result);
         if (result?.success) {
           showToast('Agent Editor 已打开');
+          testOverlayActive = true;
+        } else if (result?.result === 'already-exists') {
+          // 已存在时也视为成功，设置标志
+          console.log('[Agent Editor] Already exists, setting testOverlayActive to true');
           testOverlayActive = true;
         } else {
           showToast('注入失败: ' + (result?.error || '未知错误'));
         }
       } else {
+        // 【关闭】
+        console.log('[Agent Editor] ====== CLOSING ======');
+        console.log('[Agent Editor] testOverlayActive:', testOverlayActive);
+        console.log('[Agent Editor] coordinates.length:', annotationSession.coordinates.length);
+        console.log('[Agent Editor] activeView:', activeView?.id);
+        console.log('[Agent Editor] currentViewId:', currentViewId);
+        
+        // 无标注时直接关闭，有标注时弹窗确认
+        if (annotationSession.coordinates.length === 0) {
+          console.log('[Agent Editor] No coordinates, closing directly');
+        } else {
+          console.log('[Agent Editor] Showing confirm dialog for close');
+          const confirmed = await showConfirm(
+            `当前已有 ${annotationSession.coordinates.length} 个标注，确定要关闭 Agent Editor 吗？`,
+            '关闭确认'
+          );
+          console.log('[Agent Editor] Confirm result:', confirmed);
+          if (!confirmed) {
+            return;
+          }
+        }
         // 移除 Agent Editor
-        await window.siliuAPI?.agentEditorRemove?.(activeView.id);
-        showToast('Agent Editor 已关闭');
-        testOverlayActive = false;
+        console.log('[Agent Editor] Proceeding to close, activeView:', activeView?.id, 'currentViewId:', currentViewId);
+        const viewIdToClose = activeView?.id || currentViewId;
+        if (viewIdToClose) {
+          console.log('[Agent Editor] Calling agentEditorRemove for:', viewIdToClose);
+          const result = await window.siliuAPI?.agentEditorRemove?.(viewIdToClose);
+          console.log('[Agent Editor] Remove result:', result);
+          showToast('Agent Editor 已关闭');
+          testOverlayActive = false;
+        } else {
+          console.error('[Agent Editor] No viewId to close');
+          showToast('关闭失败: 无法获取视图ID', 'error');
+        }
       }
     }
+    
+    // 暴露到 window 以便调试
+    window.agentEditorState = {
+      get testOverlayActive() { return testOverlayActive; },
+      set testOverlayActive(val) { testOverlayActive = val; },
+      get coordinates() { return annotationSession.coordinates; }
+    };
     
     // 监听 Agent Editor 的点击消息（通过 IPC 广播）
     console.log('[Agent Editor] Setting up click listener');
