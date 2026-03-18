@@ -2615,6 +2615,9 @@
       annotationSession.coordinates.push(coord);
       console.log('[Agent Editor] Coordinate saved:', coord);
       
+      // 同步坐标数据到主进程（用于页面导航后恢复）
+      window.siliuAPI?.syncAgentEditorData?.(currentViewId, annotationSession.coordinates);
+      
       // 更新工具栏计数
       updateCoordCount();
       showToast(`已保存: ${name} (${data.tag})`);
@@ -2746,8 +2749,8 @@
     
     // 监听 Agent Editor 页面导航事件（暂存后打开新页面，需要重新注入）
     console.log('[Agent Editor] Setting up navigated listener');
-    window.siliuAPI?.on?.('agentEditor:navigated', async ({ viewId, url }) => {
-      console.log('[Agent Editor] Page navigated event received!', viewId, url);
+    window.siliuAPI?.on?.('agentEditor:navigated', async ({ viewId, url, coordinates }) => {
+      console.log('[Agent Editor] Page navigated event received!', viewId, url, 'with', coordinates?.length || 0, 'coordinates');
       
       // 更新当前视图 ID
       currentViewId = viewId;
@@ -2760,6 +2763,12 @@
         return;
       }
       
+      // 恢复坐标数据（如果有）
+      if (coordinates && coordinates.length > 0) {
+        annotationSession.coordinates = coordinates;
+        console.log('[Agent Editor] Restored', coordinates.length, 'coordinates');
+      }
+      
       // 重新注入 Agent Editor
       try {
         console.log('[Agent Editor] Calling agentEditorInject for view:', viewId);
@@ -2768,7 +2777,9 @@
         
         if (result?.success) {
           testOverlayActive = true;
-          showToast('Agent Editor 已在新页面恢复');
+          // 更新坐标列表显示
+          updateCoordCount();
+          showToast(`Agent Editor 已在新页面恢复 (${annotationSession.coordinates.length} 个标注)`);
         } else {
           console.error('[Agent Editor] Re-inject returned error:', result);
           showToast('Agent Editor 恢复失败: ' + (result?.error || '未知错误'), 'error');

@@ -216,10 +216,14 @@ async function startup() {
         console.log('[Agent Editor] Waiting 500ms for stability...');
         await new Promise(resolve => setTimeout(resolve, 500));
         
-        // 通知 shell 页面已导航
+        // 获取保存的坐标数据
+        const savedCoordinates = agentEditorData.get(viewId) || [];
+        console.log('[Agent Editor] Sending', savedCoordinates.length, 'coordinates to shell');
+        
+        // 通知 shell 页面已导航，并传递坐标数据
         if (modules.core?.sendToRenderer) {
           console.log('[Agent Editor] Sending agentEditor:navigated to shell');
-          modules.core.sendToRenderer('agentEditor:navigated', { viewId, url });
+          modules.core.sendToRenderer('agentEditor:navigated', { viewId, url, coordinates: savedCoordinates });
           console.log('[Agent Editor] Sent agentEditor:navigated event');
         } else {
           console.log('[Agent Editor] sendToRenderer not available!');
@@ -785,9 +789,14 @@ function setupIpcHandlers() {
       
       console.log('[Agent Editor] View found, webContents id:', view.webContents.id);
       
-      // 从主进程读取暂存状态
+      // 从主进程读取暂存状态和坐标数据
       const wasPausedBefore = agentEditorPausedState.get(viewId) || false;
+      const savedCoordinates = agentEditorData.get(viewId) || [];
       console.log('[Agent Editor] Was paused before navigation:', wasPausedBefore);
+      console.log('[Agent Editor] Coordinates to restore:', savedCoordinates.length);
+      
+      // 将坐标数据序列化为 JSON 字符串传入脚本
+      const coordinatesJson = JSON.stringify(savedCoordinates);
       
       const script = `
         (function() {
@@ -796,6 +805,10 @@ function setupIpcHandlers() {
           // 暂存状态管理 - 从传入的参数恢复
           let isPaused = ${wasPausedBefore};
           console.log('[Agent Editor] Initial isPaused:', isPaused);
+          
+          // 坐标数据 - 从传入的参数恢复
+          const savedCoordinates = ${coordinatesJson};
+          console.log('[Agent Editor] Restoring', savedCoordinates.length, 'markers');
           
           if (document.getElementById('__agent_editor_overlay__')) {
             console.log('[Agent Editor] Already exists');
@@ -1085,6 +1098,33 @@ function setupIpcHandlers() {
           let scrollY = window.scrollY || 0;
           let coordCount = 0;
           
+          // 恢复之前的坐标标记
+          if (savedCoordinates.length > 0) {
+            savedCoordinates.forEach((coord, index) => {
+              const marker = document.createElement('div');
+              marker.className = '__agent_editor_marker__';
+              marker.dataset.docX = coord.docX || coord.x;
+              marker.dataset.docY = coord.docY || coord.y;
+              marker.dataset.number = index + 1;
+              marker.textContent = index + 1;
+              marker.style.cssText = 
+                'position:absolute;' +
+                'width:28px;height:28px;' +
+                'background:linear-gradient(135deg,#E94560 0%,#FF6B6B 100%);' +
+                'border:2px solid white;' +
+                'border-radius:50%;' +
+                'box-shadow:0 4px 12px rgba(233,69,96,0.4),0 2px 4px rgba(0,0,0,0.2);' +
+                'z-index:2147483648;' +
+                'display:flex;align-items:center;justify-content:center;' +
+                'color:white;font-size:12px;font-weight:600;' +
+                'left:' + ((coord.docX || coord.x) - scrollX) + 'px;' +
+                'top:' + ((coord.docY || coord.y) - scrollY) + 'px;';
+              document.body.appendChild(marker);
+              coordCount++;
+            });
+            console.log('[Agent Editor] Restored', savedCoordinates.length, 'markers');
+          }
+          
           const updateScroll = () => {
             scrollX = window.scrollX || 0;
             scrollY = window.scrollY || 0;
@@ -1230,6 +1270,18 @@ function setupIpcHandlers() {
       return { success: true, result };
     } catch (err) {
       console.error('[Agent Editor] Inject failed:', err);
+      return { success: false, error: err.message };
+    }
+  });
+  
+  safeHandle('agentEditor:syncData', async (event, viewId, coordinates) => {
+    try {
+      // 保存坐标数据到主进程内存
+      agentEditorData.set(viewId, coordinates);
+      console.log('[Agent Editor] Coordinates synced for', viewId, ':', coordinates.length, 'coords');
+      return { success: true };
+    } catch (err) {
+      console.error('[Agent Editor] Failed to sync coordinates:', err);
       return { success: false, error: err.message };
     }
   });
