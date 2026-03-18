@@ -2793,15 +2793,19 @@
     
     // 监听新标签页创建事件（当前标签页开启了 Agent Editor 时，新标签页也自动打开）
     window.siliuAPI?.on?.('agentEditor:newTab', async ({ viewId, url, coordinates, fromViewId }) => {
-      console.log('[Agent Editor] New tab event received, opening Agent Editor:', viewId);
+      console.log('[Agent Editor] New tab event received:', viewId, 'coordinates:', coordinates?.length || 0);
       
       // 更新当前视图 ID
       currentViewId = viewId;
       
-      // 恢复坐标数据
+      // 恢复坐标数据（直接赋值，因为是新标签页）
       if (coordinates && coordinates.length > 0) {
-        annotationSession.coordinates = [...annotationSession.coordinates, ...coordinates];
+        annotationSession.coordinates = coordinates;
         console.log('[Agent Editor] Inherited', coordinates.length, 'coordinates from previous tab');
+        console.log('[Agent Editor] Coordinates:', JSON.stringify(coordinates));
+      } else {
+        annotationSession.coordinates = [];
+        console.log('[Agent Editor] No coordinates inherited');
       }
       
       // 打开 Agent Editor
@@ -2810,6 +2814,8 @@
         if (result?.success) {
           testOverlayActive = true;
           const totalCount = annotationSession.coordinates.length;
+          // 更新坐标列表显示
+          updateCoordCount();
           showToast(`Agent Editor 已在新标签页打开，累计 ${totalCount} 个标注`);
         }
       } catch (err) {

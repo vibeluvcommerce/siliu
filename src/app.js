@@ -255,6 +255,8 @@ async function startup() {
       
       // 获取源视图的坐标数据作为基础
       const savedCoordinates = agentEditorData.get(sourceViewId) || [];
+      console.log('[Agent Editor] Sending coordinates to new tab:', savedCoordinates.length, 'from', sourceViewId);
+      console.log('[Agent Editor] agentEditorData keys:', Array.from(agentEditorData.keys()));
       
       // 通知 shell 在新标签页打开 Agent Editor
       if (modules.core?.sendToRenderer) {
@@ -264,6 +266,7 @@ async function startup() {
           coordinates: savedCoordinates,
           fromViewId: sourceViewId 
         });
+        console.log('[Agent Editor] Sent newTab event with', savedCoordinates.length, 'coordinates');
       }
     });
 
