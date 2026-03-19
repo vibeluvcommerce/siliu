@@ -126,7 +126,7 @@ class IPCHandlers {
 
     ipcMain.handle('view:getList', (e) => {
       const tabManager = this._getTabManagerForSender(e.sender);
-      return tabManager.getViews();
+      return tabManager.getAllViews();
     });
 
     ipcMain.handle('view:getActive', (e) => {
