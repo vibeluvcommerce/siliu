@@ -1321,10 +1321,10 @@ function setupIpcHandlers() {
               const previewBox = document.createElement('div');
               previewBox.id = '__agent_preview_box__';
               previewBox.style.cssText = 
-                'width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;' +
+                'width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;' +
                 'background:linear-gradient(135deg,' + previewColor.value + ',' + previewColor.end + ');' +
-                'box-shadow:0 4px 12px ' + previewColor.value + '40;transition:all 0.3s;';
-              previewBox.innerHTML = '<i class="ph ' + previewIcon.icon + '" style="font-size:24px;color:white;"></i>';
+                'box-shadow:0 2px 8px ' + previewColor.value + '40;transition:all 0.3s;';
+              previewBox.innerHTML = '<i class="ph ' + previewIcon.icon + '" style="font-size:20px;color:white;"></i>';
               
               header.appendChild(previewBox);
               header.innerHTML += '<h3 style="margin:0;font-size:17px;font-weight:600;color:#202124;flex:1;letter-spacing:-0.2px;">保存为 Agent</h3>';
@@ -1375,19 +1375,19 @@ function setupIpcHandlers() {
               
               // 图标选择
               const iconField = document.createElement('div');
-              iconField.style.cssText = 'margin-bottom:20px;';
-              iconField.innerHTML = '<label style="display:block;font-size:13px;font-weight:600;color:#202124;margin-bottom:10px;">选择图标</label>';
+              iconField.style.cssText = 'margin-bottom:16px;';
+              iconField.innerHTML = '<label style="display:block;font-size:13px;font-weight:600;color:#202124;margin-bottom:8px;">选择图标</label>';
               const iconGrid = document.createElement('div');
-              iconGrid.style.cssText = 'display:grid;grid-template-columns:repeat(5,1fr);gap:8px;';
+              iconGrid.style.cssText = 'display:grid;grid-template-columns:repeat(5,1fr);gap:6px;';
               let selectedIcon = icons[0];
               // 更新预览函数
               const updatePreview = () => {
                 const preview = document.getElementById('__agent_preview_box__');
                 const saveBtn = document.getElementById('__agent_save_btn__');
-                if (preview) {
+                if (preview && previewIcon) {
                   preview.style.background = 'linear-gradient(135deg,' + previewColor.value + ',' + previewColor.end + ')';
-                  preview.style.boxShadow = '0 4px 12px ' + previewColor.value + '40';
-                  preview.innerHTML = '<span style="color:white;">' + previewIcon.svg + '</span>';
+                  preview.style.boxShadow = '0 2px 8px ' + previewColor.value + '40';
+                  preview.innerHTML = '<i class="ph ' + (previewIcon.icon || 'ph-robot') + '" style="font-size:20px;color:white;"></i>';
                 }
                 if (saveBtn) {
                   saveBtn.style.background = previewColor.value;
@@ -1399,11 +1399,11 @@ function setupIpcHandlers() {
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 btn.style.cssText = 
-                  'width:48px;height:48px;border:2px solid ' + (idx === 0 ? previewColor.value : '#E8EAED') + ';border-radius:12px;' +
+                  'width:36px;height:36px;border:2px solid ' + (idx === 0 ? previewColor.value : '#E8EAED') + ';border-radius:8px;' +
                   'background:' + (idx === 0 ? previewColor.value + '15' : '#FAFBFC') + ';cursor:pointer;' +
                   'display:flex;align-items:center;justify-content:center;color:' + (idx === 0 ? previewColor.value : '#5F6368') + ';' +
-                  'transition:all 0.2s;padding:0;box-shadow:' + (idx === 0 ? '0 2px 8px ' + previewColor.value + '20' : 'none') + ';';
-                btn.innerHTML = '<i class="ph ' + item.icon + '"></i>';
+                  'transition:all 0.2s;padding:0;box-shadow:' + (idx === 0 ? '0 2px 6px ' + previewColor.value + '20' : 'none') + ';';
+                btn.innerHTML = '<i class="ph ' + item.icon + '" style="font-size:18px;"></i>';
                 btn.title = item.name;
                 btn.onmouseenter = () => { if (btn.style.borderColor !== previewColor.value) { btn.style.borderColor = '#DADCE0'; btn.style.background = '#F1F3F4'; } };
                 btn.onmouseleave = () => { if (btn.style.borderColor !== previewColor.value) { btn.style.borderColor = '#E8EAED'; btn.style.background = '#FAFBFC'; } };
