@@ -2790,33 +2790,44 @@
         // 移除 Agent Editor 并关闭所有标签页
         console.log('[Agent Editor] Proceeding to close, activeView:', activeView?.id, 'currentViewId:', currentViewId);
         const viewIdToClose = activeView?.id || currentViewId;
+        
+        // 先获取所有视图ID（在移除 Agent Editor 之前）
+        console.log('[Agent Editor] Getting all views...');
+        const views = await window.siliuAPI?.getViews?.() || [];
+        console.log('[Agent Editor] Views to close:', views.length, views.map(v => v.id || v));
+        
+        // 提取视图ID列表
+        const viewIdsToClose = views.map(v => v.id || v).filter(id => id);
+        
         if (viewIdToClose) {
           console.log('[Agent Editor] Calling agentEditorRemove for:', viewIdToClose);
-          const result = await window.siliuAPI?.agentEditorRemove?.(viewIdToClose);
-          console.log('[Agent Editor] Remove result:', result);
-          
-          // 关闭所有标签页
-          console.log('[Agent Editor] Closing all tabs...');
-          const views = await window.siliuAPI?.getViews?.() || [];
-          for (const view of views) {
-            try {
-              await window.siliuAPI?.closeView?.(view.id);
-              console.log('[Agent Editor] Closed tab:', view.id);
-            } catch (err) {
-              console.log('[Agent Editor] Error closing tab', view.id, ':', err);
-            }
+          try {
+            const result = await window.siliuAPI?.agentEditorRemove?.(viewIdToClose);
+            console.log('[Agent Editor] Remove result:', result);
+          } catch (err) {
+            console.log('[Agent Editor] agentEditorRemove error:', err);
           }
-          
-          // 清理状态
-          annotationSession.coordinates = [];
-          annotationSession.currentCoord = null;
-          updateCoordCount();
-          testOverlayActive = false;
-          showToast('Agent Editor 已关闭');
-        } else {
-          console.error('[Agent Editor] No viewId to close');
-          showToast('关闭失败: 无法获取视图ID', 'error');
         }
+        
+        // 关闭所有标签页
+        console.log('[Agent Editor] Closing all tabs:', viewIdsToClose);
+        for (const viewId of viewIdsToClose) {
+          try {
+            console.log('[Agent Editor] Closing tab:', viewId);
+            await window.siliuAPI?.closeView?.(viewId);
+            console.log('[Agent Editor] Closed tab:', viewId);
+          } catch (err) {
+            console.log('[Agent Editor] Error closing tab', viewId, ':', err);
+          }
+        }
+        
+        // 清理状态
+        console.log('[Agent Editor] Clearing state...');
+        annotationSession.coordinates = [];
+        annotationSession.currentCoord = null;
+        updateCoordCount();
+        testOverlayActive = false;
+        showToast('Agent Editor 已关闭');
       }
     }
     
