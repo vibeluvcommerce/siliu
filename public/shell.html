@@ -1942,6 +1942,14 @@
   <script src="./tab-renderer.js"></script>
 
   <script>
+    // F12 打开开发者工具
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'F12') {
+        e.preventDefault();
+        window.siliuAPI?.openDevTools?.();
+      }
+    });
+    
     // 状态
     let currentViewId = null;
     let views = [];

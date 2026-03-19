@@ -39,6 +39,7 @@ contextBridge.exposeInMainWorld('siliuAPI', {
   minimizeWindow: () => ipcRenderer.invoke('window:minimize'),
   maximizeWindow: () => ipcRenderer.invoke('window:maximize'),
   closeWindow: () => ipcRenderer.invoke('window:close'),
+  openDevTools: () => ipcRenderer.invoke('window:openDevTools'),
   getWindowPosition: () => ipcRenderer.invoke('window:getPosition'),
   setSidebarOpen: (isOpen) => ipcRenderer.invoke('window:setSidebarOpen', isOpen),
   isMaximized: () => ipcRenderer.invoke('window:isMaximized'),
