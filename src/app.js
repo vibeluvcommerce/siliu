@@ -1268,30 +1268,30 @@ function setupIpcHandlers() {
               const defaultId = domain ? domain.replace(/\./g, '-') + '-' + Date.now().toString(36).slice(-4) : 'agent-' + Date.now().toString(36).slice(-4);
               const pagePath = new URL(url).pathname;
               
-              // 图标选项
+              // 图标选项 - Phosphor Icons SVG
               const icons = [
-                { name: '机器人', icon: '🤖' },
-                { name: '导航', icon: '🗺️' },
-                { name: '购物', icon: '🛒' },
-                { name: '搜索', icon: '🔍' },
-                { name: '数据', icon: '📊' },
-                { name: '文档', icon: '📄' },
-                { name: '娱乐', icon: '🎮' },
-                { name: '社交', icon: '👥' },
-                { name: '工具', icon: '🔧' },
-                { name: '心形', icon: '❤️' }
+                { name: '机器人', svg: '<svg width="24" height="24" viewBox="0 0 256 256" fill="currentColor"><path d="M200,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H56A32,32,0,0,0,24,80V192a32,32,0,0,0,32,32H200a32,32,0,0,0,32-32V80A32,32,0,0,0,200,48Zm-72,0h-8V40a8,8,0,0,1,8-8,8,8,0,0,1,8,8Zm56,112H72a8,8,0,0,1,0-16H184a8,8,0,0,1,0,16Zm-56,32H72a8,8,0,0,1,0-16h56a8,8,0,0,1,0,16Zm56-64H72a8,8,0,0,1,0-16H184a8,8,0,0,1,0,16Z"/></svg>' },
+                { name: '导航', svg: '<svg width="24" height="24" viewBox="0 0 256 256" fill="currentColor"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm-8-80a8,8,0,0,1,8-8,40,40,0,0,1,40,40,8,8,0,0,1-16,0,24,24,0,0,0-24-24A8,8,0,0,1,120,136Zm0-32a8,8,0,0,1,8-8,72,72,0,0,1,72,72,8,8,0,0,1-16,0,56,56,0,0,0-56-56A8,8,0,0,1,120,104Z"/></svg>' },
+                { name: '购物', svg: '<svg width="24" height="24" viewBox="0 0 256 256" fill="currentColor"><path d="M222,48a8,8,0,0,1-8,8H64a8,8,0,0,1,0-16H214A8,8,0,0,1,222,48ZM213.58,80.32l-10.52,84a16,16,0,0,1-15.88,14.05H68.82a16,16,0,0,1-15.88-14.05l-10.52-84A16,16,0,0,1,58.3,64H197.7a16,16,0,0,1,15.88,16.32ZM96,104a8,8,0,0,0,0,16h64a8,8,0,0,0,0-16Z"/></svg>' },
+                { name: '搜索', svg: '<svg width="24" height="24" viewBox="0 0 256 256" fill="currentColor"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"/></svg>' },
+                { name: '数据', svg: '<svg width="24" height="24" viewBox="0 0 256 256" fill="currentColor"><path d="M224,200h-8V40a8,8,0,0,0-8-8H48a8,8,0,0,0-8,8V200H32a8,8,0,0,0,0,16H224a8,8,0,0,0,0-16Zm-64,0H96V176h64Zm0-32H96V144h64Zm0-32H96V112h64Zm40,32H168V144h32Zm0-32H168V112h32Zm0-64H56V48H200Z"/></svg>' },
+                { name: '文档', svg: '<svg width="24" height="24" viewBox="0 0 256 256" fill="currentColor"><path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40v72a8,8,0,0,0,16,0V40h88V88a8,8,0,0,0,8,8h48V216H176a8,8,0,0,0,0,16h24a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160Z"/></svg>' },
+                { name: '娱乐', svg: '<svg width="24" height="24" viewBox="0 0 256 256" fill="currentColor"><path d="M176,112a8,8,0,0,1-8,8H144v24a8,8,0,0,1-16,0V120H112a8,8,0,0,1,0-16h16V80a8,8,0,0,1,16,0v24h24A8,8,0,0,1,176,112Zm64,16a96,96,0,1,1-96-96A96,96,0,0,1,240,128Zm-16,0a80,80,0,1,0-80,80A80,80,0,0,0,224,128Z"/></svg>' },
+                { name: '社交', svg: '<svg width="24" height="24" viewBox="0 0 256 256" fill="currentColor"><path d="M117.25,157.92a60,60,0,1,0-66.5,0A95.83,95.83,0,0,0,3.53,195.63a8,8,0,1,0,13.4,8.74,80,80,0,0,1,134.14,0,8,8,0,0,0,13.4-8.74A95.83,95.83,0,0,0,117.25,157.92ZM40,108a44,44,0,1,1,44,44A44.05,44.05,0,0,1,40,108Zm210.14,98.7a8,8,0,0,1-11.07-2.33A79.83,79.83,0,0,0,172,168a8,8,0,0,1,0-16,44,44,0,1,0-16.34-84.87,8,8,0,1,1-5.94-14.85,60,60,0,0,1,55.53,106.35,95.83,95.83,0,0,1,47.22,37.71A8,8,0,0,1,250.14,206.7Z"/></svg>' },
+                { name: '工具', svg: '<svg width="24" height="24" viewBox="0 0 256 256" fill="currentColor"><path d="M224,64a32,32,0,0,1-32,32H168V56a32,32,0,0,1,32-32,8,8,0,0,1,0,16,16,16,0,0,0-16,16v40h24a16,16,0,0,0,16-16,8,8,0,0,1,16,0Zm-72,40a8,8,0,0,0-8,8v16H120V112a8,8,0,0,0-16,0v16H88V112a8,8,0,0,0-16,0v24a8,8,0,0,0,8,8h16v16a8,8,0,0,0,16,0V144h16v16a8,8,0,0,0,16,0V144h16a8,8,0,0,0,0-16Z"/></svg>' },
+                { name: '收藏', svg: '<svg width="24" height="24" viewBox="0 0 256 256" fill="currentColor"><path d="M178,32a58.07,58.07,0,0,0-58,58c0,17.41,7.74,33.08,20,43.78V224a8,8,0,0,0,12.36,6.73l56.9-33.76A8,8,0,0,0,212,186.52V133.78A58,58,0,0,0,178,32Zm42,154.48-44.9,26.63V144.87A57.9,57.9,0,0,0,192,133.55v52.97ZM178,120a42,42,0,1,1,42-42A42,42,0,0,1,178,120Z"/></svg>' }
               ];
               
-              // 颜色选项
+              // 颜色选项 - 项目主题色
               const colors = [
-                { name: '蓝色', value: '#1A73E8', end: '#4285F4' },
-                { name: '红色', value: '#DC2626', end: '#EF4444' },
-                { name: '绿色', value: '#059669', end: '#10B981' },
+                { name: '主色蓝', value: '#1A73E8', end: '#4285F4' },
+                { name: '深蓝', value: '#185ABC', end: '#1A73E8' },
+                { name: '成功绿', value: '#34A853', end: '#5BB974' },
+                { name: '警告橙', value: '#FB8C00', end: '#FFA726' },
+                { name: '危险红', value: '#EA4335', end: '#EF5350' },
                 { name: '紫色', value: '#7C3AED', end: '#8B5CF6' },
-                { name: '橙色', value: '#EA580C', end: '#F97316' },
-                { name: '粉色', value: '#DB2777', end: '#EC4899' },
                 { name: '青色', value: '#0891B2', end: '#06B6D4' },
-                { name: '深灰', value: '#374151', end: '#4B5563' }
+                { name: '深灰', value: '#5F6368', end: '#80868B' }
               ];
               
               const overlay = document.createElement('div');
@@ -1306,25 +1306,24 @@ function setupIpcHandlers() {
               const modal = document.createElement('div');
               modal.style.cssText = 
                 'background:white;border-radius:16px;width:480px;max-width:90vw;' +
-                'max-height:85vh;overflow-y:auto;' +
                 'box-shadow:0 25px 80px rgba(0,0,0,0.25);' +
                 'transform:scale(0.95);transition:transform 0.2s;';
               
               const header = document.createElement('div');
-              header.style.cssText = 'padding:20px 24px;border-bottom:1px solid #e5e7eb;position:sticky;top:0;background:white;z-index:1;';
-              header.innerHTML = '<h3 style="margin:0;font-size:18px;font-weight:600;color:#111827;">保存为 Agent</h3>';
+              header.style.cssText = 'padding:20px 24px;border-bottom:1px solid #DADCE0;background:white;';
+              header.innerHTML = '<h3 style="margin:0;font-size:18px;font-weight:600;color:#202124;">保存为 Agent</h3>';
               
               const body = document.createElement('div');
               body.style.cssText = 'padding:20px 24px;';
               
               const coordHint = document.createElement('div');
-              coordHint.style.cssText = 'background:#f3f4f6;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:#6b7280;';
-              coordHint.innerHTML = '<span style="font-weight:600;color:#111827;">当前页面:</span> ' + domain + ' <span style="margin:0 8px;">·</span> <span style="font-weight:600;color:#059669;">已标注 ' + coordinates.length + ' 个坐标</span>';
+              coordHint.style.cssText = 'background:#F1F3F4;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:#5F6368;';
+              coordHint.innerHTML = '<span style="font-weight:600;color:#202124;">当前页面:</span> ' + domain + ' <span style="margin:0 8px;">·</span> <span style="font-weight:600;color:#34A853;">已标注 ' + coordinates.length + ' 个坐标</span>';
               body.appendChild(coordHint);
               
               const fieldStyle = 'margin-bottom:16px;';
-              const labelStyle = 'display:block;font-size:13px;font-weight:500;color:#374151;margin-bottom:6px;';
-              const inputStyle = 'width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;outline:none;transition:all 0.15s;box-sizing:border-box;';
+              const labelStyle = 'display:block;font-size:13px;font-weight:500;color:#202124;margin-bottom:6px;';
+              const inputStyle = 'width:100%;padding:10px 12px;border:1px solid #DADCE0;border-radius:8px;font-size:14px;outline:none;transition:all 0.15s;box-sizing:border-box;color:#202124;';
               const textareaStyle = inputStyle + 'min-height:80px;resize:vertical;';
               
               // Agent 名称
@@ -1341,7 +1340,7 @@ function setupIpcHandlers() {
               // Agent ID
               const idField = document.createElement('div');
               idField.style.cssText = fieldStyle;
-              idField.innerHTML = '<label style="' + labelStyle + '">Agent ID <span style="font-weight:400;color:#9ca3af;">(用于唯一标识)</span></label>';
+              idField.innerHTML = '<label style="' + labelStyle + '">Agent ID <span style="font-weight:400;color:#5F6368;">(用于唯一标识)</span></label>';
               const idInput = document.createElement('input');
               idInput.type = 'text';
               idInput.value = defaultId;
@@ -1370,16 +1369,18 @@ function setupIpcHandlers() {
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 btn.style.cssText = 
-                  'aspect-ratio:1;border:2px solid ' + (idx === 0 ? '#3b82f6' : '#e5e7eb') + ';border-radius:8px;' +
-                  'background:' + (idx === 0 ? '#eff6ff' : 'white') + ';cursor:pointer;font-size:24px;' +
+                  'aspect-ratio:1;border:2px solid ' + (idx === 0 ? '#1A73E8' : '#DADCE0') + ';border-radius:8px;' +
+                  'background:' + (idx === 0 ? '#E8F0FE' : 'white') + ';cursor:pointer;' +
+                  'display:flex;align-items:center;justify-content:center;color:' + (idx === 0 ? '#1A73E8' : '#5F6368') + ';' +
                   'transition:all 0.15s;';
-                btn.textContent = item.icon;
+                btn.innerHTML = item.svg;
                 btn.title = item.name;
                 btn.onclick = () => {
                   selectedIcon = item;
                   iconGrid.querySelectorAll('button').forEach((b, i) => {
-                    b.style.borderColor = i === idx ? '#3b82f6' : '#e5e7eb';
-                    b.style.background = i === idx ? '#eff6ff' : 'white';
+                    b.style.borderColor = i === idx ? '#1A73E8' : '#DADCE0';
+                    b.style.background = i === idx ? '#E8F0FE' : 'white';
+                    b.style.color = i === idx ? '#1A73E8' : '#5F6368';
                   });
                 };
                 iconGrid.appendChild(btn);
@@ -1398,14 +1399,14 @@ function setupIpcHandlers() {
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 btn.style.cssText = 
-                  'width:40px;height:40px;border-radius:50%;border:3px solid ' + (idx === 0 ? '#111827' : 'transparent') + ';' +
+                  'width:40px;height:40px;border-radius:50%;border:3px solid ' + (idx === 0 ? '#1A73E8' : 'transparent') + ';' +
                   'background:linear-gradient(135deg,' + item.value + ',' + item.end + ');cursor:pointer;' +
                   'transition:all 0.15s;box-shadow:0 2px 8px ' + item.value + '40;';
                 btn.title = item.name;
                 btn.onclick = () => {
                   selectedColor = item;
                   colorGrid.querySelectorAll('button').forEach((b, i) => {
-                    b.style.borderColor = i === idx ? '#111827' : 'transparent';
+                    b.style.borderColor = i === idx ? '#1A73E8' : 'transparent';
                   });
                 };
                 colorGrid.appendChild(btn);
@@ -1425,7 +1426,7 @@ function setupIpcHandlers() {
               
               // 底部按钮
               const footer = document.createElement('div');
-              footer.style.cssText = 'padding:16px 24px;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end;gap:12px;position:sticky;bottom:0;background:white;';
+              footer.style.cssText = 'padding:16px 24px;border-top:1px solid #DADCE0;display:flex;justify-content:flex-end;gap:12px;background:white;';
               
               const closeModal = (result) => {
                 overlay.style.opacity = '0';
@@ -1439,10 +1440,10 @@ function setupIpcHandlers() {
               const cancelBtn = document.createElement('button');
               cancelBtn.textContent = '取消';
               cancelBtn.style.cssText = 
-                'padding:10px 20px;font-size:14px;font-weight:500;color:#6b7280;' +
+                'padding:10px 20px;font-size:14px;font-weight:500;color:#5F6368;' +
                 'background:transparent;border:none;border-radius:8px;cursor:pointer;' +
                 'transition:all 0.15s;';
-              cancelBtn.onmouseenter = () => cancelBtn.style.background = '#f3f4f6';
+              cancelBtn.onmouseenter = () => cancelBtn.style.background = '#F1F3F4';
               cancelBtn.onmouseleave = () => cancelBtn.style.background = 'transparent';
               cancelBtn.onclick = () => closeModal(null);
               
@@ -1450,15 +1451,15 @@ function setupIpcHandlers() {
               saveBtn2.textContent = '保存 Agent';
               saveBtn2.style.cssText = 
                 'padding:10px 24px;font-size:14px;font-weight:600;color:white;' +
-                'background:linear-gradient(135deg,#1A73E8,#4285F4);border:none;border-radius:8px;cursor:pointer;' +
-                'transition:all 0.15s;box-shadow:0 4px 12px rgba(26,115,232,0.3);';
+                'background:#1A73E8;border:none;border-radius:8px;cursor:pointer;' +
+                'transition:all 0.15s;box-shadow:0 2px 8px rgba(26,115,232,0.3);';
               saveBtn2.onmouseenter = () => saveBtn2.style.opacity = '0.9';
               saveBtn2.onmouseleave = () => saveBtn2.style.opacity = '1';
               saveBtn2.onclick = () => {
                 const name = nameInput.value.trim();
                 if (!name) {
-                  nameInput.style.borderColor = '#dc2626';
-                  nameInput.style.boxShadow = '0 0 0 3px rgba(220,38,38,0.1)';
+                  nameInput.style.borderColor = '#EA4335';
+                  nameInput.style.boxShadow = '0 0 0 3px rgba(234,67,53,0.1)';
                   nameInput.placeholder = '请输入 Agent 名称';
                   nameInput.focus();
                   return;
@@ -1469,7 +1470,7 @@ function setupIpcHandlers() {
                     id: idInput.value.trim() || defaultId,
                     name: name,
                     description: descInput.value.trim(),
-                    icon: selectedIcon.icon,
+                    icon: selectedIcon.svg,
                     color: selectedColor.value,
                     colorEnd: selectedColor.end
                   },
