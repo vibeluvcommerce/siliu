@@ -1418,7 +1418,7 @@ function setupIpcHandlers() {
               // 图标下方的描述输入
               const descInIcon = document.createElement('div');
               descInIcon.style.cssText = 'margin-top:16px;';
-              descInIcon.innerHTML = '<label style="display:block;font-size:13px;font-weight:600;color:#202124;margin-bottom:6px;">描述 <span style="font-weight:400;color:#9AA0A6;">可选</span></label>';
+              descInIcon.innerHTML = '<label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#202124;margin-bottom:6px;"><span>描述</span><span style="font-size:11px;font-weight:400;color:#9AA0A6;background:#F1F3F4;padding:2px 6px;border-radius:4px;">可选</span></label>';
               const descInput2 = document.createElement('input');
               descInput2.type = 'text';
               descInput2.placeholder = '简短描述这个 Agent...';
