@@ -1335,7 +1335,7 @@ function setupIpcHandlers() {
               // 幻灯片提示
               const coordHint = document.createElement('div');
               coordHint.style.cssText = 'background:linear-gradient(135deg,' + previewColor.value + '15,' + previewColor.end + '15);border-radius:12px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:#5F6368;border:1px solid ' + previewColor.value + '20;';
-              coordHint.innerHTML = '<div style="display:flex;align-items:center;gap:8px;"><span style="font-size:16px;">📍</span><span><strong style="color:#202124;">' + domain + '</strong> · 已标注 <strong style="color:' + previewColor.value + ';">' + coordinates.length + '</strong> 个坐标</span></div>';
+              coordHint.innerHTML = '<div style="display:flex;align-items:center;gap:4px;"><span style="color:#5F6368;">已标注 <strong style="color:' + previewColor.value + ';">' + coordinates.length + '</strong> 个坐标</span></div>';
               body.appendChild(coordHint);
               
               // 现代化输入框样式
@@ -1358,22 +1358,21 @@ function setupIpcHandlers() {
               nameRow.appendChild(nameField);
               
               const idField = document.createElement('div');
-              idField.innerHTML = '<label style="display:block;font-size:13px;font-weight:600;color:#202124;margin-bottom:6px;">ID</label>';
+              idField.innerHTML = '<label style="display:block;font-size:13px;font-weight:600;color:#202124;margin-bottom:6px;">Agent ID</label>';
               const idInput = document.createElement('input');
               idInput.type = 'text';
               idInput.value = defaultId;
-              idInput.style.cssText = 'width:100%;padding:12px 10px;border:1.5px solid #E8EAED;border-radius:10px;font-size:13px;outline:none;box-sizing:border-box;color:#202124;background:#FAFBFC;font-family:monospace;';
-              idInput.onfocus = () => idInput.style.cssText = 'width:100%;padding:12px 10px;border:1.5px solid ' + previewColor.value + ';border-radius:10px;font-size:13px;outline:none;box-sizing:border-box;color:#202124;background:#fff;font-family:monospace;box-shadow:0 0 0 3px ' + previewColor.value + '15;';
-              idInput.onblur = () => idInput.style.cssText = 'width:100%;padding:12px 10px;border:1.5px solid #E8EAED;border-radius:10px;font-size:13px;outline:none;box-sizing:border-box;color:#202124;background:#FAFBFC;font-family:monospace;';
+              idInput.readOnly = true;
+              idInput.style.cssText = 'width:100%;padding:12px 10px;border:1.5px solid #E8EAED;border-radius:10px;font-size:13px;outline:none;box-sizing:border-box;color:#9AA0A6;background:#F1F3F4;font-family:monospace;cursor:not-allowed;';
               idField.appendChild(idInput);
               nameRow.appendChild(idField);
               body.appendChild(nameRow);
               
-              // 图标 + 颜色 同行
+              // 图标 + 颜色 + 描述 布局
               const visualRow = document.createElement('div');
               visualRow.style.cssText = 'display:grid;grid-template-columns:1fr auto;gap:16px;margin-bottom:20px;';
               
-              // 图标选择
+              // 左侧：图标（2排）
               const iconField = document.createElement('div');
               iconField.innerHTML = '<label style="display:block;font-size:13px;font-weight:600;color:#202124;margin-bottom:8px;">图标</label>';
               const iconGrid = document.createElement('div');
@@ -1454,6 +1453,18 @@ function setupIpcHandlers() {
                 colorGrid.appendChild(btn);
               });
               colorField.appendChild(colorGrid);
+              
+              // 颜色下方的描述输入
+              const descInVisual = document.createElement('div');
+              descInVisual.style.cssText = 'margin-top:12px;';
+              descInVisual.innerHTML = '<label style="display:block;font-size:12px;font-weight:500;color:#5F6368;margin-bottom:6px;">描述</label>';
+              const descInput2 = document.createElement('input');
+              descInput2.type = 'text';
+              descInput2.placeholder = '简短描述这个 Agent...';
+              descInput2.style.cssText = 'width:100%;padding:8px 10px;border:1.5px solid #E8EAED;border-radius:8px;font-size:12px;outline:none;box-sizing:border-box;color:#202124;background:#FAFBFC;';
+              descInVisual.appendChild(descInput2);
+              colorField.appendChild(descInVisual);
+              
               visualRow.appendChild(colorField);
               body.appendChild(visualRow);
               
