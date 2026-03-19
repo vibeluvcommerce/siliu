@@ -1417,12 +1417,14 @@ function setupIpcHandlers() {
               
               // 图标下方的描述输入
               const descInIcon = document.createElement('div');
-              descInIcon.style.cssText = 'margin-top:12px;';
-              descInIcon.innerHTML = '<label style="display:block;font-size:12px;font-weight:500;color:#5F6368;margin-bottom:6px;">描述</label>';
+              descInIcon.style.cssText = 'margin-top:16px;';
+              descInIcon.innerHTML = '<label style="display:block;font-size:13px;font-weight:600;color:#202124;margin-bottom:6px;">描述 <span style="font-weight:400;color:#9AA0A6;">可选</span></label>';
               const descInput2 = document.createElement('input');
               descInput2.type = 'text';
               descInput2.placeholder = '简短描述这个 Agent...';
-              descInput2.style.cssText = 'width:100%;padding:8px 10px;border:1.5px solid #E8EAED;border-radius:8px;font-size:12px;outline:none;box-sizing:border-box;color:#202124;background:#FAFBFC;';
+              descInput2.style.cssText = inputBase;
+              descInput2.onfocus = () => descInput2.style.cssText = inputBase + inputFocus;
+              descInput2.onblur = () => descInput2.style.cssText = inputBase;
               descInIcon.appendChild(descInput2);
               iconField.appendChild(descInIcon);
               
