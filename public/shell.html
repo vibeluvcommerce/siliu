@@ -2712,17 +2712,14 @@
       console.log('[Agent Editor] testOverlayActive:', testOverlayActive);
       console.log('[Agent Editor] annotationSession.coordinates.length:', annotationSession.coordinates.length);
       
-      // 【关键修复】只要有残留数据就强制清理（无论 testOverlayActive 状态）
-      if (annotationSession.coordinates.length > 0) {
-        console.log('[Agent Editor] DATA CLEANUP - clearing', annotationSession.coordinates.length, 'coordinates');
+      // 检查是否有残留的未激活状态（取消按钮后未重置）
+      if (!testOverlayActive && annotationSession.coordinates.length > 0) {
+        console.log('[Agent Editor] Residual data detected, clearing');
         annotationSession.coordinates = [];
         annotationSession.currentCoord = null;
         agentEditorCancelled = false;
         updateCoordCount();
-        console.log('[Agent Editor] DATA CLEANUP completed');
       }
-      
-      console.log('[Agent Editor] Before open/close check - testOverlayActive:', testOverlayActive, 'coordinates:', annotationSession.coordinates.length);
       
       const activeView = await window.siliuAPI?.getActiveView?.();
       if (!activeView) {

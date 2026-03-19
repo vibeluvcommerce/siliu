@@ -159,7 +159,8 @@ contextBridge.exposeInMainWorld('siliuAPI', {
       'agentEditor:cancel',
       'agentEditor:navigated',
       'agentEditor:newTab',
-      'agentEditor:tabActivated'
+      'agentEditor:tabActivated',
+      'agentEditor:cancelAll'
     ];
     if (validChannels.includes(channel)) {
       ipcRenderer.on(channel, (event, data) => {
