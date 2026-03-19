@@ -825,6 +825,39 @@ function setupIpcHandlers() {
   } catch {}
   ipcMain.on('view:agentEditorCancelAll', agentEditorCancelAllHandler);
   
+  // 监听保存 Agent 事件
+  const agentEditorSaveHandler = async (event, data) => {
+    console.log('[Agent Editor] Save agent clicked:', data.config?.metadata?.name);
+    try {
+      if (modules.agentLoader && data.config) {
+        const result = await modules.agentLoader.saveAgent(data.config);
+        console.log('[Agent Editor] Agent saved result:', result);
+        if (result.success) {
+          // 通知 shell 显示成功提示
+          modules.core?.sendToRenderer?.('toast:show', { 
+            message: `Agent "${data.config.metadata.name}" 保存成功！`, 
+            type: 'success' 
+          });
+        } else {
+          modules.core?.sendToRenderer?.('toast:show', { 
+            message: '保存失败: ' + (result.error || '未知错误'), 
+            type: 'error' 
+          });
+        }
+      }
+    } catch (err) {
+      console.error('[Agent Editor] Failed to save agent:', err);
+      modules.core?.sendToRenderer?.('toast:show', { 
+        message: '保存失败: ' + err.message, 
+        type: 'error' 
+      });
+    }
+  };
+  try {
+    ipcMain.removeListener('view:agentEditorSave', agentEditorSaveHandler);
+  } catch {}
+  ipcMain.on('view:agentEditorSave', agentEditorSaveHandler);
+  
   // 监听坐标命名确认
   const annotationNameConfirmedHandler = async (event, data) => {
     console.log('[Agent Editor] annotationNameConfirmedHandler CALLED');
@@ -1205,7 +1238,299 @@ function setupIpcHandlers() {
             'transition:all 0.15s;';
           saveBtn.onmouseenter = () => { saveBtn.style.background = '#d1fae5'; saveBtn.style.color = '#059669'; };
           saveBtn.onmouseleave = () => { saveBtn.style.background = 'transparent'; saveBtn.style.color = '#9ca3af'; };
-          saveBtn.onclick = (e) => { e.stopPropagation(); };
+          saveBtn.onclick = async (e) => {
+            e.stopPropagation();
+            console.log('[Agent Editor] Save button clicked, coordinates:', window.savedCoordinates?.length || 0);
+            
+            // 获取当前域名和路径
+            const domain = window.location.hostname;
+            const url = window.location.href;
+            
+            // 调用保存弹窗函数
+            const result = await showSaveAgentDialog(window.savedCoordinates || [], domain, url);
+            if (result) {
+              console.log('[Agent Editor] Agent config prepared:', result.name);
+              // 发送给主进程保存
+              window.postMessage({ 
+                type: 'AGENT_EDITOR_SAVE', 
+                config: result 
+              }, '*');
+            }
+          };
+          
+          // 保存 Agent 弹窗函数
+          function showSaveAgentDialog(coordinates, domain, url) {
+            return new Promise((resolve) => {
+              // 移除已存在的弹窗
+              const existing = document.getElementById('__agent_editor_save_modal__');
+              if (existing) existing.remove();
+              
+              const defaultId = domain ? domain.replace(/\./g, '-') + '-' + Date.now().toString(36).slice(-4) : 'agent-' + Date.now().toString(36).slice(-4);
+              const pagePath = new URL(url).pathname;
+              
+              // 图标选项
+              const icons = [
+                { name: '机器人', icon: '🤖' },
+                { name: '导航', icon: '🗺️' },
+                { name: '购物', icon: '🛒' },
+                { name: '搜索', icon: '🔍' },
+                { name: '数据', icon: '📊' },
+                { name: '文档', icon: '📄' },
+                { name: '娱乐', icon: '🎮' },
+                { name: '社交', icon: '👥' },
+                { name: '工具', icon: '🔧' },
+                { name: '心形', icon: '❤️' }
+              ];
+              
+              // 颜色选项
+              const colors = [
+                { name: '蓝色', value: '#1A73E8', end: '#4285F4' },
+                { name: '红色', value: '#DC2626', end: '#EF4444' },
+                { name: '绿色', value: '#059669', end: '#10B981' },
+                { name: '紫色', value: '#7C3AED', end: '#8B5CF6' },
+                { name: '橙色', value: '#EA580C', end: '#F97316' },
+                { name: '粉色', value: '#DB2777', end: '#EC4899' },
+                { name: '青色', value: '#0891B2', end: '#06B6D4' },
+                { name: '深灰', value: '#374151', end: '#4B5563' }
+              ];
+              
+              const overlay = document.createElement('div');
+              overlay.id = '__agent_editor_save_modal__';
+              overlay.style.cssText = 
+                'position:fixed;top:0;left:0;right:0;bottom:0;' +
+                'background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);' +
+                'display:flex;align-items:center;justify-content:center;' +
+                'z-index:2147483650;opacity:0;transition:opacity 0.2s;' +
+                'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;';
+              
+              const modal = document.createElement('div');
+              modal.style.cssText = 
+                'background:white;border-radius:16px;width:480px;max-width:90vw;' +
+                'max-height:85vh;overflow-y:auto;' +
+                'box-shadow:0 25px 80px rgba(0,0,0,0.25);' +
+                'transform:scale(0.95);transition:transform 0.2s;';
+              
+              const header = document.createElement('div');
+              header.style.cssText = 'padding:20px 24px;border-bottom:1px solid #e5e7eb;position:sticky;top:0;background:white;z-index:1;';
+              header.innerHTML = '<h3 style="margin:0;font-size:18px;font-weight:600;color:#111827;">保存为 Agent</h3>';
+              
+              const body = document.createElement('div');
+              body.style.cssText = 'padding:20px 24px;';
+              
+              const coordHint = document.createElement('div');
+              coordHint.style.cssText = 'background:#f3f4f6;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:#6b7280;';
+              coordHint.innerHTML = '<span style="font-weight:600;color:#111827;">当前页面:</span> ' + domain + ' <span style="margin:0 8px;">·</span> <span style="font-weight:600;color:#059669;">已标注 ' + coordinates.length + ' 个坐标</span>';
+              body.appendChild(coordHint);
+              
+              const fieldStyle = 'margin-bottom:16px;';
+              const labelStyle = 'display:block;font-size:13px;font-weight:500;color:#374151;margin-bottom:6px;';
+              const inputStyle = 'width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;outline:none;transition:all 0.15s;box-sizing:border-box;';
+              const textareaStyle = inputStyle + 'min-height:80px;resize:vertical;';
+              
+              // Agent 名称
+              const nameField = document.createElement('div');
+              nameField.style.cssText = fieldStyle;
+              nameField.innerHTML = '<label style="' + labelStyle + '">Agent 名称 *</label>';
+              const nameInput = document.createElement('input');
+              nameInput.type = 'text';
+              nameInput.placeholder = '例如: 淘宝搜索助手';
+              nameInput.style.cssText = inputStyle;
+              nameField.appendChild(nameInput);
+              body.appendChild(nameField);
+              
+              // Agent ID
+              const idField = document.createElement('div');
+              idField.style.cssText = fieldStyle;
+              idField.innerHTML = '<label style="' + labelStyle + '">Agent ID <span style="font-weight:400;color:#9ca3af;">(用于唯一标识)</span></label>';
+              const idInput = document.createElement('input');
+              idInput.type = 'text';
+              idInput.value = defaultId;
+              idInput.style.cssText = inputStyle + 'font-family:monospace;';
+              idField.appendChild(idInput);
+              body.appendChild(idField);
+              
+              // 描述
+              const descField = document.createElement('div');
+              descField.style.cssText = fieldStyle;
+              descField.innerHTML = '<label style="' + labelStyle + '">用途描述</label>';
+              const descInput = document.createElement('textarea');
+              descInput.placeholder = '描述这个 Agent 的主要用途和能力...';
+              descInput.style.cssText = textareaStyle;
+              descField.appendChild(descInput);
+              body.appendChild(descField);
+              
+              // 图标选择
+              const iconField = document.createElement('div');
+              iconField.style.cssText = fieldStyle;
+              iconField.innerHTML = '<label style="' + labelStyle + '">图标</label>';
+              const iconGrid = document.createElement('div');
+              iconGrid.style.cssText = 'display:grid;grid-template-columns:repeat(5,1fr);gap:8px;';
+              let selectedIcon = icons[0];
+              icons.forEach((item, idx) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.style.cssText = 
+                  'aspect-ratio:1;border:2px solid ' + (idx === 0 ? '#3b82f6' : '#e5e7eb') + ';border-radius:8px;' +
+                  'background:' + (idx === 0 ? '#eff6ff' : 'white') + ';cursor:pointer;font-size:24px;' +
+                  'transition:all 0.15s;';
+                btn.textContent = item.icon;
+                btn.title = item.name;
+                btn.onclick = () => {
+                  selectedIcon = item;
+                  iconGrid.querySelectorAll('button').forEach((b, i) => {
+                    b.style.borderColor = i === idx ? '#3b82f6' : '#e5e7eb';
+                    b.style.background = i === idx ? '#eff6ff' : 'white';
+                  });
+                };
+                iconGrid.appendChild(btn);
+              });
+              iconField.appendChild(iconGrid);
+              body.appendChild(iconField);
+              
+              // 颜色选择
+              const colorField = document.createElement('div');
+              colorField.style.cssText = fieldStyle;
+              colorField.innerHTML = '<label style="' + labelStyle + '">主题颜色</label>';
+              const colorGrid = document.createElement('div');
+              colorGrid.style.cssText = 'display:flex;flex-wrap:wrap;gap:10px;';
+              let selectedColor = colors[0];
+              colors.forEach((item, idx) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.style.cssText = 
+                  'width:40px;height:40px;border-radius:50%;border:3px solid ' + (idx === 0 ? '#111827' : 'transparent') + ';' +
+                  'background:linear-gradient(135deg,' + item.value + ',' + item.end + ');cursor:pointer;' +
+                  'transition:all 0.15s;box-shadow:0 2px 8px ' + item.value + '40;';
+                btn.title = item.name;
+                btn.onclick = () => {
+                  selectedColor = item;
+                  colorGrid.querySelectorAll('button').forEach((b, i) => {
+                    b.style.borderColor = i === idx ? '#111827' : 'transparent';
+                  });
+                };
+                colorGrid.appendChild(btn);
+              });
+              colorField.appendChild(colorGrid);
+              body.appendChild(colorField);
+              
+              // 性格能力
+              const personalityField = document.createElement('div');
+              personalityField.style.cssText = fieldStyle;
+              personalityField.innerHTML = '<label style="' + labelStyle + '">性格与能力</label>';
+              const personalityInput = document.createElement('textarea');
+              personalityInput.placeholder = '描述这个 Agent 的性格特点、专长领域、工作方式等...';
+              personalityInput.style.cssText = textareaStyle;
+              personalityField.appendChild(personalityInput);
+              body.appendChild(personalityField);
+              
+              // 底部按钮
+              const footer = document.createElement('div');
+              footer.style.cssText = 'padding:16px 24px;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end;gap:12px;position:sticky;bottom:0;background:white;';
+              
+              const closeModal = (result) => {
+                overlay.style.opacity = '0';
+                modal.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                  overlay.remove();
+                  resolve(result);
+                }, 200);
+              };
+              
+              const cancelBtn = document.createElement('button');
+              cancelBtn.textContent = '取消';
+              cancelBtn.style.cssText = 
+                'padding:10px 20px;font-size:14px;font-weight:500;color:#6b7280;' +
+                'background:transparent;border:none;border-radius:8px;cursor:pointer;' +
+                'transition:all 0.15s;';
+              cancelBtn.onmouseenter = () => cancelBtn.style.background = '#f3f4f6';
+              cancelBtn.onmouseleave = () => cancelBtn.style.background = 'transparent';
+              cancelBtn.onclick = () => closeModal(null);
+              
+              const saveBtn2 = document.createElement('button');
+              saveBtn2.textContent = '保存 Agent';
+              saveBtn2.style.cssText = 
+                'padding:10px 24px;font-size:14px;font-weight:600;color:white;' +
+                'background:linear-gradient(135deg,#1A73E8,#4285F4);border:none;border-radius:8px;cursor:pointer;' +
+                'transition:all 0.15s;box-shadow:0 4px 12px rgba(26,115,232,0.3);';
+              saveBtn2.onmouseenter = () => saveBtn2.style.opacity = '0.9';
+              saveBtn2.onmouseleave = () => saveBtn2.style.opacity = '1';
+              saveBtn2.onclick = () => {
+                const name = nameInput.value.trim();
+                if (!name) {
+                  nameInput.style.borderColor = '#dc2626';
+                  nameInput.style.boxShadow = '0 0 0 3px rgba(220,38,38,0.1)';
+                  nameInput.placeholder = '请输入 Agent 名称';
+                  nameInput.focus();
+                  return;
+                }
+                
+                closeModal({
+                  metadata: {
+                    id: idInput.value.trim() || defaultId,
+                    name: name,
+                    description: descInput.value.trim(),
+                    icon: selectedIcon.icon,
+                    color: selectedColor.value,
+                    colorEnd: selectedColor.end
+                  },
+                  sites: [{
+                    domain: domain,
+                    pages: [{
+                      path: pagePath,
+                      coordinates: coordinates.map((c, idx) => ({
+                        name: c.name || ('coord_' + (idx + 1)),
+                        x: c.x,
+                        y: c.y,
+                        viewportX: c.viewportX,
+                        viewportY: c.viewportY,
+                        description: c.description || '',
+                        screenshot: c.screenshotPath || null
+                      }))
+                    }]
+                  }],
+                  knowledge: personalityInput.value.trim()
+                });
+              };
+              
+              footer.appendChild(cancelBtn);
+              footer.appendChild(saveBtn2);
+              
+              modal.appendChild(header);
+              modal.appendChild(body);
+              modal.appendChild(footer);
+              overlay.appendChild(modal);
+              document.body.appendChild(overlay);
+              
+              requestAnimationFrame(() => {
+                overlay.style.opacity = '1';
+                modal.style.transform = 'scale(1)';
+              });
+              
+              const escHandler = (e) => {
+                if (e.key === 'Escape') {
+                  document.removeEventListener('keydown', escHandler);
+                  closeModal(null);
+                }
+              };
+              document.addEventListener('keydown', escHandler);
+              
+              overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                  closeModal(null);
+                }
+              });
+              
+              nameInput.addEventListener('input', (e) => {
+                if (idInput.value === defaultId || !idInput.dataset.edited) {
+                  const pinyin = e.target.value.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5]/g, '-').replace(/-+/g, '-');
+                  idInput.value = pinyin + '-' + Date.now().toString(36).slice(-4);
+                }
+              });
+              idInput.addEventListener('input', () => {
+                idInput.dataset.edited = 'true';
+              });
+            });
+          }
           
           // 展开箭头
           const expandArrow = document.createElement('div');
@@ -1759,6 +2084,343 @@ function setupIpcHandlers() {
     } catch (err) {
       console.error('[Dialog] Error showing confirm dialog:', err);
       return false;
+    }
+  });
+
+  // Agent Editor: 保存 Agent 弹窗（注入到 BrowserView）
+  safeHandle('agentEditor:showSaveDialog', async (event, viewId, coordinates, domain, url) => {
+    try {
+      const view = modules.core?.tabManager?.getView?.(viewId);
+      if (!view) {
+        console.log('[Agent Editor] showSaveDialog: View not found:', viewId);
+        return { success: false, error: 'View not found' };
+      }
+      
+      // 生成默认 Agent ID（基于域名和时间戳）
+      const defaultId = domain ? domain.replace(/\./g, '-') + '-' + Date.now().toString(36) : 'agent-' + Date.now().toString(36);
+      const pagePath = new URL(url || 'http://' + domain).pathname;
+      
+      const script = `
+        (function() {
+          return new Promise((resolve) => {
+            // 移除已存在的弹窗
+            const existing = document.getElementById('__agent_editor_save_modal__');
+            if (existing) existing.remove();
+            
+            // 图标选项
+            const icons = [
+              { name: '机器人', icon: '🤖' },
+              { name: '导航', icon: '🗺️' },
+              { name: '购物', icon: '🛒' },
+              { name: '搜索', icon: '🔍' },
+              { name: '数据', icon: '📊' },
+              { name: '文档', icon: '📄' },
+              { name: '娱乐', icon: '🎮' },
+              { name: '社交', icon: '👥' },
+              { name: '工具', icon: '🔧' },
+              { name: '心形', icon: '❤️' }
+            ];
+            
+            // 颜色选项
+            const colors = [
+              { name: '蓝色', value: '#1A73E8', end: '#4285F4' },
+              { name: '红色', value: '#DC2626', end: '#EF4444' },
+              { name: '绿色', value: '#059669', end: '#10B981' },
+              { name: '紫色', value: '#7C3AED', end: '#8B5CF6' },
+              { name: '橙色', value: '#EA580C', end: '#F97316' },
+              { name: '粉色', value: '#DB2777', end: '#EC4899' },
+              { name: '青色', value: '#0891B2', end: '#06B6D4' },
+              { name: '深灰', value: '#374151', end: '#4B5563' }
+            ];
+            
+            // 创建遮罩
+            const overlay = document.createElement('div');
+            overlay.id = '__agent_editor_save_modal__';
+            overlay.style.cssText = 
+              'position:fixed;top:0;left:0;right:0;bottom:0;' +
+              'background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);' +
+              'display:flex;align-items:center;justify-content:center;' +
+              'z-index:2147483650;opacity:0;transition:opacity 0.2s;' +
+              'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;';
+            
+            // 创建弹窗
+            const modal = document.createElement('div');
+            modal.style.cssText = 
+              'background:white;border-radius:16px;width:480px;max-width:90vw;' +
+              'max-height:85vh;overflow-y:auto;' +
+              'box-shadow:0 25px 80px rgba(0,0,0,0.25);' +
+              'transform:scale(0.95);transition:transform 0.2s;';
+            
+            // 头部
+            const header = document.createElement('div');
+            header.style.cssText = 'padding:20px 24px;border-bottom:1px solid #e5e7eb;position:sticky;top:0;background:white;z-index:1;';
+            header.innerHTML = '<h3 style="margin:0;font-size:18px;font-weight:600;color:#111827;">保存为 Agent</h3>';
+            
+            // 内容区域
+            const body = document.createElement('div');
+            body.style.cssText = 'padding:20px 24px;';
+            
+            // 坐标数量提示
+            const coordCount = ${coordinates.length};
+            const coordHint = document.createElement('div');
+            coordHint.style.cssText = 'background:#f3f4f6;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:#6b7280;';
+            coordHint.innerHTML = '<span style="font-weight:600;color:#111827;">当前页面:</span> ' + ${JSON.stringify(domain)} + ' <span style="margin:0 8px;">·</span> <span style="font-weight:600;color:#059669;">已标注 ' + coordCount + ' 个坐标</span>';
+            body.appendChild(coordHint);
+            
+            // 表单字段样式
+            const fieldStyle = 'margin-bottom:16px;';
+            const labelStyle = 'display:block;font-size:13px;font-weight:500;color:#374151;margin-bottom:6px;';
+            const inputStyle = 'width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;outline:none;transition:all 0.15s;box-sizing:border-box;';
+            const textareaStyle = inputStyle + 'min-height:80px;resize:vertical;';
+            
+            // 1. Agent 名称
+            const nameField = document.createElement('div');
+            nameField.style.cssText = fieldStyle;
+            nameField.innerHTML = '<label style="' + labelStyle + '">Agent 名称 *</label>';
+            const nameInput = document.createElement('input');
+            nameInput.type = 'text';
+            nameInput.id = '__agent_save_name__';
+            nameInput.placeholder = '例如: 淘宝搜索助手';
+            nameInput.style.cssText = inputStyle;
+            nameInput.style.cssText += ':focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }';
+            nameField.appendChild(nameInput);
+            body.appendChild(nameField);
+            
+            // 2. Agent ID
+            const idField = document.createElement('div');
+            idField.style.cssText = fieldStyle;
+            idField.innerHTML = '<label style="' + labelStyle + '">Agent ID <span style="font-weight:400;color:#9ca3af;">(用于唯一标识)</span></label>';
+            const idInput = document.createElement('input');
+            idInput.type = 'text';
+            idInput.id = '__agent_save_id__';
+            idInput.value = ${JSON.stringify(defaultId)};
+            idInput.style.cssText = inputStyle + 'font-family:monospace;';
+            idField.appendChild(idInput);
+            body.appendChild(idField);
+            
+            // 3. 描述
+            const descField = document.createElement('div');
+            descField.style.cssText = fieldStyle;
+            descField.innerHTML = '<label style="' + labelStyle + '">用途描述</label>';
+            const descInput = document.createElement('textarea');
+            descInput.id = '__agent_save_desc__';
+            descInput.placeholder = '描述这个 Agent 的主要用途和能力...';
+            descInput.style.cssText = textareaStyle;
+            descField.appendChild(descInput);
+            body.appendChild(descField);
+            
+            // 4. 图标选择
+            const iconField = document.createElement('div');
+            iconField.style.cssText = fieldStyle;
+            iconField.innerHTML = '<label style="' + labelStyle + '">图标</label>';
+            const iconGrid = document.createElement('div');
+            iconGrid.style.cssText = 'display:grid;grid-template-columns:repeat(5,1fr);gap:8px;';
+            let selectedIcon = icons[0];
+            icons.forEach((item, idx) => {
+              const btn = document.createElement('button');
+              btn.type = 'button';
+              btn.style.cssText = 
+                'aspect-ratio:1;border:2px solid ' + (idx === 0 ? '#3b82f6' : '#e5e7eb') + ';border-radius:8px;' +
+                'background:' + (idx === 0 ? '#eff6ff' : 'white') + ';cursor:pointer;font-size:24px;' +
+                'transition:all 0.15s;';
+              btn.textContent = item.icon;
+              btn.title = item.name;
+              btn.onclick = () => {
+                selectedIcon = item;
+                iconGrid.querySelectorAll('button').forEach((b, i) => {
+                  b.style.borderColor = i === idx ? '#3b82f6' : '#e5e7eb';
+                  b.style.background = i === idx ? '#eff6ff' : 'white';
+                });
+              };
+              iconGrid.appendChild(btn);
+            });
+            iconField.appendChild(iconGrid);
+            body.appendChild(iconField);
+            
+            // 5. 颜色选择
+            const colorField = document.createElement('div');
+            colorField.style.cssText = fieldStyle;
+            colorField.innerHTML = '<label style="' + labelStyle + '">主题颜色</label>';
+            const colorGrid = document.createElement('div');
+            colorGrid.style.cssText = 'display:flex;flex-wrap:wrap;gap:10px;';
+            let selectedColor = colors[0];
+            colors.forEach((item, idx) => {
+              const btn = document.createElement('button');
+              btn.type = 'button';
+              btn.style.cssText = 
+                'width:40px;height:40px;border-radius:50%;border:3px solid ' + (idx === 0 ? '#111827' : 'transparent') + ';' +
+                'background:linear-gradient(135deg,' + item.value + ',' + item.end + ');cursor:pointer;' +
+                'transition:all 0.15s;box-shadow:0 2px 8px ' + item.value + '40;';
+              btn.title = item.name;
+              btn.onclick = () => {
+                selectedColor = item;
+                colorGrid.querySelectorAll('button').forEach((b, i) => {
+                  b.style.borderColor = i === idx ? '#111827' : 'transparent';
+                });
+              };
+              colorGrid.appendChild(btn);
+            });
+            colorField.appendChild(colorGrid);
+            body.appendChild(colorField);
+            
+            // 6. 性格能力
+            const personalityField = document.createElement('div');
+            personalityField.style.cssText = fieldStyle;
+            personalityField.innerHTML = '<label style="' + labelStyle + '">性格与能力</label>';
+            const personalityInput = document.createElement('textarea');
+            personalityInput.id = '__agent_save_personality__';
+            personalityInput.placeholder = '描述这个 Agent 的性格特点、专长领域、工作方式等...&#92;n&#92;n例如:&#92;n- 擅长网页数据采集&#92;n- 熟悉淘宝搜索和购物流程&#92;n- 操作细心且高效';
+            personalityInput.style.cssText = textareaStyle;
+            personalityField.appendChild(personalityInput);
+            body.appendChild(personalityField);
+            
+            // 底部按钮
+            const footer = document.createElement('div');
+            footer.style.cssText = 'padding:16px 24px;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end;gap:12px;position:sticky;bottom:0;background:white;';
+            
+            // 关闭函数
+            const closeModal = (result) => {
+              overlay.style.opacity = '0';
+              modal.style.transform = 'scale(0.95)';
+              setTimeout(() => {
+                overlay.remove();
+                resolve(result);
+              }, 200);
+            };
+            
+            // 取消按钮
+            const cancelBtn = document.createElement('button');
+            cancelBtn.textContent = '取消';
+            cancelBtn.style.cssText = 
+              'padding:10px 20px;font-size:14px;font-weight:500;color:#6b7280;' +
+              'background:transparent;border:none;border-radius:8px;cursor:pointer;' +
+              'transition:all 0.15s;';
+            cancelBtn.onmouseenter = () => cancelBtn.style.background = '#f3f4f6';
+            cancelBtn.onmouseleave = () => cancelBtn.style.background = 'transparent';
+            cancelBtn.onclick = () => closeModal(null);
+            
+            // 保存按钮
+            const saveBtn = document.createElement('button');
+            saveBtn.textContent = '保存 Agent';
+            saveBtn.style.cssText = 
+              'padding:10px 24px;font-size:14px;font-weight:600;color:white;' +
+              'background:linear-gradient(135deg,#1A73E8,#4285F4);border:none;border-radius:8px;cursor:pointer;' +
+              'transition:all 0.15s;box-shadow:0 4px 12px rgba(26,115,232,0.3);';
+            saveBtn.onmouseenter = () => saveBtn.style.opacity = '0.9';
+            saveBtn.onmouseleave = () => saveBtn.style.opacity = '1';
+            saveBtn.onclick = () => {
+              const name = nameInput.value.trim();
+              if (!name) {
+                nameInput.style.borderColor = '#dc2626';
+                nameInput.style.boxShadow = '0 0 0 3px rgba(220,38,38,0.1)';
+                nameInput.placeholder = '请输入 Agent 名称';
+                nameInput.focus();
+                return;
+              }
+              
+              closeModal({
+                name: name,
+                id: idInput.value.trim() || ${JSON.stringify(defaultId)},
+                description: descInput.value.trim(),
+                icon: selectedIcon.icon,
+                color: selectedColor.value,
+                colorEnd: selectedColor.end,
+                personality: personalityInput.value.trim()
+              });
+            };
+            
+            footer.appendChild(cancelBtn);
+            footer.appendChild(saveBtn);
+            
+            modal.appendChild(header);
+            modal.appendChild(body);
+            modal.appendChild(footer);
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
+            
+            // 动画显示
+            requestAnimationFrame(() => {
+              overlay.style.opacity = '1';
+              modal.style.transform = 'scale(1)';
+            });
+            
+            // ESC 关闭
+            const escHandler = (e) => {
+              if (e.key === 'Escape') {
+                document.removeEventListener('keydown', escHandler);
+                closeModal(null);
+              }
+            };
+            document.addEventListener('keydown', escHandler);
+            
+            // 点击遮罩关闭
+            overlay.addEventListener('click', (e) => {
+              if (e.target === overlay) {
+                closeModal(null);
+              }
+            });
+            
+            // 名称变化时自动生成 ID
+            nameInput.addEventListener('input', (e) => {
+              if (idInput.value === ${JSON.stringify(defaultId)} || !idInput.dataset.edited) {
+                const pinyin = e.target.value.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5]/g, '-').replace(/-+/g, '-');
+                idInput.value = pinyin + '-' + Date.now().toString(36).slice(-4);
+              }
+            });
+            idInput.addEventListener('input', () => {
+              idInput.dataset.edited = 'true';
+            });
+          });
+        })()
+      `;
+      
+      console.log('[Agent Editor] Showing save dialog in view:', viewId);
+      const result = await view.webContents.executeJavaScript(script, true);
+      console.log('[Agent Editor] Save dialog result:', result);
+      
+      if (result && result.name) {
+        // 构建 Agent 配置
+        const agentConfig = {
+          metadata: {
+            id: result.id,
+            name: result.name,
+            description: result.description,
+            icon: result.icon,
+            color: result.color,
+            colorEnd: result.colorEnd
+          },
+          sites: [{
+            domain: domain,
+            pages: [{
+              path: pagePath,
+              coordinates: coordinates.map((c, idx) => ({
+                name: c.name || ('coord_' + (idx + 1)),
+                x: c.x,
+                y: c.y,
+                viewportX: c.viewportX,
+                viewportY: c.viewportY,
+                description: c.description || '',
+                screenshot: c.screenshotPath || null
+              }))
+            }]
+          }],
+          knowledge: result.personality
+        };
+        
+        // 保存 Agent
+        if (modules.agentLoader) {
+          const saveResult = await modules.agentLoader.saveAgent(agentConfig);
+          console.log('[Agent Editor] Agent saved:', saveResult);
+          return saveResult;
+        } else {
+          return { success: false, error: 'Agent loader not initialized' };
+        }
+      }
+      
+      return { success: false, cancelled: true };
+    } catch (err) {
+      console.error('[Agent Editor] showSaveDialog error:', err);
+      return { success: false, error: err.message };
     }
   });
 
