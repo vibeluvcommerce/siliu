@@ -1601,6 +1601,127 @@ function setupIpcHandlers() {
     }
   });
 
+  // Agent Editor 确认弹窗（注入到 BrowserView 中显示，避免被遮挡）
+  safeHandle('agentEditor:showConfirm', async (event, viewId, message, title) => {
+    try {
+      const view = modules.core?.tabManager?.getView?.(viewId);
+      if (!view) {
+        console.log('[Agent Editor] showConfirm: View not found:', viewId);
+        return false;
+      }
+      
+      const script = `
+        (function() {
+          return new Promise((resolve) => {
+            // 移除已存在的弹窗
+            const existing = document.getElementById('__agent_editor_confirm_modal__');
+            if (existing) existing.remove();
+            
+            // 创建遮罩
+            const overlay = document.createElement('div');
+            overlay.id = '__agent_editor_confirm_modal__';
+            overlay.style.cssText = 
+              'position:fixed;top:0;left:0;right:0;bottom:0;' +
+              'background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);' +
+              'display:flex;align-items:center;justify-content:center;' +
+              'z-index:2147483650;opacity:0;transition:opacity 0.2s;';
+            
+            // 创建弹窗
+            const modal = document.createElement('div');
+            modal.style.cssText = 
+              'background:white;border-radius:12px;width:400px;max-width:90vw;' +
+              'box-shadow:0 20px 60px rgba(0,0,0,0.2);overflow:hidden;' +
+              'transform:scale(0.95);transition:transform 0.2s;';
+            
+            // 头部
+            const header = document.createElement('div');
+            header.style.cssText = 'padding:16px 20px;border-bottom:1px solid #e5e7eb;';
+            header.innerHTML = '<h3 style="margin:0;font-size:16px;font-weight:600;color:#111827;">' + ${JSON.stringify(title)} + '</h3>';
+            
+            // 内容
+            const body = document.createElement('div');
+            body.style.cssText = 'padding:20px;';
+            body.innerHTML = '<p style="margin:0;font-size:14px;color:#4b5563;line-height:1.5;">' + ${JSON.stringify(message)} + '</p>';
+            
+            // 按钮区域
+            const footer = document.createElement('div');
+            footer.style.cssText = 'padding:12px 20px 16px;display:flex;justify-content:flex-end;gap:8px;';
+            
+            // 关闭弹窗的函数
+            const closeModal = (result) => {
+              overlay.style.opacity = '0';
+              modal.style.transform = 'scale(0.95)';
+              setTimeout(() => {
+                overlay.remove();
+                resolve(result);
+              }, 200);
+            };
+            
+            // 取消按钮
+            const cancelBtn = document.createElement('button');
+            cancelBtn.textContent = '取消';
+            cancelBtn.style.cssText = 
+              'padding:8px 16px;font-size:13px;font-weight:500;color:#6b7280;' +
+              'background:transparent;border:none;border-radius:6px;cursor:pointer;' +
+              'transition:all 0.15s;';
+            cancelBtn.onmouseenter = () => cancelBtn.style.background = '#f3f4f6';
+            cancelBtn.onmouseleave = () => cancelBtn.style.background = 'transparent';
+            cancelBtn.onclick = () => closeModal(false);
+            
+            // 确认按钮
+            const confirmBtn = document.createElement('button');
+            confirmBtn.textContent = '确定';
+            confirmBtn.style.cssText = 
+              'padding:8px 16px;font-size:13px;font-weight:500;color:white;' +
+              'background:#dc2626;border:none;border-radius:6px;cursor:pointer;' +
+              'transition:all 0.15s;';
+            confirmBtn.onmouseenter = () => confirmBtn.style.background = '#b91c1c';
+            confirmBtn.onmouseleave = () => confirmBtn.style.background = '#dc2626';
+            confirmBtn.onclick = () => closeModal(true);
+            
+            footer.appendChild(cancelBtn);
+            footer.appendChild(confirmBtn);
+            modal.appendChild(header);
+            modal.appendChild(body);
+            modal.appendChild(footer);
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
+            
+            // 动画显示
+            requestAnimationFrame(() => {
+              overlay.style.opacity = '1';
+              modal.style.transform = 'scale(1)';
+            });
+            
+            // ESC 取消
+            const escHandler = (e) => {
+              if (e.key === 'Escape') {
+                document.removeEventListener('keydown', escHandler);
+                closeModal(false);
+              }
+            };
+            document.addEventListener('keydown', escHandler);
+            
+            // 点击遮罩关闭
+            overlay.addEventListener('click', (e) => {
+              if (e.target === overlay) {
+                closeModal(false);
+              }
+            });
+          });
+        })()
+      `;
+      
+      console.log('[Agent Editor] Showing confirm dialog in view:', viewId);
+      const result = await view.webContents.executeJavaScript(script, true);
+      console.log('[Agent Editor] Confirm result:', result);
+      return result === true;
+    } catch (err) {
+      console.error('[Agent Editor] showConfirm error:', err);
+      return false;
+    }
+  });
+
   // 确认弹窗（使用原生 dialog，避免 BrowserView 层级问题）
   safeHandle('dialog:confirm', async (event, message, title) => {
     try {
