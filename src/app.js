@@ -1414,6 +1414,18 @@ function setupIpcHandlers() {
                 iconGrid.appendChild(btn);
               });
               iconField.appendChild(iconGrid);
+              
+              // 图标下方的描述输入
+              const descInIcon = document.createElement('div');
+              descInIcon.style.cssText = 'margin-top:12px;';
+              descInIcon.innerHTML = '<label style="display:block;font-size:12px;font-weight:500;color:#5F6368;margin-bottom:6px;">描述</label>';
+              const descInput2 = document.createElement('input');
+              descInput2.type = 'text';
+              descInput2.placeholder = '简短描述这个 Agent...';
+              descInput2.style.cssText = 'width:100%;padding:8px 10px;border:1.5px solid #E8EAED;border-radius:8px;font-size:12px;outline:none;box-sizing:border-box;color:#202124;background:#FAFBFC;';
+              descInIcon.appendChild(descInput2);
+              iconField.appendChild(descInIcon);
+              
               visualRow.appendChild(iconField);
               
               // 颜色选择
@@ -1453,18 +1465,6 @@ function setupIpcHandlers() {
                 colorGrid.appendChild(btn);
               });
               colorField.appendChild(colorGrid);
-              
-              // 颜色下方的描述输入
-              const descInVisual = document.createElement('div');
-              descInVisual.style.cssText = 'margin-top:12px;';
-              descInVisual.innerHTML = '<label style="display:block;font-size:12px;font-weight:500;color:#5F6368;margin-bottom:6px;">描述</label>';
-              const descInput2 = document.createElement('input');
-              descInput2.type = 'text';
-              descInput2.placeholder = '简短描述这个 Agent...';
-              descInput2.style.cssText = 'width:100%;padding:8px 10px;border:1.5px solid #E8EAED;border-radius:8px;font-size:12px;outline:none;box-sizing:border-box;color:#202124;background:#FAFBFC;';
-              descInVisual.appendChild(descInput2);
-              colorField.appendChild(descInVisual);
-              
               visualRow.appendChild(colorField);
               body.appendChild(visualRow);
               
