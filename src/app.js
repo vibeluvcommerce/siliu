@@ -1113,12 +1113,12 @@ function setupIpcHandlers() {
           cancelBtn.onmouseleave = () => { cancelBtn.style.background = 'transparent'; cancelBtn.style.color = '#9ca3af'; };
           cancelBtn.onclick = (e) => {
             e.stopPropagation();
-            // 显示自定义确认弹窗
-            showConfirmModal(
-              '确定要放弃所有已完成的标注并关闭所有标签页吗？',
-              '放弃标注确认',
-              () => { window.postMessage({ type: 'AGENT_EDITOR_CANCEL_ALL' }, '*'); }
-            );
+            console.log('[Agent Editor] Cancel button clicked');
+            // 使用原生 confirm
+            if (confirm('确定要放弃所有已完成的标注并关闭所有标签页吗？')) {
+              console.log('[Agent Editor] Cancel confirmed, sending CANCEL_ALL');
+              window.postMessage({ type: 'AGENT_EDITOR_CANCEL_ALL' }, '*');
+            }
           };
           
           // 暂存按钮（icon only）

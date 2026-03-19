@@ -2712,20 +2712,17 @@
       console.log('[Agent Editor] testOverlayActive:', testOverlayActive);
       console.log('[Agent Editor] annotationSession.coordinates.length:', annotationSession.coordinates.length);
       
-      // 安全检查：如果没有数据但标志仍为true（cancelAll事件未到达），强制重置
-      if (testOverlayActive && annotationSession.coordinates.length === 0) {
-        console.log('[Agent Editor] Resetting testOverlayActive flag (no data)');
-        testOverlayActive = false;
-      }
-      
-      // 安全检查：如果没有激活的Agent Editor但有残留数据，先清理（防止cancelAll事件未到达）
-      if (!testOverlayActive && annotationSession.coordinates.length > 0) {
-        console.log('[Agent Editor] Found residual data, clearing:', annotationSession.coordinates.length);
+      // 【关键修复】只要有残留数据就强制清理（无论 testOverlayActive 状态）
+      if (annotationSession.coordinates.length > 0) {
+        console.log('[Agent Editor] DATA CLEANUP - clearing', annotationSession.coordinates.length, 'coordinates');
         annotationSession.coordinates = [];
         annotationSession.currentCoord = null;
         agentEditorCancelled = false;
         updateCoordCount();
+        console.log('[Agent Editor] DATA CLEANUP completed');
       }
+      
+      console.log('[Agent Editor] Before open/close check - testOverlayActive:', testOverlayActive, 'coordinates:', annotationSession.coordinates.length);
       
       const activeView = await window.siliuAPI?.getActiveView?.();
       if (!activeView) {
@@ -2858,15 +2855,15 @@
     
     // 监听 Agent Editor 取消全部事件（关闭所有标签页，放弃所有标注）
     window.siliuAPI?.on?.('agentEditor:cancelAll', () => {
-      console.log('[Agent Editor] Cancel all event received - clearing all session data');
-      console.log('[Agent Editor] Before clear:', annotationSession.coordinates.length, 'coordinates');
+      console.log('[Agent Editor] CANCEL ALL EVENT RECEIVED!');
+      console.log('[Agent Editor] Before clear - coordinates:', annotationSession.coordinates.length, 'testOverlayActive:', testOverlayActive);
       // 设置取消标志，防止后续事件恢复数据
       agentEditorCancelled = true;
       // 清理所有标注数据
       annotationSession.coordinates = [];
       annotationSession.currentCoord = null;
       testOverlayActive = false;
-      console.log('[Agent Editor] After clear:', annotationSession.coordinates.length, 'coordinates');
+      console.log('[Agent Editor] After clear - coordinates:', annotationSession.coordinates.length, 'testOverlayActive:', testOverlayActive);
       updateCoordCount();
       showToast('已放弃所有标注，关闭所有标签页');
     });
