@@ -1342,9 +1342,11 @@ function setupIpcHandlers() {
               const inputBase = 'width:100%;padding:12px 14px;border:1.5px solid #E8EAED;border-radius:10px;font-size:14px;outline:none;transition:all 0.2s;box-sizing:border-box;color:#202124;background:#FAFBFC;';
               const inputFocus = 'border-color:' + previewColor.value + ';background:#fff;box-shadow:0 0 0 3px ' + previewColor.value + '15;';
               
-              // Agent 名称
+              // Agent 名称 + ID 同行
+              const nameRow = document.createElement('div');
+              nameRow.style.cssText = 'display:grid;grid-template-columns:1fr 140px;gap:12px;margin-bottom:16px;';
+              
               const nameField = document.createElement('div');
-              nameField.style.cssText = 'margin-bottom:16px;';
               nameField.innerHTML = '<label style="display:block;font-size:13px;font-weight:600;color:#202124;margin-bottom:6px;">Agent 名称</label>';
               const nameInput = document.createElement('input');
               nameInput.type = 'text';
@@ -1353,45 +1355,37 @@ function setupIpcHandlers() {
               nameInput.onfocus = () => nameInput.style.cssText = inputBase + inputFocus;
               nameInput.onblur = () => nameInput.style.cssText = inputBase;
               nameField.appendChild(nameInput);
-              body.appendChild(nameField);
+              nameRow.appendChild(nameField);
               
-              // Agent ID（带前缀）
               const idField = document.createElement('div');
-              idField.style.cssText = 'margin-bottom:20px;';
-              idField.innerHTML = '<label style="display:block;font-size:13px;font-weight:600;color:#202124;margin-bottom:6px;">Agent ID <span style="font-weight:400;color:#9AA0A6;">唯一标识</span></label>';
-              const idWrapper = document.createElement('div');
-              idWrapper.style.cssText = 'display:flex;align-items:center;background:#FAFBFC;border:1.5px solid #E8EAED;border-radius:10px;overflow:hidden;';
-              const idPrefix = document.createElement('span');
-              idPrefix.textContent = '@';
-              idPrefix.style.cssText = 'padding:12px 10px 12px 14px;color:#9AA0A6;font-family:monospace;font-size:14px;border-right:1.5px solid #E8EAED;background:#F1F3F4;';
+              idField.innerHTML = '<label style="display:block;font-size:13px;font-weight:600;color:#202124;margin-bottom:6px;">ID</label>';
               const idInput = document.createElement('input');
               idInput.type = 'text';
               idInput.value = defaultId;
-              idInput.style.cssText = 'flex:1;padding:12px 14px;border:none;outline:none;font-family:monospace;font-size:13px;color:#202124;background:transparent;';
-              idWrapper.appendChild(idPrefix);
-              idWrapper.appendChild(idInput);
-              idField.appendChild(idWrapper);
-              body.appendChild(idField);
+              idInput.style.cssText = 'width:100%;padding:12px 10px;border:1.5px solid #E8EAED;border-radius:10px;font-size:13px;outline:none;box-sizing:border-box;color:#202124;background:#FAFBFC;font-family:monospace;';
+              idInput.onfocus = () => idInput.style.cssText = 'width:100%;padding:12px 10px;border:1.5px solid ' + previewColor.value + ';border-radius:10px;font-size:13px;outline:none;box-sizing:border-box;color:#202124;background:#fff;font-family:monospace;box-shadow:0 0 0 3px ' + previewColor.value + '15;';
+              idInput.onblur = () => idInput.style.cssText = 'width:100%;padding:12px 10px;border:1.5px solid #E8EAED;border-radius:10px;font-size:13px;outline:none;box-sizing:border-box;color:#202124;background:#FAFBFC;font-family:monospace;';
+              idField.appendChild(idInput);
+              nameRow.appendChild(idField);
+              body.appendChild(nameRow);
+              
+              // 图标 + 颜色 同行
+              const visualRow = document.createElement('div');
+              visualRow.style.cssText = 'display:grid;grid-template-columns:1fr auto;gap:16px;margin-bottom:20px;';
               
               // 图标选择
               const iconField = document.createElement('div');
-              iconField.style.cssText = 'margin-bottom:16px;';
-              iconField.innerHTML = '<label style="display:block;font-size:13px;font-weight:600;color:#202124;margin-bottom:8px;">选择图标</label>';
+              iconField.innerHTML = '<label style="display:block;font-size:13px;font-weight:600;color:#202124;margin-bottom:8px;">图标</label>';
               const iconGrid = document.createElement('div');
               iconGrid.style.cssText = 'display:grid;grid-template-columns:repeat(5,1fr);gap:6px;';
               let selectedIcon = icons[0];
               // 更新预览函数
               const updatePreview = () => {
                 const preview = document.getElementById('__agent_preview_box__');
-                const saveBtn = document.getElementById('__agent_save_btn__');
                 if (preview && previewIcon) {
                   preview.style.background = 'linear-gradient(135deg,' + previewColor.value + ',' + previewColor.end + ')';
                   preview.style.boxShadow = '0 2px 8px ' + previewColor.value + '40';
                   preview.innerHTML = '<i class="ph ' + (previewIcon.icon || 'ph-robot') + '" style="font-size:20px;color:white;"></i>';
-                }
-                if (saveBtn) {
-                  saveBtn.style.background = previewColor.value;
-                  saveBtn.style.boxShadow = '0 2px 8px ' + previewColor.value + '40';
                 }
               };
               
@@ -1421,14 +1415,13 @@ function setupIpcHandlers() {
                 iconGrid.appendChild(btn);
               });
               iconField.appendChild(iconGrid);
-              body.appendChild(iconField);
+              visualRow.appendChild(iconField);
               
               // 颜色选择
               const colorField = document.createElement('div');
-              colorField.style.cssText = 'margin-bottom:20px;';
-              colorField.innerHTML = '<label style="display:block;font-size:13px;font-weight:600;color:#202124;margin-bottom:10px;">主题颜色</label>';
+              colorField.innerHTML = '<label style="display:block;font-size:13px;font-weight:600;color:#202124;margin-bottom:8px;">颜色</label>';
               const colorGrid = document.createElement('div');
-              colorGrid.style.cssText = 'display:flex;flex-wrap:wrap;gap:10px;';
+              colorGrid.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;max-width:100px;';
               let selectedColor = colors[0];
               colors.forEach((item, idx) => {
                 const btn = document.createElement('button');
@@ -1461,7 +1454,8 @@ function setupIpcHandlers() {
                 colorGrid.appendChild(btn);
               });
               colorField.appendChild(colorGrid);
-              body.appendChild(colorField);
+              visualRow.appendChild(colorField);
+              body.appendChild(visualRow);
               
               // 性格能力
               const personalityField = document.createElement('div');
@@ -1499,12 +1493,11 @@ function setupIpcHandlers() {
               cancelBtn.onclick = () => closeModal(null);
               
               const saveBtn2 = document.createElement('button');
-              saveBtn2.id = '__agent_save_btn__';
               saveBtn2.textContent = '保存 Agent';
               saveBtn2.style.cssText = 
                 'padding:10px 24px;font-size:14px;font-weight:600;color:white;' +
-                'background:' + previewColor.value + ';border:none;border-radius:8px;cursor:pointer;' +
-                'transition:all 0.2s;box-shadow:0 2px 8px ' + previewColor.value + '40;';
+                'background:#1A73E8;border:none;border-radius:8px;cursor:pointer;' +
+                'transition:all 0.2s;box-shadow:0 2px 8px rgba(26,115,232,0.3);';
               saveBtn2.onmouseenter = () => { saveBtn2.style.opacity = '0.9'; saveBtn2.style.transform = 'translateY(-1px)'; };
               saveBtn2.onmouseleave = () => { saveBtn2.style.opacity = '1'; saveBtn2.style.transform = 'translateY(0)'; };
               saveBtn2.onclick = () => {
