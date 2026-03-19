@@ -2688,22 +2688,49 @@
     // ========== Step 1: 测试 JS 注入蒙版 ==========
     let testOverlayActive = false;
     
-    // 确认弹窗（使用主进程 dialog，避免 BrowserView 层级问题）
-    async function showConfirm(message, title = '确认') {
-      try {
-        console.log('[Agent Editor] showConfirm called:', title, message.substring(0, 30));
-        if (!window.siliuAPI?.showConfirmDialog) {
-          console.error('[Agent Editor] showConfirmDialog API not available');
-          // API 不可用时使用原生 confirm
-          return confirm(message);
-        }
-        const result = await window.siliuAPI.showConfirmDialog(message, title);
-        console.log('[Agent Editor] showConfirm result:', result);
-        return result === true;
-      } catch (err) {
-        console.error('[Agent Editor] showConfirm error:', err);
-        // 出错时使用原生 confirm
-        return confirm(message);
+    // 确认弹窗（自定义 HTML 弹窗）
+    let confirmResolve = null;
+    
+    function showConfirm(message, title = '确认') {
+      console.log('[Agent Editor] showConfirm called:', title, message.substring(0, 30));
+      
+      return new Promise((resolve) => {
+        confirmResolve = resolve;
+        
+        const modal = document.getElementById('confirm-modal');
+        const titleEl = document.getElementById('confirm-title');
+        const messageEl = document.getElementById('confirm-message');
+        
+        titleEl.textContent = title;
+        messageEl.textContent = message;
+        
+        modal.classList.add('show');
+        
+        // ESC 键关闭
+        const escHandler = (e) => {
+          if (e.key === 'Escape') {
+            closeConfirmModal(false);
+            document.removeEventListener('keydown', escHandler);
+          }
+        };
+        document.addEventListener('keydown', escHandler);
+        
+        // 点击遮罩关闭
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) {
+            closeConfirmModal(false);
+          }
+        }, { once: true });
+      });
+    }
+    
+    function closeConfirmModal(result) {
+      const modal = document.getElementById('confirm-modal');
+      modal.classList.remove('show');
+      
+      if (confirmResolve) {
+        confirmResolve(result);
+        confirmResolve = null;
       }
     }
     
@@ -4548,6 +4575,22 @@ ${contentPreview}${content?.content?.length > 800 ? '\n...' : ''}
       <div class="coord-modal-footer">
         <button class="coord-btn coord-btn-secondary" onclick="closeCoordModal()">跳过</button>
         <button class="coord-btn coord-btn-primary" onclick="confirmCoordName()">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 确认弹窗 -->
+  <div class="coord-modal-overlay" id="confirm-modal">
+    <div class="coord-modal" style="max-width: 400px;">
+      <div class="coord-modal-header">
+        <h3 id="confirm-title">确认</h3>
+      </div>
+      <div class="coord-modal-body">
+        <p id="confirm-message" style="margin: 0; line-height: 1.6;"></p>
+      </div>
+      <div class="coord-modal-footer">
+        <button class="coord-btn coord-btn-secondary" onclick="closeConfirmModal(false)">取消</button>
+        <button class="coord-btn coord-btn-primary" onclick="closeConfirmModal(true)" id="confirm-ok-btn">确定</button>
       </div>
     </div>
   </div>
