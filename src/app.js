@@ -1268,30 +1268,30 @@ function setupIpcHandlers() {
               const defaultId = domain ? domain.replace(/\./g, '-') + '-' + Date.now().toString(36).slice(-4) : 'agent-' + Date.now().toString(36).slice(-4);
               const pagePath = new URL(url).pathname;
               
-              // 图标选项 - Phosphor Icons SVG
+              // 图标选项 - Phosphor Icons SVG (20x20精简版)
               const icons = [
-                { name: '机器人', svg: '<svg width="24" height="24" viewBox="0 0 256 256" fill="currentColor"><path d="M200,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H56A32,32,0,0,0,24,80V192a32,32,0,0,0,32,32H200a32,32,0,0,0,32-32V80A32,32,0,0,0,200,48Zm-72,0h-8V40a8,8,0,0,1,8-8,8,8,0,0,1,8,8Zm56,112H72a8,8,0,0,1,0-16H184a8,8,0,0,1,0,16Zm-56,32H72a8,8,0,0,1,0-16h56a8,8,0,0,1,0,16Zm56-64H72a8,8,0,0,1,0-16H184a8,8,0,0,1,0,16Z"/></svg>' },
-                { name: '导航', svg: '<svg width="24" height="24" viewBox="0 0 256 256" fill="currentColor"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm-8-80a8,8,0,0,1,8-8,40,40,0,0,1,40,40,8,8,0,0,1-16,0,24,24,0,0,0-24-24A8,8,0,0,1,120,136Zm0-32a8,8,0,0,1,8-8,72,72,0,0,1,72,72,8,8,0,0,1-16,0,56,56,0,0,0-56-56A8,8,0,0,1,120,104Z"/></svg>' },
-                { name: '购物', svg: '<svg width="24" height="24" viewBox="0 0 256 256" fill="currentColor"><path d="M222,48a8,8,0,0,1-8,8H64a8,8,0,0,1,0-16H214A8,8,0,0,1,222,48ZM213.58,80.32l-10.52,84a16,16,0,0,1-15.88,14.05H68.82a16,16,0,0,1-15.88-14.05l-10.52-84A16,16,0,0,1,58.3,64H197.7a16,16,0,0,1,15.88,16.32ZM96,104a8,8,0,0,0,0,16h64a8,8,0,0,0,0-16Z"/></svg>' },
-                { name: '搜索', svg: '<svg width="24" height="24" viewBox="0 0 256 256" fill="currentColor"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"/></svg>' },
-                { name: '数据', svg: '<svg width="24" height="24" viewBox="0 0 256 256" fill="currentColor"><path d="M224,200h-8V40a8,8,0,0,0-8-8H48a8,8,0,0,0-8,8V200H32a8,8,0,0,0,0,16H224a8,8,0,0,0,0-16Zm-64,0H96V176h64Zm0-32H96V144h64Zm0-32H96V112h64Zm40,32H168V144h32Zm0-32H168V112h32Zm0-64H56V48H200Z"/></svg>' },
-                { name: '文档', svg: '<svg width="24" height="24" viewBox="0 0 256 256" fill="currentColor"><path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40v72a8,8,0,0,0,16,0V40h88V88a8,8,0,0,0,8,8h48V216H176a8,8,0,0,0,0,16h24a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160Z"/></svg>' },
-                { name: '娱乐', svg: '<svg width="24" height="24" viewBox="0 0 256 256" fill="currentColor"><path d="M176,112a8,8,0,0,1-8,8H144v24a8,8,0,0,1-16,0V120H112a8,8,0,0,1,0-16h16V80a8,8,0,0,1,16,0v24h24A8,8,0,0,1,176,112Zm64,16a96,96,0,1,1-96-96A96,96,0,0,1,240,128Zm-16,0a80,80,0,1,0-80,80A80,80,0,0,0,224,128Z"/></svg>' },
-                { name: '社交', svg: '<svg width="24" height="24" viewBox="0 0 256 256" fill="currentColor"><path d="M117.25,157.92a60,60,0,1,0-66.5,0A95.83,95.83,0,0,0,3.53,195.63a8,8,0,1,0,13.4,8.74,80,80,0,0,1,134.14,0,8,8,0,0,0,13.4-8.74A95.83,95.83,0,0,0,117.25,157.92ZM40,108a44,44,0,1,1,44,44A44.05,44.05,0,0,1,40,108Zm210.14,98.7a8,8,0,0,1-11.07-2.33A79.83,79.83,0,0,0,172,168a8,8,0,0,1,0-16,44,44,0,1,0-16.34-84.87,8,8,0,1,1-5.94-14.85,60,60,0,0,1,55.53,106.35,95.83,95.83,0,0,1,47.22,37.71A8,8,0,0,1,250.14,206.7Z"/></svg>' },
-                { name: '工具', svg: '<svg width="24" height="24" viewBox="0 0 256 256" fill="currentColor"><path d="M224,64a32,32,0,0,1-32,32H168V56a32,32,0,0,1,32-32,8,8,0,0,1,0,16,16,16,0,0,0-16,16v40h24a16,16,0,0,0,16-16,8,8,0,0,1,16,0Zm-72,40a8,8,0,0,0-8,8v16H120V112a8,8,0,0,0-16,0v16H88V112a8,8,0,0,0-16,0v24a8,8,0,0,0,8,8h16v16a8,8,0,0,0,16,0V144h16v16a8,8,0,0,0,16,0V144h16a8,8,0,0,0,0-16Z"/></svg>' },
-                { name: '收藏', svg: '<svg width="24" height="24" viewBox="0 0 256 256" fill="currentColor"><path d="M178,32a58.07,58.07,0,0,0-58,58c0,17.41,7.74,33.08,20,43.78V224a8,8,0,0,0,12.36,6.73l56.9-33.76A8,8,0,0,0,212,186.52V133.78A58,58,0,0,0,178,32Zm42,154.48-44.9,26.63V144.87A57.9,57.9,0,0,0,192,133.55v52.97ZM178,120a42,42,0,1,1,42-42A42,42,0,0,1,178,120Z"/></svg>' }
+                { name: '机器人', svg: '<svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor"><path d="M200,48h-24v-8a24,24,0,0,0-24-24h-48a24,24,0,0,0-24,24v8H56a32,32,0,0,0-32,32v112a32,32,0,0,0,32,32h144a32,32,0,0,0,32-32V80a32,32,0,0,0-32-32ZM184,160H72a8,8,0,0,1,0-16h112a8,8,0,0,1,0,16Z"/></svg>' },
+                { name: '搜索', svg: '<svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"/></svg>' },
+                { name: '购物', svg: '<svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor"><path d="M222,48a8,8,0,0,1-8,8H64a8,8,0,0,1,0-16H214a8,8,0,0,1,8,8Zm-8.42,32.32-10.52,84a16,16,0,0,1-15.88,14.05H68.82a16,16,0,0,1-15.88-14.05l-10.52-84A16,16,0,0,1,58.3,64h139.4a16,16,0,0,1,15.88,16.32Z"/></svg>' },
+                { name: '数据', svg: '<svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor"><path d="M224,200h-8V40a8,8,0,0,0-8-8H48a8,8,0,0,0-8,8v160H32a8,8,0,0,0,0,16h192a8,8,0,0,0,0-16Zm-64-24H96v-24h64Zm0-48H96v-24h64Z"/></svg>' },
+                { name: '文档', svg: '<svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor"><path d="M213.66,82.34-56-56A8,8,0,0,0,152,24H56a16,16,0,0,0-16,16v72a8,8,0,0,0,16,0V40h88v48a8,8,0,0,0,8,8h48v120h-24a8,8,0,0,0,0,16h24a16,16,0,0,0,16-16V88a8,8,0,0,0-5.34-5.66Z"/></svg>' },
+                { name: '游戏', svg: '<svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor"><path d="M176,112a8,8,0,0,1-8,8h-24v24a8,8,0,0,1-16,0v-24h-24a8,8,0,0,1,0-16h24V80a8,8,0,0,1,16,0v24h24a8,8,0,0,1,8,8Zm64,16a96,96,0,1,1-96-96,96,96,0,0,1,96,96Zm-16,0a80,80,0,1,0-80,80,80,80,0,0,0,80-80Z"/></svg>' },
+                { name: '用户', svg: '<svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor"><path d="M117.25,157.92a60,60,0,1,0-66.5,0A95.83,95.83,0,0,0,3.53,195.63a8,8,0,1,0,13.4,8.74,80,80,0,0,1,134.14,0,8,8,0,0,0,13.4-8.74,95.83,95.83,0,0,0-47.22-37.71ZM40,108a44,44,0,1,1,44,44,44.05,44.05,0,0,1-44-44Z"/></svg>' },
+                { name: '工具', svg: '<svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor"><path d="M224,64a32,32,0,0,1-32,32h-24V56a32,32,0,0,1,32-32,8,8,0,0,1,0,16,16,16,0,0,0-16,16v40h24a16,16,0,0,0,16-16,8,8,0,0,1,16,0Zm-72,40a8,8,0,0,0-8,8v16h-16v-16a8,8,0,0,0-16,0v16h-16v-16a8,8,0,0,0-16,0v24h96Z"/></svg>' },
+                { name: '星标', svg: '<svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor"><path d="M234.29,114.85-45,38.83L203,211.75a16,16,0,0,1-24.5,17.82L128,198.49,77.47,229.57A16,16,0,0,1,53,211.75l13.76-58.07-45-38.83a16,16,0,0,1,9.21-28.85l59-4.76,23.11-55.08a16,16,0,0,1,29.44,0l23.11,55.08,59,4.76a16,16,0,0,1,9.21,28.85Z"/></svg>' },
+                { name: '书签', svg: '<svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor"><path d="M184,32H72a16,16,0,0,0-16,16v192a8,8,0,0,0,12.24,6.78L128,193.43l59.77,37.35A8,8,0,0,0,200,224V48a16,16,0,0,0-16-16Z"/></svg>' }
               ];
               
-              // 颜色选项 - 项目主题色
+              // 颜色选项 - 鲜色系（与灰色图标区分）
               const colors = [
-                { name: '主色蓝', value: '#1A73E8', end: '#4285F4' },
-                { name: '深蓝', value: '#185ABC', end: '#1A73E8' },
-                { name: '成功绿', value: '#34A853', end: '#5BB974' },
-                { name: '警告橙', value: '#FB8C00', end: '#FFA726' },
-                { name: '危险红', value: '#EA4335', end: '#EF5350' },
-                { name: '紫色', value: '#7C3AED', end: '#8B5CF6' },
-                { name: '青色', value: '#0891B2', end: '#06B6D4' },
-                { name: '深灰', value: '#5F6368', end: '#80868B' }
+                { name: '蓝色', value: '#1A73E8', end: '#4285F4' },
+                { name: '红色', value: '#EA4335', end: '#FF6B6B' },
+                { name: '绿色', value: '#34A853', end: '#51CF66' },
+                { name: '橙色', value: '#FB8C00', end: '#FFAA33' },
+                { name: '紫色', value: '#7C3AED', end: '#A855F7' },
+                { name: '青色', value: '#0891B2', end: '#22D3EE' },
+                { name: '粉色', value: '#DB2777', end: '#F472B6' },
+                { name: '深蓝', value: '#4338CA', end: '#6366F1' }
               ];
               
               const overlay = document.createElement('div');
@@ -1306,52 +1306,69 @@ function setupIpcHandlers() {
               const modal = document.createElement('div');
               modal.style.cssText = 
                 'background:white;border-radius:16px;width:480px;max-width:90vw;' +
+                'max-height:85vh;overflow-y:auto;' +
                 'box-shadow:0 25px 80px rgba(0,0,0,0.25);' +
                 'transform:scale(0.95);transition:transform 0.2s;';
               
+              // 预览元素
+              let previewIcon = icons[0];
+              let previewColor = colors[0];
+              
               const header = document.createElement('div');
-              header.style.cssText = 'padding:20px 24px;border-bottom:1px solid #DADCE0;background:white;';
-              header.innerHTML = '<h3 style="margin:0;font-size:18px;font-weight:600;color:#202124;">保存为 Agent</h3>';
+              header.style.cssText = 'padding:16px 20px;border-bottom:1px solid #DADCE0;background:white;display:flex;align-items:center;gap:12px;';
+              
+              // 预览区域
+              const previewBox = document.createElement('div');
+              previewBox.id = '__agent_preview_box__';
+              previewBox.style.cssText = 
+                'width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;' +
+                'background:linear-gradient(135deg,' + previewColor.value + ',' + previewColor.end + ');' +
+                'box-shadow:0 2px 8px ' + previewColor.value + '40;';
+              previewBox.innerHTML = '<span style="color:white;">' + previewIcon.svg + '</span>';
+              
+              header.appendChild(previewBox);
+              header.innerHTML += '<h3 style="margin:0;font-size:16px;font-weight:600;color:#202124;flex:1;">保存为 Agent</h3>';
               
               const body = document.createElement('div');
-              body.style.cssText = 'padding:20px 24px;';
+              body.style.cssText = 'padding:16px 20px;';
               
               const coordHint = document.createElement('div');
-              coordHint.style.cssText = 'background:#F1F3F4;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:#5F6368;';
-              coordHint.innerHTML = '<span style="font-weight:600;color:#202124;">当前页面:</span> ' + domain + ' <span style="margin:0 8px;">·</span> <span style="font-weight:600;color:#34A853;">已标注 ' + coordinates.length + ' 个坐标</span>';
+              coordHint.style.cssText = 'background:#F1F3F4;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#5F6368;';
+              coordHint.innerHTML = '<span style="font-weight:600;color:#202124;">当前页面:</span> ' + domain + ' <span style="margin:0 6px;">·</span> <span style="font-weight:600;color:#34A853;">已标注 ' + coordinates.length + ' 个坐标</span>';
               body.appendChild(coordHint);
               
-              const fieldStyle = 'margin-bottom:16px;';
-              const labelStyle = 'display:block;font-size:13px;font-weight:500;color:#202124;margin-bottom:6px;';
-              const inputStyle = 'width:100%;padding:10px 12px;border:1px solid #DADCE0;border-radius:8px;font-size:14px;outline:none;transition:all 0.15s;box-sizing:border-box;color:#202124;';
-              const textareaStyle = inputStyle + 'min-height:80px;resize:vertical;';
+              const fieldStyle = 'margin-bottom:12px;';
+              const labelStyle = 'display:block;font-size:12px;font-weight:500;color:#202124;margin-bottom:4px;';
+              const inputStyle = 'width:100%;padding:8px 10px;border:1px solid #DADCE0;border-radius:6px;font-size:13px;outline:none;transition:all 0.15s;box-sizing:border-box;color:#202124;';
+              const textareaStyle = inputStyle + 'min-height:60px;resize:vertical;';
               
-              // Agent 名称
+              // 名称 + ID 同行
+              const row1 = document.createElement('div');
+              row1.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;';
+              
               const nameField = document.createElement('div');
-              nameField.style.cssText = fieldStyle;
               nameField.innerHTML = '<label style="' + labelStyle + '">Agent 名称 *</label>';
               const nameInput = document.createElement('input');
               nameInput.type = 'text';
               nameInput.placeholder = '例如: 淘宝搜索助手';
               nameInput.style.cssText = inputStyle;
               nameField.appendChild(nameInput);
-              body.appendChild(nameField);
+              row1.appendChild(nameField);
               
-              // Agent ID
               const idField = document.createElement('div');
-              idField.style.cssText = fieldStyle;
-              idField.innerHTML = '<label style="' + labelStyle + '">Agent ID <span style="font-weight:400;color:#5F6368;">(用于唯一标识)</span></label>';
+              idField.innerHTML = '<label style="' + labelStyle + '">Agent ID</label>';
               const idInput = document.createElement('input');
               idInput.type = 'text';
               idInput.value = defaultId;
-              idInput.style.cssText = inputStyle + 'font-family:monospace;';
+              idInput.style.cssText = inputStyle + 'font-family:monospace;font-size:12px;';
               idField.appendChild(idInput);
-              body.appendChild(idField);
+              row1.appendChild(idField);
+              body.appendChild(row1);
               
-              // 描述
+              // 描述（折叠）
               const descField = document.createElement('div');
-              descField.style.cssText = fieldStyle;
-              descField.innerHTML = '<label style="' + labelStyle + '">用途描述</label>';
+              descField.style.cssText = 'margin-bottom:12px;';
+              descField.innerHTML = '<label style="' + labelStyle + '">用途描述 <span style="font-weight:400;color:#5F6368;">(可选)</span></label>';
               const descInput = document.createElement('textarea');
               descInput.placeholder = '描述这个 Agent 的主要用途和能力...';
               descInput.style.cssText = textareaStyle;
@@ -1360,27 +1377,39 @@ function setupIpcHandlers() {
               
               // 图标选择
               const iconField = document.createElement('div');
-              iconField.style.cssText = fieldStyle;
+              iconField.style.cssText = 'margin-bottom:12px;';
               iconField.innerHTML = '<label style="' + labelStyle + '">图标</label>';
               const iconGrid = document.createElement('div');
-              iconGrid.style.cssText = 'display:grid;grid-template-columns:repeat(5,1fr);gap:8px;';
+              iconGrid.style.cssText = 'display:grid;grid-template-columns:repeat(5,1fr);gap:6px;';
               let selectedIcon = icons[0];
+              // 更新预览函数
+              const updatePreview = () => {
+                const preview = document.getElementById('__agent_preview_box__');
+                if (preview) {
+                  preview.style.background = 'linear-gradient(135deg,' + previewColor.value + ',' + previewColor.end + ')';
+                  preview.style.boxShadow = '0 2px 8px ' + previewColor.value + '40';
+                  preview.innerHTML = '<span style="color:white;">' + previewIcon.svg + '</span>';
+                }
+              };
+              
               icons.forEach((item, idx) => {
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 btn.style.cssText = 
-                  'aspect-ratio:1;border:2px solid ' + (idx === 0 ? '#1A73E8' : '#DADCE0') + ';border-radius:8px;' +
-                  'background:' + (idx === 0 ? '#E8F0FE' : 'white') + ';cursor:pointer;' +
-                  'display:flex;align-items:center;justify-content:center;color:' + (idx === 0 ? '#1A73E8' : '#5F6368') + ';' +
-                  'transition:all 0.15s;';
+                  'width:44px;height:44px;border:2px solid ' + (idx === 0 ? previewColor.value : '#DADCE0') + ';border-radius:8px;' +
+                  'background:' + (idx === 0 ? previewColor.value + '15' : 'white') + ';cursor:pointer;' +
+                  'display:flex;align-items:center;justify-content:center;color:' + (idx === 0 ? previewColor.value : '#5F6368') + ';' +
+                  'transition:all 0.15s;padding:0;';
                 btn.innerHTML = item.svg;
                 btn.title = item.name;
                 btn.onclick = () => {
                   selectedIcon = item;
+                  previewIcon = item;
+                  updatePreview();
                   iconGrid.querySelectorAll('button').forEach((b, i) => {
-                    b.style.borderColor = i === idx ? '#1A73E8' : '#DADCE0';
-                    b.style.background = i === idx ? '#E8F0FE' : 'white';
-                    b.style.color = i === idx ? '#1A73E8' : '#5F6368';
+                    b.style.borderColor = i === idx ? previewColor.value : '#DADCE0';
+                    b.style.background = i === idx ? previewColor.value + '15' : 'white';
+                    b.style.color = i === idx ? previewColor.value : '#5F6368';
                   });
                 };
                 iconGrid.appendChild(btn);
@@ -1390,23 +1419,34 @@ function setupIpcHandlers() {
               
               // 颜色选择
               const colorField = document.createElement('div');
-              colorField.style.cssText = fieldStyle;
+              colorField.style.cssText = 'margin-bottom:12px;';
               colorField.innerHTML = '<label style="' + labelStyle + '">主题颜色</label>';
               const colorGrid = document.createElement('div');
-              colorGrid.style.cssText = 'display:flex;flex-wrap:wrap;gap:10px;';
+              colorGrid.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;';
               let selectedColor = colors[0];
               colors.forEach((item, idx) => {
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 btn.style.cssText = 
-                  'width:40px;height:40px;border-radius:50%;border:3px solid ' + (idx === 0 ? '#1A73E8' : 'transparent') + ';' +
+                  'width:36px;height:36px;border-radius:50%;border:3px solid ' + (idx === 0 ? 'white' : 'transparent') + ';' +
                   'background:linear-gradient(135deg,' + item.value + ',' + item.end + ');cursor:pointer;' +
-                  'transition:all 0.15s;box-shadow:0 2px 8px ' + item.value + '40;';
+                  'transition:all 0.15s;box-shadow:0 2px 8px ' + item.value + '40,' + (idx === 0 ? '0 0 0 2px ' + item.value : '') + ';';
                 btn.title = item.name;
                 btn.onclick = () => {
                   selectedColor = item;
+                  previewColor = item;
+                  updatePreview();
+                  // 更新图标边框颜色
+                  iconGrid.querySelectorAll('button').forEach((b, i) => {
+                    if (b.style.background !== 'white') {
+                      b.style.borderColor = item.value;
+                      b.style.background = item.value + '15';
+                      b.style.color = item.value;
+                    }
+                  });
                   colorGrid.querySelectorAll('button').forEach((b, i) => {
-                    b.style.borderColor = i === idx ? '#1A73E8' : 'transparent';
+                    b.style.borderColor = i === idx ? 'white' : 'transparent';
+                    b.style.boxShadow = '0 2px 8px ' + colors[i].value + '40,' + (i === idx ? '0 0 0 2px ' + colors[i].value : '');
                   });
                 };
                 colorGrid.appendChild(btn);
@@ -1414,19 +1454,19 @@ function setupIpcHandlers() {
               colorField.appendChild(colorGrid);
               body.appendChild(colorField);
               
-              // 性格能力
+              // 性格能力（折叠）
               const personalityField = document.createElement('div');
-              personalityField.style.cssText = fieldStyle;
-              personalityField.innerHTML = '<label style="' + labelStyle + '">性格与能力</label>';
+              personalityField.style.cssText = 'margin-bottom:0;';
+              personalityField.innerHTML = '<label style="' + labelStyle + '">性格与能力 <span style="font-weight:400;color:#5F6368;">(可选)</span></label>';
               const personalityInput = document.createElement('textarea');
-              personalityInput.placeholder = '描述这个 Agent 的性格特点、专长领域、工作方式等...';
+              personalityInput.placeholder = '例如: 擅长网页数据采集，熟悉淘宝搜索和购物流程...';
               personalityInput.style.cssText = textareaStyle;
               personalityField.appendChild(personalityInput);
               body.appendChild(personalityField);
               
               // 底部按钮
               const footer = document.createElement('div');
-              footer.style.cssText = 'padding:16px 24px;border-top:1px solid #DADCE0;display:flex;justify-content:flex-end;gap:12px;background:white;';
+              footer.style.cssText = 'padding:12px 20px;border-top:1px solid #DADCE0;display:flex;justify-content:flex-end;gap:10px;background:white;';
               
               const closeModal = (result) => {
                 overlay.style.opacity = '0';
@@ -1440,19 +1480,19 @@ function setupIpcHandlers() {
               const cancelBtn = document.createElement('button');
               cancelBtn.textContent = '取消';
               cancelBtn.style.cssText = 
-                'padding:10px 20px;font-size:14px;font-weight:500;color:#5F6368;' +
-                'background:transparent;border:none;border-radius:8px;cursor:pointer;' +
+                'padding:8px 16px;font-size:13px;font-weight:500;color:#5F6368;' +
+                'background:transparent;border:none;border-radius:6px;cursor:pointer;' +
                 'transition:all 0.15s;';
               cancelBtn.onmouseenter = () => cancelBtn.style.background = '#F1F3F4';
               cancelBtn.onmouseleave = () => cancelBtn.style.background = 'transparent';
               cancelBtn.onclick = () => closeModal(null);
               
               const saveBtn2 = document.createElement('button');
-              saveBtn2.textContent = '保存 Agent';
+              saveBtn2.textContent = '保存';
               saveBtn2.style.cssText = 
-                'padding:10px 24px;font-size:14px;font-weight:600;color:white;' +
-                'background:#1A73E8;border:none;border-radius:8px;cursor:pointer;' +
-                'transition:all 0.15s;box-shadow:0 2px 8px rgba(26,115,232,0.3);';
+                'padding:8px 20px;font-size:13px;font-weight:600;color:white;' +
+                'background:#1A73E8;border:none;border-radius:6px;cursor:pointer;' +
+                'transition:all 0.15s;box-shadow:0 2px 6px rgba(26,115,232,0.3);';
               saveBtn2.onmouseenter = () => saveBtn2.style.opacity = '0.9';
               saveBtn2.onmouseleave = () => saveBtn2.style.opacity = '1';
               saveBtn2.onclick = () => {
