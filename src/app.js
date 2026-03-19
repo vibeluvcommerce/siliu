@@ -1268,30 +1268,18 @@ function setupIpcHandlers() {
               const defaultId = domain ? domain.replace(/\./g, '-') + '-' + Date.now().toString(36).slice(-4) : 'agent-' + Date.now().toString(36).slice(-4);
               const pagePath = new URL(url).pathname;
               
-              // Phosphor Icons (weight=regular)
-              const ph = {
-                robot: '<svg width="24" height="24" viewBox="0 0 256 256" fill="currentColor"><path d="M200,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H56A32,32,0,0,0,24,80V192a32,32,0,0,0,32,32H200a32,32,0,0,0,32-32V80A32,32,0,0,0,200,48Zm8,144a16,16,0,0,1-16,16H64a16,16,0,0,1-16-16V80a16,16,0,0,1,16-16H200a16,16,0,0,1,16,16ZM104,32h48v8a8,8,0,0,1-8,8h-32a8,8,0,0,1-8-8Zm12,128H72a8,8,0,0,1,0-16h44a8,8,0,0,1,0,16Zm56,0h-24a8,8,0,0,1,0-16h24a8,8,0,0,1,0,16ZM72,128a8,8,0,0,1,8-8h96a8,8,0,0,1,0,16H80A8,8,0,0,1,72,128Z"/></svg>',
-                magnifyingGlass: '<svg width="24" height="24" viewBox="0 0 256 256" fill="currentColor"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"/></svg>',
-                shoppingCart: '<svg width="24" height="24" viewBox="0 0 256 256" fill="currentColor"><path d="M222,48a8,8,0,0,1-8,8H64a8,8,0,0,1,0-16H214A8,8,0,0,1,222,48Zm-8.42,32.32-10.52,84a16,16,0,0,1-15.88,14.05H68.82a16,16,0,0,1-15.88-14.05l-10.52-84A16,16,0,0,1,58.3,64H197.7a16,16,0,0,1,15.88,16.32ZM96,104a8,8,0,0,0,0,16h64a8,8,0,0,0,0-16Z"/></svg>',
-                chartBar: '<svg width="24" height="24" viewBox="0 0 256 256" fill="currentColor"><path d="M224,200h-8V40a8,8,0,0,0-8-8H48a8,8,0,0,0-8,8V200H32a8,8,0,0,0,0,16H224a8,8,0,0,0,0-16Zm-64,0H96V176h64Zm0-32H96V144h64Zm40,32H168V144h32Zm0-32H168V112h32Zm0-64H56V48H200Z"/></svg>',
-                fileText: '<svg width="24" height="24" viewBox="0 0 256 256" fill="currentColor"><path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40v72a8,8,0,0,0,16,0V40h88V88a8,8,0,0,0,8,8h48V216H176a8,8,0,0,0,0,16h24a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160Z"/></svg>',
-                gameController: '<svg width="24" height="24" viewBox="0 0 256 256" fill="currentColor"><path d="M176,112a8,8,0,0,1-8,8H144v24a8,8,0,0,1-16,0V120H112a8,8,0,0,1,0-16h16V80a8,8,0,0,1,16,0v24h24A8,8,0,0,1,176,112Zm64,16a96,96,0,1,1-96-96A96,96,0,0,1,240,128Zm-16,0a80,80,0,1,0-80,80A80,80,0,0,0,224,128Z"/></svg>',
-                users: '<svg width="24" height="24" viewBox="0 0 256 256" fill="currentColor"><path d="M117.25,157.92a60,60,0,1,0-66.5,0A95.83,95.83,0,0,0,3.53,195.63a8,8,0,1,0,13.4,8.74,80,80,0,0,1,134.14,0,8,8,0,0,0,13.4-8.74A95.83,95.83,0,0,0,117.25,157.92ZM40,108a44,44,0,1,1,44,44A44.05,44.05,0,0,1,40,108Zm210.14,98.7a8,8,0,0,1-11.07-2.33A79.83,79.83,0,0,0,172,168a8,8,0,0,1,0-16,44,44,0,1,0-16.34-84.87,8,8,0,1,1-5.94-14.85,60,60,0,0,1,55.53,106.35,95.83,95.83,0,0,1,47.22,37.71A8,8,0,0,1,250.14,206.7Z"/></svg>',
-                wrench: '<svg width="24" height="24" viewBox="0 0 256 256" fill="currentColor"><path d="M224,64a32,32,0,0,1-32,32H168V56a32,32,0,0,1,32-32,8,8,0,0,1,0,16,16,16,0,0,0-16,16v40h24a16,16,0,0,0,16-16,8,8,0,0,1,16,0Zm-72,40a8,8,0,0,0-8,8v16H120V112a8,8,0,0,0-16,0v16H88V112a8,8,0,0,0-16,0v24a8,8,0,0,0,8,8h16v16a8,8,0,0,0,16,0V144h16v16a8,8,0,0,0,16,0V144h16a8,8,0,0,0,0-16Z"/></svg>',
-                star: '<svg width="24" height="24" viewBox="0 0 256 256" fill="currentColor"><path d="M234.29,114.85l-45,38.83L203,211.75a16,16,0,0,1-24.5,17.82L128,198.49,77.47,229.57A16,16,0,0,1,53,211.75l13.76-58.07-45-38.83a16,16,0,0,1,9.21-28.85l59-4.76,23.11-55.08a16,16,0,0,1,29.44,0l23.11,55.08,59,4.76a16,16,0,0,1,9.21,28.85Z"/></svg>',
-                bookmark: '<svg width="24" height="24" viewBox="0 0 256 256" fill="currentColor"><path d="M184,32H72A16,16,0,0,0,56,48V224a8,8,0,0,0,12.24,6.78L128,193.43l59.77,37.35A8,8,0,0,0,200,224V48a16,16,0,0,0-16-16Z"/></svg>'
-              };
+              // Phosphor Icons 字体类名
               const icons = [
-                { name: '机器人', svg: ph.robot },
-                { name: '搜索', svg: ph.magnifyingGlass },
-                { name: '购物', svg: ph.shoppingCart },
-                { name: '数据', svg: ph.chartBar },
-                { name: '文档', svg: ph.fileText },
-                { name: '游戏', svg: ph.gameController },
-                { name: '用户', svg: ph.users },
-                { name: '工具', svg: ph.wrench },
-                { name: '星标', svg: ph.star },
-                { name: '书签', svg: ph.bookmark }
+                { name: '机器人', icon: 'ph-robot' },
+                { name: '搜索', icon: 'ph-magnifying-glass' },
+                { name: '购物', icon: 'ph-shopping-cart' },
+                { name: '数据', icon: 'ph-chart-bar' },
+                { name: '文档', icon: 'ph-file-text' },
+                { name: '游戏', icon: 'ph-game-controller' },
+                { name: '用户', icon: 'ph-users' },
+                { name: '工具', icon: 'ph-wrench' },
+                { name: '星标', icon: 'ph-star' },
+                { name: '书签', icon: 'ph-bookmark' }
               ];
               
               // 颜色选项 - 鲜色系（与灰色图标区分）
@@ -1336,7 +1324,7 @@ function setupIpcHandlers() {
                 'width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;' +
                 'background:linear-gradient(135deg,' + previewColor.value + ',' + previewColor.end + ');' +
                 'box-shadow:0 4px 12px ' + previewColor.value + '40;transition:all 0.3s;';
-              previewBox.innerHTML = '<span style="color:white;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.1));">' + previewIcon.svg + '</span>';
+              previewBox.innerHTML = '<i class="ph ' + previewIcon.icon + '" style="font-size:24px;color:white;"></i>';
               
               header.appendChild(previewBox);
               header.innerHTML += '<h3 style="margin:0;font-size:17px;font-weight:600;color:#202124;flex:1;letter-spacing:-0.2px;">保存为 Agent</h3>';
@@ -1415,7 +1403,7 @@ function setupIpcHandlers() {
                   'background:' + (idx === 0 ? previewColor.value + '15' : '#FAFBFC') + ';cursor:pointer;' +
                   'display:flex;align-items:center;justify-content:center;color:' + (idx === 0 ? previewColor.value : '#5F6368') + ';' +
                   'transition:all 0.2s;padding:0;box-shadow:' + (idx === 0 ? '0 2px 8px ' + previewColor.value + '20' : 'none') + ';';
-                btn.innerHTML = item.svg;
+                btn.innerHTML = '<i class="ph ' + item.icon + '"></i>';
                 btn.title = item.name;
                 btn.onmouseenter = () => { if (btn.style.borderColor !== previewColor.value) { btn.style.borderColor = '#DADCE0'; btn.style.background = '#F1F3F4'; } };
                 btn.onmouseleave = () => { if (btn.style.borderColor !== previewColor.value) { btn.style.borderColor = '#E8EAED'; btn.style.background = '#FAFBFC'; } };
@@ -1534,7 +1522,7 @@ function setupIpcHandlers() {
                     id: idInput.value.trim() || defaultId,
                     name: name,
                     description: descInput.value.trim(),
-                    icon: selectedIcon.svg,
+                    icon: selectedIcon.icon,
                     color: selectedColor.value,
                     colorEnd: selectedColor.end
                   },
