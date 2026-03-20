@@ -905,31 +905,35 @@ function setupIpcHandlers() {
           // 2. 刷新 Agent 列表
           modules.core?.sendToRenderer?.('agents:reload', {});
           
-          // 3. 获取发送者视图并关闭 Agent Editor
-          const senderViewId = event.sender?.id;
-          if (senderViewId) {
-            // 清理状态
-            agentEditorActiveViews.delete(senderViewId);
-            agentEditorData.delete(senderViewId);
-            agentEditorPausedState.delete(senderViewId);
-            if (lastActiveAgentEditorView === senderViewId) {
-              lastActiveAgentEditorView = null;
-            }
-            // 移除页面上的标注面板
-            try {
-              const view = modules.core?.tabManager?.getViewByWebContentsId?.(senderViewId);
-              if (view) {
-                await modules.controller.agentEditorRemove(view.id);
+          // 3. 关闭所有标签页并清空缓存（与取消按钮一致的行为）
+          console.log('[Agent Editor] Save completed, closing all tabs and clearing all data');
+          
+          // 立即清理所有 Agent Editor 状态
+          agentEditorActiveViews.clear();
+          agentEditorData.clear();
+          agentEditorPausedState.clear();
+          lastActiveAgentEditorView = null;
+          console.log('[Agent Editor] All Agent Editor state cleared');
+          
+          // 通知 shell 关闭所有状态
+          modules.core?.sendToRenderer?.('agentEditor:cancelAll', {});
+          
+          // 获取所有视图 ID 并关闭
+          const tabManager = modules.core?.tabManager;
+          if (tabManager) {
+            const allViewIds = Array.from(tabManager.views?.keys?.() || []);
+            console.log('[Agent Editor] Closing all', allViewIds.length, 'tabs after save');
+            
+            for (const viewId of allViewIds) {
+              try {
+                tabManager.closeView?.(viewId);
+              } catch (err) {
+                console.log('[Agent Editor] Error closing tab', viewId, ':', err.message);
               }
-            } catch (err) {
-              console.log('[Agent Editor] Error removing editor after save:', err.message);
             }
           }
           
-          // 4. 如果所有标注都完成了，通知 shell 关闭 Agent Editor 状态
-          if (agentEditorActiveViews.size === 0) {
-            modules.core?.sendToRenderer?.('agentEditor:close', {});
-          }
+          console.log('[Agent Editor] Save and close completed');
         } else {
           modules.core?.sendToRenderer?.('toast:show', { 
             message: '保存失败: ' + (result.error || '未知错误'), 
