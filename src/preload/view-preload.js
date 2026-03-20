@@ -93,6 +93,10 @@ window.addEventListener('message', (e) => {
     console.log('[Agent Editor Preload] Save agent clicked, forwarding to main:', e.data.config?.metadata?.name);
     ipcRenderer.send('view:agentEditorSave', { config: e.data.config });
   }
+  if (e.data?.type === 'AGENT_EDITOR_TOAST') {
+    console.log('[Agent Editor Preload] Toast request:', e.data.message);
+    ipcRenderer.send('view:agentEditorToast', { message: e.data.message, type: e.data.type || 'info' });
+  }
 });
 
 // 主滚动条美化 CSS - 只针对 html/body

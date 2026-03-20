@@ -858,6 +858,19 @@ function setupIpcHandlers() {
   } catch {}
   ipcMain.on('view:agentEditorSave', agentEditorSaveHandler);
   
+  // 监听 Toast 请求
+  const agentEditorToastHandler = async (event, data) => {
+    console.log('[Agent Editor] Toast request:', data.message);
+    modules.core?.sendToRenderer?.('toast:show', { 
+      message: data.message, 
+      type: data.type || 'info'
+    });
+  };
+  try {
+    ipcMain.removeListener('view:agentEditorToast', agentEditorToastHandler);
+  } catch {}
+  ipcMain.on('view:agentEditorToast', agentEditorToastHandler);
+  
   // 监听坐标命名确认
   const annotationNameConfirmedHandler = async (event, data) => {
     console.log('[Agent Editor] annotationNameConfirmedHandler CALLED');
@@ -1162,8 +1175,16 @@ function setupIpcHandlers() {
           cancelBtn.onmouseleave = () => { cancelBtn.style.background = 'transparent'; cancelBtn.style.color = '#9ca3af'; };
           cancelBtn.onclick = async (e) => {
             e.stopPropagation();
-            console.log('[Agent Editor] Cancel button clicked');
-            // 使用注入式弹窗
+            console.log('[Agent Editor] Cancel button clicked, coordinates:', window.savedCoordinates?.length || 0);
+            
+            // 如果没有标记的点位，直接关闭不需要弹窗
+            if (!window.savedCoordinates || window.savedCoordinates.length === 0) {
+              console.log('[Agent Editor] No coordinates, closing directly');
+              window.postMessage({ type: 'AGENT_EDITOR_CANCEL_ALL' }, '*');
+              return;
+            }
+            
+            // 有标记时显示确认弹窗
             const confirmed = await showConfirmDialog('确定要放弃所有已完成的标注并关闭所有标签页吗？', '取消确认');
             if (confirmed) {
               console.log('[Agent Editor] Cancel confirmed, sending CANCEL_ALL');
@@ -1241,6 +1262,14 @@ function setupIpcHandlers() {
           saveBtn.onclick = async (e) => {
             e.stopPropagation();
             console.log('[Agent Editor] Save button clicked, coordinates:', window.savedCoordinates?.length || 0);
+            
+            // 如果没有标记的点位，toast 提示
+            if (!window.savedCoordinates || window.savedCoordinates.length === 0) {
+              console.log('[Agent Editor] No coordinates, showing toast');
+              // 发送 toast 消息到主进程
+              window.postMessage({ type: 'AGENT_EDITOR_TOAST', message: '请先完成 Agent 标注', type: 'warning' }, '*');
+              return;
+            }
             
             // 获取当前域名和路径
             const domain = window.location.hostname;
