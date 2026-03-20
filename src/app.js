@@ -1049,37 +1049,13 @@ function setupIpcHandlers() {
   ipcMain.on('view:annotationNameConfirmed', annotationNameConfirmedHandler);
   
   safeHandle('agentEditor:inject', async (event, viewId, customScript, coordinates) => {
+    console.log('========================================');
+    console.log('[Agent Editor] Inject for view:', viewId);
+    console.log('[Agent Editor] customScript provided:', !!customScript);
+    console.log('========================================');
+    
     try {
-      console.log('[Agent Editor] Inject for view:', viewId);
-      
-      const view = modules.core?.tabManager?.getView?.(viewId);
-      if (!view) {
-        console.log('[Agent Editor] View not found:', viewId);
-        return { success: false, error: 'View not found' };
-      }
-      
-      // 如果传入自定义脚本，直接执行
-      if (customScript) {
-        console.log('[Agent Editor] Executing custom script');
-        const result = await view.webContents.executeJavaScript(customScript, true);
-        return { success: true, result };
-      }
-      
-      console.log('[Agent Editor] View found, webContents id:', view.webContents.id);
-      
-      // 从主进程读取暂存状态和坐标数据
-      const wasPausedBefore = agentEditorPausedState.get(viewId) || false;
-      // 优先使用传入的 coordinates 参数，否则从 Map 读取
-      const savedCoordinates = coordinates !== undefined ? coordinates : (agentEditorData.get(viewId) || []);
-      console.log('[Agent Editor] Was paused before navigation:', wasPausedBefore);
-      console.log('[Agent Editor] Coordinates to restore:', savedCoordinates.length);
-      console.log('[Agent Editor] Was paused before navigation:', wasPausedBefore);
-      console.log('[Agent Editor] Coordinates to restore:', savedCoordinates.length);
-      
-      // 将坐标数据序列化为 JSON 字符串传入脚本
-      const coordinatesJson = JSON.stringify(savedCoordinates);
-      
-      // 读取 SVG 图标文件
+      // 先读取 SVG 图标（无论是否使用自定义脚本都需要）
       const iconSvgs = {};
       try {
         const iconsDir = path.join(__dirname, '../assets/icons');
@@ -1109,6 +1085,33 @@ function setupIpcHandlers() {
       } catch (err) {
         console.error('[Agent Editor] Failed to load icons:', err.message);
       }
+      
+      const view = modules.core?.tabManager?.getView?.(viewId);
+      if (!view) {
+        console.log('[Agent Editor] View not found:', viewId);
+        return { success: false, error: 'View not found' };
+      }
+      
+      // 如果传入自定义脚本，直接执行
+      if (customScript) {
+        console.log('[Agent Editor] Executing custom script');
+        const result = await view.webContents.executeJavaScript(customScript, true);
+        return { success: true, result };
+      }
+      
+      console.log('[Agent Editor] View found, webContents id:', view.webContents.id);
+      
+      // 从主进程读取暂存状态和坐标数据
+      const wasPausedBefore = agentEditorPausedState.get(viewId) || false;
+      // 优先使用传入的 coordinates 参数，否则从 Map 读取
+      const savedCoordinates = coordinates !== undefined ? coordinates : (agentEditorData.get(viewId) || []);
+      console.log('[Agent Editor] Was paused before navigation:', wasPausedBefore);
+      console.log('[Agent Editor] Coordinates to restore:', savedCoordinates.length);
+      console.log('[Agent Editor] Was paused before navigation:', wasPausedBefore);
+      console.log('[Agent Editor] Coordinates to restore:', savedCoordinates.length);
+      
+      // 将坐标数据序列化为 JSON 字符串传入脚本
+      const coordinatesJson = JSON.stringify(savedCoordinates);
       
       const script = `
         (function() {
