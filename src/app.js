@@ -1294,7 +1294,14 @@ function setupIpcHandlers() {
               const existing = document.getElementById('__agent_editor_save_modal__');
               if (existing) existing.remove();
               
-              const defaultId = domain ? domain.replace(/\./g, '-') + '-' + Date.now().toString(36).slice(-4) : 'agent-' + Date.now().toString(36).slice(-4);
+              // 生成 8 位 base62 随机码: agent-XXXXXXXX
+              const randomId = () => {
+                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+                const arr = new Uint8Array(8);
+                crypto.getRandomValues(arr);
+                return 'agent-' + Array.from(arr, b => chars[b % 62]).join('');
+              };
+              const defaultId = randomId();
               const pagePath = new URL(url).pathname;
               
               // Phosphor Icons 字体类名
@@ -1608,15 +1615,6 @@ function setupIpcHandlers() {
                 }
               });
               
-              nameInput.addEventListener('input', (e) => {
-                if (idInput.value === defaultId || !idInput.dataset.edited) {
-                  const pinyin = e.target.value.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5]/g, '-').replace(/-+/g, '-');
-                  idInput.value = pinyin + '-' + Date.now().toString(36).slice(-4);
-                }
-              });
-              idInput.addEventListener('input', () => {
-                idInput.dataset.edited = 'true';
-              });
             });
           }
           
@@ -2184,8 +2182,14 @@ function setupIpcHandlers() {
         return { success: false, error: 'View not found' };
       }
       
-      // 生成默认 Agent ID（基于域名和时间戳）
-      const defaultId = domain ? domain.replace(/\./g, '-') + '-' + Date.now().toString(36) : 'agent-' + Date.now().toString(36);
+      // 生成 8 位 base62 随机码: agent-XXXXXXXX
+      const generateRandomId = () => {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        const arr = new Uint8Array(8);
+        crypto.getRandomValues(arr);
+        return 'agent-' + Array.from(arr, b => chars[b % 62]).join('');
+      };
+      const defaultId = generateRandomId();
       const pagePath = new URL(url || 'http://' + domain).pathname;
       
       const script = `
@@ -2282,7 +2286,8 @@ function setupIpcHandlers() {
             idInput.type = 'text';
             idInput.id = '__agent_save_id__';
             idInput.value = ${JSON.stringify(defaultId)};
-            idInput.style.cssText = inputStyle + 'font-family:monospace;';
+            idInput.readOnly = true;
+            idInput.style.cssText = inputStyle + 'font-family:monospace;background:#f3f4f6;color:#6b7280;cursor:not-allowed;';
             idField.appendChild(idInput);
             body.appendChild(idField);
             
@@ -2446,17 +2451,6 @@ function setupIpcHandlers() {
               if (e.target === overlay) {
                 closeModal(null);
               }
-            });
-            
-            // 名称变化时自动生成 ID
-            nameInput.addEventListener('input', (e) => {
-              if (idInput.value === ${JSON.stringify(defaultId)} || !idInput.dataset.edited) {
-                const pinyin = e.target.value.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5]/g, '-').replace(/-+/g, '-');
-                idInput.value = pinyin + '-' + Date.now().toString(36).slice(-4);
-              }
-            });
-            idInput.addEventListener('input', () => {
-              idInput.dataset.edited = 'true';
             });
           });
         })()
