@@ -95,7 +95,7 @@ window.addEventListener('message', (e) => {
   }
   if (e.data?.type === 'AGENT_EDITOR_TOAST') {
     console.log('[Agent Editor Preload] Toast request:', e.data.message);
-    ipcRenderer.send('view:agentEditorToast', { message: e.data.message, type: e.data.type || 'info' });
+    ipcRenderer.send('view:agentEditorToast', { message: e.data.message, type: e.data.toastType || 'info' });
   }
 });
 

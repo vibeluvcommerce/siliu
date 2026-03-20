@@ -1267,7 +1267,7 @@ function setupIpcHandlers() {
             if (!window.savedCoordinates || window.savedCoordinates.length === 0) {
               console.log('[Agent Editor] No coordinates, showing toast');
               // 发送 toast 消息到主进程
-              window.postMessage({ type: 'AGENT_EDITOR_TOAST', message: '请先完成 Agent 标注', type: 'warning' }, '*');
+              window.postMessage({ type: 'AGENT_EDITOR_TOAST', message: '请先完成 Agent 标注', toastType: 'warning' }, '*');
               return;
             }
             
