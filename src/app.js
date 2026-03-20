@@ -1423,20 +1423,25 @@ function setupIpcHandlers() {
               const defaultId = randomId();
               const pagePath = new URL(url).pathname;
               
-              // SVG 图标（从文件读取）
+              // SVG 图标（从文件读取，添加尺寸样式）
               const iconSvgs = ${JSON.stringify(iconSvgs)};
               console.log('[Agent Editor] Icons loaded:', Object.keys(iconSvgs));
+              // 给 SVG 添加尺寸样式
+              const formatSvg = (svg) => {
+                if (!svg) return '<span>●</span>';
+                return svg.replace('<svg', '<svg style="width:20px;height:20px;display:block;"');
+              };
               const icons = [
-                { name: '机器人', svg: iconSvgs['robot'] || '<span>🤖</span>' },
-                { name: '搜索', svg: iconSvgs['magnifying-glass'] || '<span>🔍</span>' },
-                { name: '购物', svg: iconSvgs['shopping-cart'] || '<span>🛒</span>' },
-                { name: '数据', svg: iconSvgs['chart-bar'] || '<span>📊</span>' },
-                { name: '文档', svg: iconSvgs['file-text'] || '<span>📄</span>' },
-                { name: '游戏', svg: iconSvgs['game-controller'] || '<span>🎮</span>' },
-                { name: '用户', svg: iconSvgs['users'] || '<span>👥</span>' },
-                { name: '工具', svg: iconSvgs['wrench'] || '<span>🔧</span>' },
-                { name: '星标', svg: iconSvgs['star'] || '<span>⭐</span>' },
-                { name: '书签', svg: iconSvgs['bookmark'] || '<span>🔖</span>' }
+                { name: '机器人', svg: formatSvg(iconSvgs['robot']) },
+                { name: '搜索', svg: formatSvg(iconSvgs['magnifying-glass']) },
+                { name: '购物', svg: formatSvg(iconSvgs['shopping-cart']) },
+                { name: '数据', svg: formatSvg(iconSvgs['chart-bar']) },
+                { name: '文档', svg: formatSvg(iconSvgs['file-text']) },
+                { name: '游戏', svg: formatSvg(iconSvgs['game-controller']) },
+                { name: '用户', svg: formatSvg(iconSvgs['users']) },
+                { name: '工具', svg: formatSvg(iconSvgs['wrench']) },
+                { name: '星标', svg: formatSvg(iconSvgs['star']) },
+                { name: '书签', svg: formatSvg(iconSvgs['bookmark']) }
               ];
               
               // 颜色选项 - 鲜色系（与灰色图标区分）
