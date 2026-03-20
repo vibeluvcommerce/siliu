@@ -1568,9 +1568,8 @@ function setupIpcHandlers() {
                 btn.style.cssText = 
                   'width:36px;height:36px;border:2px solid ' + (idx === 0 ? previewColor.value : '#E8EAED') + ';border-radius:8px;' +
                   'background:' + (idx === 0 ? previewColor.value + '15' : '#FAFBFC') + ';cursor:pointer;' +
-                  'display:flex;align-items:center;justify-content:center;color:' + (idx === 0 ? previewColor.value : '#5F6368') + ';' +
+                  'display:flex;align-items:center;justify-content:center;color:' + (idx === 0 ? previewColor.value : '#9AA0A6') + ';' +
                   'transition:all 0.2s;padding:0;box-shadow:' + (idx === 0 ? '0 2px 6px ' + previewColor.value + '20' : 'none') + ';';
-                btn.style.color = previewColor.value;
                 btn.innerHTML = item.svg;
                 btn.title = item.name;
                 btn.onmouseenter = () => { if (btn.style.borderColor !== previewColor.value) { btn.style.borderColor = '#DADCE0'; btn.style.background = '#F1F3F4'; } };
