@@ -2502,14 +2502,33 @@ function setupIpcHandlers() {
                 return;
               }
               
+              const agentId = idInput.value.trim() || ${JSON.stringify(defaultId)};
+              
               closeModal({
-                name: name,
-                id: idInput.value.trim() || ${JSON.stringify(defaultId)},
-                description: descInput.value.trim(),
-                icon: selectedIcon.icon,
-                color: selectedColor.value,
-                colorEnd: selectedColor.end,
-                personality: personalityInput.value.trim()
+                metadata: {
+                  id: agentId,
+                  name: name,
+                  description: descInput.value.trim(),
+                  icon: selectedIcon.icon,
+                  color: selectedColor.value,
+                  colorEnd: selectedColor.end
+                },
+                sites: [{
+                  domain: ${JSON.stringify(domain)},
+                  pages: [{
+                    path: ${JSON.stringify(pagePath)},
+                    coordinates: ${JSON.stringify(coordinates)}.map((c, idx) => ({
+                      name: c.name || ('coord_' + (idx + 1)),
+                      x: c.x,
+                      y: c.y,
+                      viewportX: c.viewportX,
+                      viewportY: c.viewportY,
+                      description: c.description || '',
+                      screenshot: c.screenshotPath || null
+                    }))
+                  }]
+                }],
+                knowledge: personalityInput.value.trim()
               });
             };
             
@@ -2551,38 +2570,10 @@ function setupIpcHandlers() {
       const result = await view.webContents.executeJavaScript(script, true);
       console.log('[Agent Editor] Save dialog result:', result);
       
-      if (result && result.name) {
-        // 构建 Agent 配置
-        const agentConfig = {
-          metadata: {
-            id: result.id,
-            name: result.name,
-            description: result.description,
-            icon: result.icon,
-            color: result.color,
-            colorEnd: result.colorEnd
-          },
-          sites: [{
-            domain: domain,
-            pages: [{
-              path: pagePath,
-              coordinates: coordinates.map((c, idx) => ({
-                name: c.name || ('coord_' + (idx + 1)),
-                x: c.x,
-                y: c.y,
-                viewportX: c.viewportX,
-                viewportY: c.viewportY,
-                description: c.description || '',
-                screenshot: c.screenshotPath || null
-              }))
-            }]
-          }],
-          knowledge: result.personality
-        };
-        
+      if (result && result.metadata) {
         // 保存 Agent
         if (modules.agentLoader) {
-          const saveResult = await modules.agentLoader.saveAgent(agentConfig);
+          const saveResult = await modules.agentLoader.saveAgent(result);
           console.log('[Agent Editor] Agent saved:', saveResult);
           return saveResult;
         } else {
