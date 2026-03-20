@@ -1048,6 +1048,7 @@ function setupIpcHandlers() {
   } catch {}
   ipcMain.on('view:annotationNameConfirmed', annotationNameConfirmedHandler);
   
+  console.log('[Siliu] Registering agentEditor:inject handler...');
   safeHandle('agentEditor:inject', async (event, viewId, customScript, coordinates) => {
     console.log('========================================');
     console.log('[Agent Editor] Inject for view:', viewId);
