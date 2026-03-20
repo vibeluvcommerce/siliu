@@ -2897,6 +2897,19 @@
       showToast('已放弃所有标注，关闭所有标签页');
     });
     
+    // 监听标签页关闭事件，清理该标签页的标注数据
+    window.siliuAPI?.on?.('agentEditor:clearCoordinates', ({ viewId }) => {
+      console.log('[Agent Editor] Clear coordinates for view:', viewId);
+      // 过滤掉该 viewId 的坐标
+      const beforeCount = annotationSession.coordinates.length;
+      annotationSession.coordinates = annotationSession.coordinates.filter(
+        coord => coord.viewId !== viewId && coord.siteKey + '_' + coord.pageKey !== viewId
+      );
+      const afterCount = annotationSession.coordinates.length;
+      console.log('[Agent Editor] Cleared', beforeCount - afterCount, 'coordinates for closed tab');
+      updateCoordCount();
+    });
+    
     // 监听 Agent Editor 页面导航事件（暂存后打开新页面，需要重新注入）
     console.log('[Agent Editor] Setting up navigated listener');
     window.siliuAPI?.on?.('agentEditor:navigated', async ({ viewId, url, coordinates }) => {

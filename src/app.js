@@ -252,11 +252,16 @@ async function startup() {
     modules.core.tabManager.on('view:closed', ({ viewId }) => {
       if (agentEditorData.has(viewId)) {
         console.log('[Agent Editor] Tab closed, clearing coordinates for view:', viewId);
+        const coordsCount = agentEditorData.get(viewId)?.length || 0;
         agentEditorData.delete(viewId);
         agentEditorActiveViews.delete(viewId);
         agentEditorPausedState.delete(viewId);
         if (lastActiveAgentEditorView === viewId) {
           lastActiveAgentEditorView = null;
+        }
+        // 通知 shell 清理该标签页的标注数据
+        if (coordsCount > 0) {
+          modules.core?.sendToRenderer?.('agentEditor:clearCoordinates', { viewId });
         }
       }
     });
