@@ -1294,10 +1294,10 @@ function setupIpcHandlers() {
               const existing = document.getElementById('__agent_editor_save_modal__');
               if (existing) existing.remove();
               
-              // 生成 8 位 base62 随机码: agent-XXXXXXXX
+              // 生成 10 位 base62 随机码: agent-XXXXXXXXXX
               const randomId = () => {
                 const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-                const arr = new Uint8Array(8);
+                const arr = new Uint8Array(10);
                 crypto.getRandomValues(arr);
                 return 'agent-' + Array.from(arr, b => chars[b % 62]).join('');
               };
@@ -2182,10 +2182,10 @@ function setupIpcHandlers() {
         return { success: false, error: 'View not found' };
       }
       
-      // 生成 8 位 base62 随机码: agent-XXXXXXXX
+      // 生成 10 位 base62 随机码: agent-XXXXXXXXXX
       const generateRandomId = () => {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        const arr = new Uint8Array(8);
+        const arr = new Uint8Array(10);
         crypto.getRandomValues(arr);
         return 'agent-' + Array.from(arr, b => chars[b % 62]).join('');
       };
