@@ -1385,12 +1385,12 @@ function setupIpcHandlers() {
               const existing = document.getElementById('__agent_editor_save_modal__');
               if (existing) existing.remove();
               
-              // 生成 10 位 base62 随机码: agent-XXXXXXXXXX
+              // 生成 10 位随机码: agent-xxxxxxxxxx (只含小写和数字)
               const randomId = () => {
-                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+                const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
                 const arr = new Uint8Array(10);
                 crypto.getRandomValues(arr);
-                return 'agent-' + Array.from(arr, b => chars[b % 62]).join('');
+                return 'agent-' + Array.from(arr, b => chars[b % 36]).join('');
               };
               const defaultId = randomId();
               const pagePath = new URL(url).pathname;
@@ -2273,12 +2273,12 @@ function setupIpcHandlers() {
         return { success: false, error: 'View not found' };
       }
       
-      // 生成 10 位 base62 随机码: agent-XXXXXXXXXX
+      // 生成 10 位随机码: agent-xxxxxxxxxx (只含小写和数字)
       const generateRandomId = () => {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
         const arr = new Uint8Array(10);
         crypto.getRandomValues(arr);
-        return 'agent-' + Array.from(arr, b => chars[b % 62]).join('');
+        return 'agent-' + Array.from(arr, b => chars[b % 36]).join('');
       };
       const defaultId = generateRandomId();
       const pagePath = new URL(url || 'http://' + domain).pathname;
