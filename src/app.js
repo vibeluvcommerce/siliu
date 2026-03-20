@@ -1083,6 +1083,7 @@ function setupIpcHandlers() {
       const iconSvgs = {};
       try {
         const iconsDir = path.join(__dirname, '../assets/icons');
+        console.log('[Agent Editor] Loading icons from:', iconsDir);
         const iconFiles = {
           'robot': 'robot.svg',
           'magnifying-glass': 'magnifying-glass.svg',
@@ -1098,13 +1099,15 @@ function setupIpcHandlers() {
         for (const [key, filename] of Object.entries(iconFiles)) {
           try {
             const svgPath = path.join(iconsDir, filename);
-            iconSvgs[key] = fs.readFileSync(svgPath, 'utf-8');
+            const svgContent = fs.readFileSync(svgPath, 'utf-8');
+            console.log('[Agent Editor] Loaded icon:', filename, 'size:', svgContent.length);
+            iconSvgs[key] = svgContent;
           } catch (err) {
-            console.log('[Agent Editor] Failed to load icon:', filename, err.message);
+            console.error('[Agent Editor] Failed to load icon:', filename, err.message);
           }
         }
       } catch (err) {
-        console.log('[Agent Editor] Failed to load icons:', err.message);
+        console.error('[Agent Editor] Failed to load icons:', err.message);
       }
       
       const script = `
