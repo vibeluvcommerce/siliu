@@ -248,20 +248,7 @@ async function startup() {
       }
     });
     
-    // 监听标签页关闭，清理该标签页的标注缓存
-    modules.core.tabManager.on('view:closed', ({ viewId }) => {
-      if (agentEditorData.has(viewId)) {
-        console.log('[Agent Editor] Tab closed, clearing coordinates for view:', viewId);
-        agentEditorData.delete(viewId);
-        agentEditorActiveViews.delete(viewId);
-        agentEditorPausedState.delete(viewId);
-        if (lastActiveAgentEditorView === viewId) {
-          lastActiveAgentEditorView = null;
-        }
-      }
-    });
-    
-    // 监听最后一个标签页关闭，清理所有 Agent Editor 状态（避免新标签页自动继承）
+    // 监听最后一个标签页关闭，清理 Agent Editor 状态（避免新标签页自动继承）
     modules.core.tabManager.on('view:last-closed', () => {
       console.log('[Agent Editor] Last tab closed, clearing all Agent Editor state');
       agentEditorActiveViews.clear();
