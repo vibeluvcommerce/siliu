@@ -258,8 +258,8 @@ async function startup() {
     });
     
     // 拦截标签页关闭：Agent Editor 活跃时禁止关闭
-    const originalCloseView = modules.core.closeView.bind(modules.core);
-    modules.core.closeView = (viewId) => {
+    const originalCloseView = modules.core.tabManager.closeView.bind(modules.core.tabManager);
+    modules.core.tabManager.closeView = (viewId) => {
       // 检查是否有任何标签页处于 Agent Editor 状态
       if (agentEditorActiveViews.size > 0) {
         console.log('[Agent Editor] Blocking tab close - Agent Editor is active');
