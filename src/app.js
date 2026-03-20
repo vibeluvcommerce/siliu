@@ -1094,9 +1094,11 @@ function setupIpcHandlers() {
       }
       
       // 如果传入自定义脚本，直接执行
+      console.log('[Agent Editor] Checking customScript:', typeof customScript, customScript ? 'provided' : 'null/undefined');
       if (customScript) {
-        console.log('[Agent Editor] Executing custom script');
+        console.log('[Agent Editor] Executing custom script, length:', customScript.length);
         const result = await view.webContents.executeJavaScript(customScript, true);
+        console.log('[Agent Editor] Custom script result:', result);
         return { success: true, result };
       }
       
