@@ -1092,6 +1092,32 @@ function setupIpcHandlers() {
             document.head.appendChild(link);
           }
           
+          // 图标 fallback 映射（当 Phosphor Icons 加载失败时使用）
+          const iconFallback = {
+            'ph-robot': '🤖',
+            'ph-magnifying-glass': '🔍',
+            'ph-shopping-cart': '🛒',
+            'ph-chart-bar': '📊',
+            'ph-file-text': '📄',
+            'ph-game-controller': '🎮',
+            'ph-users': '👥',
+            'ph-wrench': '🔧',
+            'ph-star': '⭐',
+            'ph-bookmark': '🔖'
+          };
+          
+          // 检测字体是否加载
+          const isPhosphorLoaded = () => {
+            const testEl = document.createElement('i');
+            testEl.className = 'ph ph-robot';
+            testEl.style.cssText = 'position:absolute;visibility:hidden;font-size:100px;';
+            document.body.appendChild(testEl);
+            const width = testEl.offsetWidth;
+            document.body.removeChild(testEl);
+            // Phosphor 字体的宽度应该大于默认字体
+            return width > 50;
+          };
+          
           // 自定义确认弹窗 - Promise 版本
           function showConfirmDialog(message, title = '确认') {
             return new Promise((resolve) => {
@@ -1460,7 +1486,8 @@ function setupIpcHandlers() {
                 'width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;' +
                 'background:linear-gradient(135deg,' + previewColor.value + ',' + previewColor.end + ');' +
                 'box-shadow:0 2px 8px ' + previewColor.value + '40;transition:all 0.3s;';
-              previewBox.innerHTML = '<i class="ph ' + previewIcon.icon + '" style="font-size:20px;color:white;"></i>';
+              const useFallback = !isPhosphorLoaded();
+              previewBox.innerHTML = useFallback ? iconFallback[previewIcon.icon] : '<i class="ph ' + previewIcon.icon + '" style="font-size:20px;color:white;"></i>';
               
               header.appendChild(previewBox);
               header.innerHTML += '<h3 style="margin:0;font-size:17px;font-weight:600;color:#202124;flex:1;letter-spacing:-0.2px;">保存为 Agent</h3>';
@@ -1520,7 +1547,8 @@ function setupIpcHandlers() {
                 if (preview && previewIcon) {
                   preview.style.background = 'linear-gradient(135deg,' + previewColor.value + ',' + previewColor.end + ')';
                   preview.style.boxShadow = '0 2px 8px ' + previewColor.value + '40';
-                  preview.innerHTML = '<i class="ph ' + (previewIcon.icon || 'ph-robot') + '" style="font-size:20px;color:white;"></i>';
+                  const iconClass = previewIcon.icon || 'ph-robot';
+                  preview.innerHTML = useFallback ? iconFallback[iconClass] : '<i class="ph ' + iconClass + '" style="font-size:20px;color:white;"></i>';
                 }
               };
               
@@ -1532,7 +1560,7 @@ function setupIpcHandlers() {
                   'background:' + (idx === 0 ? previewColor.value + '15' : '#FAFBFC') + ';cursor:pointer;' +
                   'display:flex;align-items:center;justify-content:center;color:' + (idx === 0 ? previewColor.value : '#5F6368') + ';' +
                   'transition:all 0.2s;padding:0;box-shadow:' + (idx === 0 ? '0 2px 6px ' + previewColor.value + '20' : 'none') + ';';
-                btn.innerHTML = '<i class="ph ' + item.icon + '" style="font-size:18px;"></i>';
+                btn.innerHTML = useFallback ? iconFallback[item.icon] : '<i class="ph ' + item.icon + '" style="font-size:18px;"></i>';
                 btn.title = item.name;
                 btn.onmouseenter = () => { if (btn.style.borderColor !== previewColor.value) { btn.style.borderColor = '#DADCE0'; btn.style.background = '#F1F3F4'; } };
                 btn.onmouseleave = () => { if (btn.style.borderColor !== previewColor.value) { btn.style.borderColor = '#E8EAED'; btn.style.background = '#FAFBFC'; } };
