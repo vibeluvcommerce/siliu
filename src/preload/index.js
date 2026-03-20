@@ -162,7 +162,9 @@ contextBridge.exposeInMainWorld('siliuAPI', {
       'agentEditor:navigated',
       'agentEditor:newTab',
       'agentEditor:tabActivated',
-      'agentEditor:cancelAll'
+      'agentEditor:cancelAll',
+      // Agent 管理
+      'agents:reload'
     ];
     if (validChannels.includes(channel)) {
       ipcRenderer.on(channel, (event, data) => {

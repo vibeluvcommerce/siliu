@@ -93,6 +93,10 @@ window.addEventListener('message', (e) => {
     console.log('[Agent Editor Preload] Save agent clicked, forwarding to main:', e.data.config?.metadata?.name);
     ipcRenderer.send('view:agentEditorSave', { config: e.data.config });
   }
+  if (e.data?.type === 'AGENT_EDITOR_SAVE_AND_CLOSE') {
+    console.log('[Agent Editor Preload] Save and close clicked, forwarding to main:', e.data.config?.metadata?.name);
+    ipcRenderer.send('view:agentEditorSaveAndClose', { config: e.data.config });
+  }
   if (e.data?.type === 'AGENT_EDITOR_TOAST') {
     console.log('[Agent Editor Preload] Toast request:', e.data.message);
     ipcRenderer.send('view:agentEditorToast', { message: e.data.message, type: e.data.toastType || 'info' });

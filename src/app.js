@@ -833,11 +833,40 @@ function setupIpcHandlers() {
         const result = await modules.agentLoader.saveAgent(data.config);
         console.log('[Agent Editor] Agent saved result:', result);
         if (result.success) {
-          // 通知 shell 显示成功提示
+          // 1. 通知 shell 显示成功提示
           modules.core?.sendToRenderer?.('toast:show', { 
             message: `Agent "${data.config.metadata.name}" 保存成功！`, 
             type: 'success' 
           });
+          
+          // 2. 通知 shell 刷新 Agent 列表
+          modules.core?.sendToRenderer?.('agents:reload', {});
+          
+          // 3. 退出 Agent Editor 模式（保持页面打开，仅关闭标注面板）
+          const senderViewId = event.sender?.id;
+          if (senderViewId) {
+            // 移除该视图的 Agent Editor 状态
+            agentEditorActiveViews.delete(senderViewId);
+            agentEditorData.delete(senderViewId);
+            agentEditorPausedState.delete(senderViewId);
+            if (lastActiveAgentEditorView === senderViewId) {
+              lastActiveAgentEditorView = null;
+            }
+            // 移除页面上的标注面板
+            try {
+              const view = modules.core?.tabManager?.getViewByWebContentsId?.(senderViewId);
+              if (view) {
+                await modules.controller.agentEditorRemove(view.id);
+              }
+            } catch (err) {
+              console.log('[Agent Editor] Error removing editor after save:', err.message);
+            }
+          }
+          
+          // 4. 如果所有标注都完成了，通知 shell 关闭 Agent Editor 状态
+          if (agentEditorActiveViews.size === 0) {
+            modules.core?.sendToRenderer?.('agentEditor:close', {});
+          }
         } else {
           modules.core?.sendToRenderer?.('toast:show', { 
             message: '保存失败: ' + (result.error || '未知错误'), 
@@ -857,6 +886,68 @@ function setupIpcHandlers() {
     ipcMain.removeListener('view:agentEditorSave', agentEditorSaveHandler);
   } catch {}
   ipcMain.on('view:agentEditorSave', agentEditorSaveHandler);
+  
+  // 监听保存并关闭 Agent Editor 事件
+  const agentEditorSaveAndCloseHandler = async (event, data) => {
+    console.log('[Agent Editor] Save and close clicked:', data.config?.metadata?.name);
+    try {
+      if (modules.agentLoader && data.config) {
+        const result = await modules.agentLoader.saveAgent(data.config);
+        console.log('[Agent Editor] Agent saved result:', result);
+        if (result.success) {
+          // 1. 显示成功提示
+          modules.core?.sendToRenderer?.('toast:show', { 
+            message: `Agent "${data.config.metadata.name}" 保存成功！`, 
+            type: 'success' 
+          });
+          
+          // 2. 刷新 Agent 列表
+          modules.core?.sendToRenderer?.('agents:reload', {});
+          
+          // 3. 获取发送者视图并关闭 Agent Editor
+          const senderViewId = event.sender?.id;
+          if (senderViewId) {
+            // 清理状态
+            agentEditorActiveViews.delete(senderViewId);
+            agentEditorData.delete(senderViewId);
+            agentEditorPausedState.delete(senderViewId);
+            if (lastActiveAgentEditorView === senderViewId) {
+              lastActiveAgentEditorView = null;
+            }
+            // 移除页面上的标注面板
+            try {
+              const view = modules.core?.tabManager?.getViewByWebContentsId?.(senderViewId);
+              if (view) {
+                await modules.controller.agentEditorRemove(view.id);
+              }
+            } catch (err) {
+              console.log('[Agent Editor] Error removing editor after save:', err.message);
+            }
+          }
+          
+          // 4. 如果所有标注都完成了，通知 shell 关闭 Agent Editor 状态
+          if (agentEditorActiveViews.size === 0) {
+            modules.core?.sendToRenderer?.('agentEditor:close', {});
+          }
+        } else {
+          modules.core?.sendToRenderer?.('toast:show', { 
+            message: '保存失败: ' + (result.error || '未知错误'), 
+            type: 'error' 
+          });
+        }
+      }
+    } catch (err) {
+      console.error('[Agent Editor] Failed to save agent:', err);
+      modules.core?.sendToRenderer?.('toast:show', { 
+        message: '保存失败: ' + err.message, 
+        type: 'error' 
+      });
+    }
+  };
+  try {
+    ipcMain.removeListener('view:agentEditorSaveAndClose', agentEditorSaveAndCloseHandler);
+  } catch {}
+  ipcMain.on('view:agentEditorSaveAndClose', agentEditorSaveAndCloseHandler);
   
   // 监听 Toast 请求
   const agentEditorToastHandler = async (event, data) => {
@@ -1279,9 +1370,9 @@ function setupIpcHandlers() {
             const result = await showSaveAgentDialog(window.savedCoordinates || [], domain, url);
             if (result) {
               console.log('[Agent Editor] Agent config prepared:', result.name);
-              // 发送给主进程保存
+              // 发送给主进程保存并关闭
               window.postMessage({ 
-                type: 'AGENT_EDITOR_SAVE', 
+                type: 'AGENT_EDITOR_SAVE_AND_CLOSE', 
                 config: result 
               }, '*');
             }
