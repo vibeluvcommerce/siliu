@@ -1294,25 +1294,7 @@ function setupIpcHandlers() {
               const existing = document.getElementById('__agent_editor_save_modal__');
               if (existing) existing.remove();
               
-              // 高熵随机码生成器
-              const generateRandomSuffix = () => {
-                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-                const array = new Uint8Array(8);
-                crypto.getRandomValues(array);
-                return Array.from(array, b => chars[b % 62]).join('');
-              };
-              
-              // 标准化 ID
-              const normalizeId = (str) => {
-                return str.toLowerCase()
-                  .replace(/[^a-z0-9]+/g, '-')
-                  .replace(/^-|-$/g, '')
-                  .replace(/-+/g, '-')
-                  .substring(0, 32);
-              };
-              
-              const prefix = domain ? domain.replace(/\./g, '-').replace(/^www-/, '') : 'agent';
-              const defaultId = prefix + '-custom-' + generateRandomSuffix();
+              const defaultId = domain ? domain.replace(/\./g, '-') + '-' + Date.now().toString(36).slice(-4) : 'agent-' + Date.now().toString(36).slice(-4);
               const pagePath = new URL(url).pathname;
               
               // Phosphor Icons 字体类名
@@ -1409,8 +1391,8 @@ function setupIpcHandlers() {
               const idInput = document.createElement('input');
               idInput.type = 'text';
               idInput.value = defaultId;
-              idInput.placeholder = '小写字母、数字、连字符';
-              idInput.style.cssText = 'width:100%;padding:12px 10px;border:1.5px solid #E8EAED;border-radius:10px;font-size:13px;outline:none;box-sizing:border-box;color:#5F6368;background:#FAFBFC;font-family:monospace;';
+              idInput.readOnly = true;
+              idInput.style.cssText = 'width:100%;padding:12px 10px;border:1.5px solid #E8EAED;border-radius:10px;font-size:13px;outline:none;box-sizing:border-box;color:#9AA0A6;background:#F1F3F4;font-family:monospace;cursor:not-allowed;';
               idField.appendChild(idInput);
               nameRow.appendChild(idField);
               body.appendChild(nameRow);
@@ -1570,19 +1552,9 @@ function setupIpcHandlers() {
                   return;
                 }
                 
-                // ID 格式验证
-                const agentId = idInput.value.trim() || defaultId;
-                const idValid = /^[a-z][a-z0-9-]*$/.test(agentId) && agentId.length >= 3 && agentId.length <= 64;
-                if (!idValid) {
-                  idInput.style.borderColor = '#EA4335';
-                  idInput.style.boxShadow = '0 0 0 3px rgba(234,67,53,0.1)';
-                  idInput.focus();
-                  return;
-                }
-                
                 closeModal({
                   metadata: {
-                    id: agentId,
+                    id: idInput.value.trim() || defaultId,
                     name: name,
                     description: descInput.value.trim(),
                     icon: selectedIcon.icon,
@@ -1637,23 +1609,13 @@ function setupIpcHandlers() {
               });
               
               nameInput.addEventListener('input', (e) => {
-                if (!idInput.dataset.edited) {
-                  const nameSlug = normalizeId(e.target.value) || 'custom';
-                  idInput.value = prefix + '-' + nameSlug + '-' + generateRandomSuffix();
+                if (idInput.value === defaultId || !idInput.dataset.edited) {
+                  const pinyin = e.target.value.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5]/g, '-').replace(/-+/g, '-');
+                  idInput.value = pinyin + '-' + Date.now().toString(36).slice(-4);
                 }
               });
-              
-              idInput.addEventListener('input', (e) => {
+              idInput.addEventListener('input', () => {
                 idInput.dataset.edited = 'true';
-                // 实时验证并标准化
-                const normalized = normalizeId(e.target.value);
-                if (normalized !== e.target.value) {
-                  idInput.value = normalized;
-                }
-                // 验证格式
-                const isValid = /^[a-z][a-z0-9-]*$/.test(normalized) && normalized.length >= 3 && normalized.length <= 64;
-                idInput.style.borderColor = isValid ? '#E8EAED' : '#EA4335';
-                idInput.dataset.valid = isValid ? 'true' : 'false';
               });
             });
           }
@@ -2222,17 +2184,8 @@ function setupIpcHandlers() {
         return { success: false, error: 'View not found' };
       }
       
-      // 生成高熵随机码（base62, 8位 = 62^8 种组合）
-      const generateRandomId = () => {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        const array = new Uint8Array(8);
-        crypto.getRandomValues(array);
-        return Array.from(array, b => chars[b % 62]).join('');
-      };
-      
-      // 生成默认 Agent ID: {prefix}-{name-slug}-{random}
-      const prefix = domain ? domain.replace(/\./g, '-').replace(/^www-/, '') : 'agent';
-      const defaultId = prefix + '-custom-' + generateRandomId();
+      // 生成默认 Agent ID（基于域名和时间戳）
+      const defaultId = domain ? domain.replace(/\./g, '-') + '-' + Date.now().toString(36) : 'agent-' + Date.now().toString(36);
       const pagePath = new URL(url || 'http://' + domain).pathname;
       
       const script = `
@@ -2453,19 +2406,9 @@ function setupIpcHandlers() {
                 return;
               }
               
-              // ID 格式验证
-              const id = idInput.value.trim() || ${JSON.stringify(defaultId)};
-              const idValid = /^[a-z][a-z0-9-]*$/.test(id) && id.length >= 3 && id.length <= 64;
-              if (!idValid) {
-                idInput.style.borderColor = '#dc2626';
-                idInput.style.boxShadow = '0 0 0 3px rgba(220,38,38,0.1)';
-                idInput.focus();
-                return;
-              }
-              
               closeModal({
                 name: name,
-                id: id,
+                id: idInput.value.trim() || ${JSON.stringify(defaultId)},
                 description: descInput.value.trim(),
                 icon: selectedIcon.icon,
                 color: selectedColor.value,
@@ -2505,43 +2448,15 @@ function setupIpcHandlers() {
               }
             });
             
-            // 高熵随机码生成器
-            const generateRandomSuffix = () => {
-              const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-              const array = new Uint8Array(8);
-              crypto.getRandomValues(array);
-              return Array.from(array, b => chars[b % 62]).join('');
-            };
-            
-            // 标准化 ID：只保留小写字母、数字、连字符
-            const normalizeId = (str) => {
-              return str.toLowerCase()
-                .replace(/[^a-z0-9]+/g, '-')
-                .replace(/^-|-$/g, '')
-                .replace(/-+/g, '-')
-                .substring(0, 32);
-            };
-            
             // 名称变化时自动生成 ID
             nameInput.addEventListener('input', (e) => {
-              if (!idInput.dataset.edited) {
-                const nameSlug = normalizeId(e.target.value) || 'custom';
-                idInput.value = '${prefix}-' + nameSlug + '-' + generateRandomSuffix();
+              if (idInput.value === ${JSON.stringify(defaultId)} || !idInput.dataset.edited) {
+                const pinyin = e.target.value.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5]/g, '-').replace(/-+/g, '-');
+                idInput.value = pinyin + '-' + Date.now().toString(36).slice(-4);
               }
             });
-            
-            // ID 输入验证
-            idInput.addEventListener('input', (e) => {
+            idInput.addEventListener('input', () => {
               idInput.dataset.edited = 'true';
-              // 实时验证并标准化
-              const normalized = normalizeId(e.target.value);
-              if (normalized !== e.target.value) {
-                idInput.value = normalized;
-              }
-              // 验证格式
-              const isValid = /^[a-z][a-z0-9-]*$/.test(normalized) && normalized.length >= 3 && normalized.length <= 64;
-              idInput.style.borderColor = isValid ? '#d1d5db' : '#dc2626';
-              idInput.dataset.valid = isValid ? 'true' : 'false';
             });
           });
         })()
