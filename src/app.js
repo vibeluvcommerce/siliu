@@ -8,6 +8,7 @@
 
 const { app, dialog } = require('electron');
 const path = require('path');
+const fs = require('fs');
 
 // 启用远程调试协议（用于 CDP 模式）
 const DEBUG_PORT = process.env.SILIU_DEBUG_PORT || 9223;
