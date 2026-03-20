@@ -1395,18 +1395,18 @@ function setupIpcHandlers() {
               const defaultId = randomId();
               const pagePath = new URL(url).pathname;
               
-              // 图标选项 - 使用 emoji，不依赖字体库
+              // Phosphor Icons 字体类名
               const icons = [
-                { name: '机器人', icon: '🤖' },
-                { name: '导航', icon: '🗺️' },
-                { name: '购物', icon: '🛒' },
-                { name: '搜索', icon: '🔍' },
-                { name: '数据', icon: '📊' },
-                { name: '文档', icon: '📄' },
-                { name: '娱乐', icon: '🎮' },
-                { name: '社交', icon: '👥' },
-                { name: '工具', icon: '🔧' },
-                { name: '心形', icon: '❤️' }
+                { name: '机器人', icon: 'ph-robot' },
+                { name: '搜索', icon: 'ph-magnifying-glass' },
+                { name: '购物', icon: 'ph-shopping-cart' },
+                { name: '数据', icon: 'ph-chart-bar' },
+                { name: '文档', icon: 'ph-file-text' },
+                { name: '游戏', icon: 'ph-game-controller' },
+                { name: '用户', icon: 'ph-users' },
+                { name: '工具', icon: 'ph-wrench' },
+                { name: '星标', icon: 'ph-star' },
+                { name: '书签', icon: 'ph-bookmark' }
               ];
               
               // 颜色选项 - 鲜色系（与灰色图标区分）
@@ -1451,7 +1451,7 @@ function setupIpcHandlers() {
                 'width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;' +
                 'background:linear-gradient(135deg,' + previewColor.value + ',' + previewColor.end + ');' +
                 'box-shadow:0 2px 8px ' + previewColor.value + '40;transition:all 0.3s;';
-              previewBox.textContent = previewIcon.icon;
+              previewBox.innerHTML = '<i class="ph ' + previewIcon.icon + '" style="font-size:20px;color:white;"></i>';
               
               header.appendChild(previewBox);
               header.innerHTML += '<h3 style="margin:0;font-size:17px;font-weight:600;color:#202124;flex:1;letter-spacing:-0.2px;">保存为 Agent</h3>';
@@ -1511,7 +1511,7 @@ function setupIpcHandlers() {
                 if (preview && previewIcon) {
                   preview.style.background = 'linear-gradient(135deg,' + previewColor.value + ',' + previewColor.end + ')';
                   preview.style.boxShadow = '0 2px 8px ' + previewColor.value + '40';
-                  preview.textContent = previewIcon.icon || '🤖';
+                  preview.innerHTML = '<i class="ph ' + (previewIcon.icon || 'ph-robot') + '" style="font-size:20px;color:white;"></i>';
                 }
               };
               
@@ -1523,7 +1523,7 @@ function setupIpcHandlers() {
                   'background:' + (idx === 0 ? previewColor.value + '15' : '#FAFBFC') + ';cursor:pointer;' +
                   'display:flex;align-items:center;justify-content:center;color:' + (idx === 0 ? previewColor.value : '#5F6368') + ';' +
                   'transition:all 0.2s;padding:0;box-shadow:' + (idx === 0 ? '0 2px 6px ' + previewColor.value + '20' : 'none') + ';';
-                btn.textContent = item.icon;
+                btn.innerHTML = '<i class="ph ' + item.icon + '" style="font-size:18px;"></i>';
                 btn.title = item.name;
                 btn.onmouseenter = () => { if (btn.style.borderColor !== previewColor.value) { btn.style.borderColor = '#DADCE0'; btn.style.background = '#F1F3F4'; } };
                 btn.onmouseleave = () => { if (btn.style.borderColor !== previewColor.value) { btn.style.borderColor = '#E8EAED'; btn.style.background = '#FAFBFC'; } };
