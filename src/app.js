@@ -1083,6 +1083,15 @@ function setupIpcHandlers() {
         (function() {
           console.log('[Agent Editor] Script executing in page context');
           
+          // 动态加载 Phosphor Icons CSS
+          if (!document.getElementById('__phosphor_icons_css__')) {
+            const link = document.createElement('link');
+            link.id = '__phosphor_icons_css__';
+            link.rel = 'stylesheet';
+            link.href = 'https://unpkg.com/@phosphor-icons/web@2.0.3/src/regular/style.css';
+            document.head.appendChild(link);
+          }
+          
           // 自定义确认弹窗 - Promise 版本
           function showConfirmDialog(message, title = '确认') {
             return new Promise((resolve) => {
