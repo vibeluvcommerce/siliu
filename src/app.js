@@ -1079,6 +1079,34 @@ function setupIpcHandlers() {
       // 将坐标数据序列化为 JSON 字符串传入脚本
       const coordinatesJson = JSON.stringify(savedCoordinates);
       
+      // 读取 SVG 图标文件
+      const iconSvgs = {};
+      try {
+        const iconsDir = path.join(__dirname, '../assets/icons');
+        const iconFiles = {
+          'robot': 'robot.svg',
+          'magnifying-glass': 'magnifying-glass.svg',
+          'shopping-cart': 'shopping-cart.svg',
+          'chart-bar': 'chart-bar.svg',
+          'file-text': 'file-text.svg',
+          'game-controller': 'game-controller.svg',
+          'users': 'users.svg',
+          'wrench': 'wrench.svg',
+          'star': 'star.svg',
+          'bookmark': 'bookmark.svg'
+        };
+        for (const [key, filename] of Object.entries(iconFiles)) {
+          try {
+            const svgPath = path.join(iconsDir, filename);
+            iconSvgs[key] = fs.readFileSync(svgPath, 'utf-8');
+          } catch (err) {
+            console.log('[Agent Editor] Failed to load icon:', filename, err.message);
+          }
+        }
+      } catch (err) {
+        console.log('[Agent Editor] Failed to load icons:', err.message);
+      }
+      
       const script = `
         (function() {
           console.log('[Agent Editor] Script executing in page context');
@@ -1395,18 +1423,19 @@ function setupIpcHandlers() {
               const defaultId = randomId();
               const pagePath = new URL(url).pathname;
               
-              // SVG 图标（内嵌，stroke 风格）
+              // SVG 图标（从文件读取）
+              const iconSvgs = ${JSON.stringify(iconSvgs)};
               const icons = [
-                { name: '机器人', svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;"><rect x="32" y="48" width="192" height="160" rx="16"/><circle cx="92" cy="116" r="12"/><circle cx="164" cy="116" r="12"/><line x1="128" y1="48" x2="128" y2="16"/></svg>' },
-                { name: '搜索', svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;"><circle cx="112" cy="112" r="80"/><line x1="168.57" y1="168.57" x2="224" y2="224"/></svg>' },
-                { name: '购物', svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;"><path d="M48,56H206.73L192,144H64Z"/><circle cx="88" cy="192" r="16"/><circle cx="184" cy="192" r="16"/><line x1="80" y1="56" x2="64" y2="24"/></svg>' },
-                { name: '数据', svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;"><rect x="32" y="40" width="64" height="176" rx="8"/><rect x="128" y="80" width="64" height="136" rx="8"/><line x1="224" y1="208" x2="224" y2="120"/></svg>' },
-                { name: '文档', svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;"><path d="M56,80V200a16,16,0,0,0,16,16H184a16,16,0,0,0,16-16V56a16,16,0,0,0-16-16H72"/><line x1="96" y1="112" x2="160" y2="112"/><line x1="96" y1="144" x2="160" y2="144"/></svg>' },
-                { name: '游戏', svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;"><rect x="40" y="48" width="176" height="160" rx="24"/><line x1="128" y1="96" x2="128" y2="128"/><line x1="112" y1="112" x2="144" y2="112"/><line x1="176" y1="112" x2="192" y2="112"/></svg>' },
-                { name: '用户', svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;"><circle cx="84" cy="108" r="52"/><path d="M24,200c16-24,44-40,76-40s60,16,76,40"/><circle cx="172" cy="76" r="28"/><path d="M200,160c-12,0-28,4-40,16"/></svg>' },
-                { name: '工具', svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;"><path d="M128,72l48-48"/><path d="M184,32l24,24"/><circle cx="128" cy="128" r="40"/><path d="M176,168l48,48"/><path d="M224,192l-24,24"/></svg>' },
-                { name: '星标', svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;"><polygon points="128,24 156,92 228,100 174,150 188,224 128,188 68,224 82,150 28,100 100,92"/></svg>' },
-                { name: '书签', svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;"><path d="M176,32H80a16,16,0,0,0-16,16V216l72-48,72,48V48A16,16,0,0,0,176,32Z"/></svg>' }
+                { name: '机器人', svg: iconSvgs['robot'] || '' },
+                { name: '搜索', svg: iconSvgs['magnifying-glass'] || '' },
+                { name: '购物', svg: iconSvgs['shopping-cart'] || '' },
+                { name: '数据', svg: iconSvgs['chart-bar'] || '' },
+                { name: '文档', svg: iconSvgs['file-text'] || '' },
+                { name: '游戏', svg: iconSvgs['game-controller'] || '' },
+                { name: '用户', svg: iconSvgs['users'] || '' },
+                { name: '工具', svg: iconSvgs['wrench'] || '' },
+                { name: '星标', svg: iconSvgs['star'] || '' },
+                { name: '书签', svg: iconSvgs['bookmark'] || '' }
               ];
               
               // 颜色选项 - 鲜色系（与灰色图标区分）
