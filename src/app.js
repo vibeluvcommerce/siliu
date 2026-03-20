@@ -1654,7 +1654,7 @@ function setupIpcHandlers() {
                   metadata: {
                     id: idInput.value.trim() || defaultId,
                     name: name,
-                    description: descInput.value.trim(),
+                    description: descInput2.value.trim(),
                     icon: selectedIcon.icon,
                     color: selectedColor.value,
                     colorEnd: selectedColor.end
