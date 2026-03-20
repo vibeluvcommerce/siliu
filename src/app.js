@@ -1079,16 +1079,19 @@ function setupIpcHandlers() {
       // 将坐标数据序列化为 JSON 字符串传入脚本
       const coordinatesJson = JSON.stringify(savedCoordinates);
       
+      // 本地 Phosphor Icons CSS 路径
+      const phosphorCssPath = path.join(__dirname, '../public/fonts/phosphor.css').replace(/\\/g, '/');
+      
       const script = `
         (function() {
           console.log('[Agent Editor] Script executing in page context');
           
-          // 动态加载 Phosphor Icons CSS
+          // 动态加载本地 Phosphor Icons CSS
           if (!document.getElementById('__phosphor_icons_css__')) {
             const link = document.createElement('link');
             link.id = '__phosphor_icons_css__';
             link.rel = 'stylesheet';
-            link.href = 'https://unpkg.com/@phosphor-icons/web@2.0.3/src/regular/style.css';
+            link.href = 'file://${phosphorCssPath}';
             document.head.appendChild(link);
           }
           
