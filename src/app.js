@@ -1451,6 +1451,7 @@ function setupIpcHandlers() {
                 'width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;' +
                 'background:linear-gradient(135deg,' + previewColor.value + ',' + previewColor.end + ');' +
                 'box-shadow:0 2px 8px ' + previewColor.value + '40;transition:all 0.3s;';
+              previewBox.style.color = 'white';
               previewBox.innerHTML = icons[0].svg;
               
               header.appendChild(previewBox);
@@ -1511,6 +1512,7 @@ function setupIpcHandlers() {
                 if (preview && previewIcon) {
                   preview.style.background = 'linear-gradient(135deg,' + previewColor.value + ',' + previewColor.end + ')';
                   preview.style.boxShadow = '0 2px 8px ' + previewColor.value + '40';
+                  preview.style.color = 'white';
                   preview.innerHTML = previewIcon.svg;
                 }
               };
@@ -1523,6 +1525,7 @@ function setupIpcHandlers() {
                   'background:' + (idx === 0 ? previewColor.value + '15' : '#FAFBFC') + ';cursor:pointer;' +
                   'display:flex;align-items:center;justify-content:center;color:' + (idx === 0 ? previewColor.value : '#5F6368') + ';' +
                   'transition:all 0.2s;padding:0;box-shadow:' + (idx === 0 ? '0 2px 6px ' + previewColor.value + '20' : 'none') + ';';
+                btn.style.color = previewColor.value;
                 btn.innerHTML = item.svg;
                 btn.title = item.name;
                 btn.onmouseenter = () => { if (btn.style.borderColor !== previewColor.value) { btn.style.borderColor = '#DADCE0'; btn.style.background = '#F1F3F4'; } };
