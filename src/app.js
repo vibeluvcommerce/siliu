@@ -1568,7 +1568,7 @@ function setupIpcHandlers() {
                 btn.style.cssText = 
                   'width:36px;height:36px;border:2px solid ' + (idx === 0 ? previewColor.value : '#E8EAED') + ';border-radius:8px;' +
                   'background:' + (idx === 0 ? previewColor.value + '15' : '#FAFBFC') + ';cursor:pointer;' +
-                  'display:flex;align-items:center;justify-content:center;color:' + (idx === 0 ? previewColor.value : '#9AA0A6') + ';' +
+                  'display:flex;align-items:center;justify-content:center;color:' + (idx === 0 ? previewColor.value : '#9ca3af') + ';' +
                   'transition:all 0.2s;padding:0;box-shadow:' + (idx === 0 ? '0 2px 6px ' + previewColor.value + '20' : 'none') + ';';
                 btn.innerHTML = item.svg;
                 btn.title = item.name;
@@ -1581,7 +1581,7 @@ function setupIpcHandlers() {
                   iconGrid.querySelectorAll('button').forEach((b, i) => {
                     b.style.borderColor = i === idx ? previewColor.value : '#E8EAED';
                     b.style.background = i === idx ? previewColor.value + '15' : '#FAFBFC';
-                    b.style.color = i === idx ? previewColor.value : '#5F6368';
+                    b.style.color = i === idx ? previewColor.value : '#9ca3af';
                     b.style.boxShadow = i === idx ? '0 2px 8px ' + previewColor.value + '20' : 'none';
                   });
                 };
