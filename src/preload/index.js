@@ -163,7 +163,6 @@ contextBridge.exposeInMainWorld('siliuAPI', {
       'agentEditor:newTab',
       'agentEditor:tabActivated',
       'agentEditor:cancelAll',
-      'agentEditor:clearCoordinates',
       // Agent 管理
       'agents:reload'
     ];
