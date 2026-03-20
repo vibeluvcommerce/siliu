@@ -257,6 +257,22 @@ async function startup() {
       lastActiveAgentEditorView = null;
     });
     
+    // 拦截标签页关闭：Agent Editor 活跃时禁止关闭
+    const originalCloseView = modules.core.closeView.bind(modules.core);
+    modules.core.closeView = (viewId) => {
+      // 检查是否有任何标签页处于 Agent Editor 状态
+      if (agentEditorActiveViews.size > 0) {
+        console.log('[Agent Editor] Blocking tab close - Agent Editor is active');
+        modules.core?.sendToRenderer?.('toast:show', {
+          message: 'Agent 编辑状态下该功能暂不可用',
+          type: 'warning'
+        });
+        return; // 阻止关闭
+      }
+      // 正常关闭
+      return originalCloseView(viewId);
+    };
+    
     // 监听新标签页创建，如果有任何标签页开启了 Agent Editor，则在新标签页也自动打开
     modules.core.tabManager.on('view:created', async ({ viewId, url }) => {
       // 检查是否有任何视图开启了 Agent Editor
