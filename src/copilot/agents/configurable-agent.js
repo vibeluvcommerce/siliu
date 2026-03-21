@@ -67,7 +67,14 @@ class ConfigurableAgent extends BaseAgent {
           for (const page of site.pages) {
             if (page.coordinates) {
               for (const coord of page.coordinates) {
-                coords[coord.name] = coord;
+                // 添加站点和页面上下文信息
+                coords[coord.name] = {
+                  ...coord,
+                  _siteDomain: site.domain,
+                  _siteName: site.name,
+                  _pageName: page.name,
+                  _pageMatch: page.match
+                };
               }
             }
           }
@@ -77,6 +84,36 @@ class ConfigurableAgent extends BaseAgent {
     }
     // 兼容旧格式
     return this.config.coordinates || {};
+  }
+
+  /**
+   * 获取结构化的站点-页面-坐标信息
+   */
+  getStructuredCoordinates() {
+    if (!this.config.sites) return null;
+    
+    return this.config.sites.map(site => ({
+      domain: site.domain,
+      name: site.name,
+      description: site.description,
+      pages: (site.pages || []).map(page => ({
+        name: page.name,
+        match: page.match,
+        description: page.description,
+        coordinates: (page.coordinates || []).map(coord => ({
+          name: coord.name,
+          viewportX: coord.viewportX ?? 0,
+          viewportY: coord.viewportY ?? 0,
+          scrollX: coord.scrollX ?? 0,
+          scrollY: coord.scrollY ?? 0,
+          viewportWidth: coord.viewportWidth,
+          viewportHeight: coord.viewportHeight,
+          description: coord.description,
+          action: coord.action || 'click',
+          selector: coord.selector
+        }))
+      }))
+    }));
   }
 
   /**
@@ -94,25 +131,79 @@ class ConfigurableAgent extends BaseAgent {
     
     console.log(`[ConfigurableAgent:${this.id}] Building domain knowledge...`);
     
-    // 1. 预置坐标
-    const coords = this.getPresetCoordinates();
-    console.log(`[ConfigurableAgent:${this.id}] Found ${Object.keys(coords).length} preset coordinates`);
-    if (Object.keys(coords).length > 0) {
+    // 1. 预置坐标（结构化输出）
+    const structuredSites = this.getStructuredCoordinates();
+    const flatCoords = this.getPresetCoordinates();
+    console.log(`[ConfigurableAgent:${this.id}] Found ${Object.keys(flatCoords).length} preset coordinates in ${structuredSites?.length || 0} sites`);
+    
+    if (structuredSites && structuredSites.length > 0) {
+      parts.push('【预置坐标配置 - 按网站/页面组织】');
+      parts.push('以下坐标已按网站和页面分类，请根据当前 URL 选择对应的坐标使用：\n');
+      
+      for (const site of structuredSites) {
+        // 网站级别信息
+        parts.push(`▸ 网站: ${site.name || site.domain}`);
+        parts.push(`  域名: ${site.domain}`);
+        if (site.description) {
+          parts.push(`  说明: ${site.description}`);
+        }
+        parts.push('');
+        
+        // 页面级别
+        for (const page of site.pages) {
+          if (page.coordinates.length === 0) continue;
+          
+          parts.push(`  📄 页面: ${page.name}`);
+          if (page.match) {
+            parts.push(`     URL匹配: ${page.match}`);
+          }
+          if (page.description) {
+            parts.push(`     说明: ${page.description}`);
+          }
+          parts.push('');
+          
+          // 坐标列表
+          for (const coord of page.coordinates) {
+            parts.push(`     • ${coord.name}:`);
+            parts.push(`       坐标: (${coord.viewportX.toFixed(3)}, ${coord.viewportY.toFixed(3)})`);
+            parts.push(`       操作: ${coord.action}`);
+            if (coord.description) {
+              parts.push(`       用途: ${coord.description}`);
+            }
+            // 技术细节（可选，帮助调试）
+            if (coord.scrollY !== 0 || coord.scrollX !== 0) {
+              parts.push(`       [记录时滚动: ${coord.scrollX}, ${coord.scrollY}]`);
+            }
+            if (coord.selector) {
+              parts.push(`       [备选选择器: ${coord.selector}]`);
+            }
+          }
+          parts.push('');
+        }
+      }
+      
+      // 添加坐标使用指南
+      parts.push('【坐标使用指南】');
+      parts.push('1. 首先判断当前页面 URL 匹配哪个网站的域名');
+      parts.push('2. 然后根据页面特征（如路径、标题）确定当前页面类型');
+      parts.push('3. 使用该页面下标记的坐标进行自动化操作');
+      parts.push('4. 坐标格式: {"type": "coordinate", "x": 0.302, "y": 0.522}');
+      parts.push('5. 如果坐标失效，可使用对应的 CSS 选择器作为备选');
+      parts.push('');
+    } else if (Object.keys(flatCoords).length > 0) {
+      // 兼容旧格式：扁平化输出
       parts.push('【预置坐标配置】');
       parts.push('以下坐标可直接使用，提高操作准确性：\n');
       
-      for (const [name, info] of Object.entries(coords)) {
+      for (const [name, info] of Object.entries(flatCoords)) {
         const action = info.action || 'click';
         parts.push(`- ${name}:`);
-        // 使用 viewportX/viewportY（相对坐标 0-1）
         const vx = info.viewportX ?? 0;
         const vy = info.viewportY ?? 0;
         parts.push(`  视口坐标: (${vx.toFixed(3)}, ${vy.toFixed(3)})`);
-        // 提供滚动位置信息，帮助 AI 计算
         if (info.scrollX !== undefined || info.scrollY !== undefined) {
           parts.push(`  记录时滚动位置: scrollX=${info.scrollX ?? 0}, scrollY=${info.scrollY ?? 0}`);
         }
-        // 提供视口尺寸信息
         if (info.viewportWidth !== undefined || info.viewportHeight !== undefined) {
           parts.push(`  记录时视口尺寸: ${info.viewportWidth ?? 'unknown'}x${info.viewportHeight ?? 'unknown'}`);
         }
@@ -167,17 +258,25 @@ class ConfigurableAgent extends BaseAgent {
    * 获取元素定位指南（覆盖基类方法）
    */
   getElementGuides() {
-    const coords = this.getPresetCoordinates();
+    const structuredSites = this.getStructuredCoordinates();
+    const flatCoords = this.getPresetCoordinates();
     
-    if (Object.keys(coords).length === 0) {
+    if ((structuredSites?.length || 0) === 0 && Object.keys(flatCoords).length === 0) {
       return super.getElementGuides();
     }
 
+    const hasStructure = (structuredSites?.length || 0) > 0;
+
     return `【元素定位指南】
-1. 优先使用预置坐标（已在【预置坐标配置】中定义）
+${hasStructure ? `1. 坐标已按【网站 → 页面】层级组织，请先判断当前页面所属的网站和页面类型
+2. 在对应页面下查找可用的预置坐标
+3. 坐标格式: {"type": "coordinate", "x": 0.5, "y": 0.3} (值为 0-1 的相对坐标)
+4. 如果页面不匹配或坐标失效，可使用 CSS 选择器作为备选
+5. 不确定时可用 screenshot 查看当前页面状态，或询问用户当前所在页面` 
+: `1. 优先使用预置坐标（已在【预置坐标配置】中定义）
 2. 坐标格式: {"type": "coordinate", "x": 0.5, "y": 0.3}
 3. 如坐标失效，可尝试 CSS 选择器作为备选
-4. 不确定时可用 screenshot 查看当前页面状态`;
+4. 不确定时可用 screenshot 查看当前页面状态`}`;
   }
 
   /**
