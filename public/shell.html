@@ -3891,6 +3891,12 @@
         }
       });
 
+      // 监听 Agent 列表刷新事件
+      window.siliuAPI?.on?.('agents:reload', () => {
+        console.log('[Shell] agents:reload event received, refreshing agent list...');
+        renderAgentList();
+      });
+
       // 标签页创建
       window.siliuAPI?.on?.('tab-created', ({ id, url, title }) => {
         addTab(id, title || '新标签页', url);
