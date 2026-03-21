@@ -210,13 +210,11 @@ class ConfigurableAgent extends BaseAgent {
     // 2. 页面结构知识
     const knowledge = this.config.knowledge || {};
     
-    // 2.1 性格与能力（支持字符串或对象格式）
-    const personality = typeof knowledge === 'string' ? knowledge : knowledge.personality;
-    if (personality) {
-      parts.push('【Agent 性格与能力】');
-      parts.push(personality);
-      parts.push('');
-    }
+    // 2.1 性格与能力（支持字符串或对象格式，始终显示）
+    const personality = typeof knowledge === 'string' ? knowledge : (knowledge.personality || '');
+    parts.push('【Agent 性格与能力】');
+    parts.push(personality || '（该 Agent 没有特定的性格与能力设定，使用默认行为）');
+    parts.push('');
     
     if (knowledge.pageStructure) {
       parts.push('【页面结构】');
