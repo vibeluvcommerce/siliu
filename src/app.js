@@ -2437,16 +2437,7 @@ function setupIpcHandlers() {
             const fieldStyle = 'margin-bottom:16px;';
             const labelStyle = 'display:block;font-size:13px;font-weight:500;color:#374151;margin-bottom:6px;';
             const inputStyle = 'width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;outline:none;transition:all 0.15s;box-sizing:border-box;';
-            const textareaStyle = inputStyle + 'min-height:60px;resize:vertical;';
-            
-            // 分组标题样式
-            const sectionStyle = 'margin-top:24px;margin-bottom:12px;font-size:14px;font-weight:600;color:#1f2937;border-bottom:1px solid #e5e7eb;padding-bottom:8px;';
-            
-            // === Agent 基本信息 ===
-            const agentSection = document.createElement('div');
-            agentSection.style.cssText = sectionStyle;
-            agentSection.textContent = '🤖 Agent 基本信息';
-            body.appendChild(agentSection);
+            const textareaStyle = inputStyle + 'min-height:80px;resize:vertical;';
             
             // 1. Agent 名称
             const nameField = document.createElement('div');
@@ -2550,89 +2541,6 @@ function setupIpcHandlers() {
             personalityField.appendChild(personalityInput);
             body.appendChild(personalityField);
             
-            // === 网站信息 ===
-            const siteSection = document.createElement('div');
-            siteSection.style.cssText = sectionStyle;
-            siteSection.textContent = '🌐 网站信息';
-            body.appendChild(siteSection);
-            
-            // 7. 网站域名（只读）
-            const domainField = document.createElement('div');
-            domainField.style.cssText = fieldStyle;
-            domainField.innerHTML = '<label style="' + labelStyle + '">网站域名</label>';
-            const domainInput = document.createElement('input');
-            domainInput.type = 'text';
-            domainInput.value = ${JSON.stringify(domain)};
-            domainInput.readOnly = true;
-            domainInput.style.cssText = inputStyle + 'background:#f3f4f6;color:#6b7280;cursor:not-allowed;';
-            domainField.appendChild(domainInput);
-            body.appendChild(domainField);
-            
-            // 8. 网站名称
-            const siteNameField = document.createElement('div');
-            siteNameField.style.cssText = fieldStyle;
-            siteNameField.innerHTML = '<label style="' + labelStyle + '">网站名称 <span style="font-weight:400;color:#9ca3af;">(可选)</span></label>';
-            const siteNameInput = document.createElement('input');
-            siteNameInput.type = 'text';
-            siteNameInput.id = '__agent_save_site_name__';
-            siteNameInput.placeholder = '例如: 京东商城、淘宝';
-            siteNameInput.style.cssText = inputStyle;
-            siteNameField.appendChild(siteNameInput);
-            body.appendChild(siteNameField);
-            
-            // 9. 网站描述
-            const siteDescField = document.createElement('div');
-            siteDescField.style.cssText = fieldStyle;
-            siteDescField.innerHTML = '<label style="' + labelStyle + '">网站描述 <span style="font-weight:400;color:#9ca3af;">(可选)</span></label>';
-            const siteDescInput = document.createElement('textarea');
-            siteDescInput.id = '__agent_save_site_desc__';
-            siteDescInput.placeholder = '描述这个网站的主要功能和特点...';
-            siteDescInput.style.cssText = textareaStyle;
-            siteDescField.appendChild(siteDescInput);
-            body.appendChild(siteDescField);
-            
-            // === 页面信息 ===
-            const pageSection = document.createElement('div');
-            pageSection.style.cssText = sectionStyle;
-            pageSection.textContent = '📄 页面信息';
-            body.appendChild(pageSection);
-            
-            // 10. 页面名称
-            const pageNameField = document.createElement('div');
-            pageNameField.style.cssText = fieldStyle;
-            pageNameField.innerHTML = '<label style="' + labelStyle + '">页面名称 <span style="font-weight:400;color:#9ca3af;">(可选)</span></label>';
-            const pageNameInput = document.createElement('input');
-            pageNameInput.type = 'text';
-            pageNameInput.id = '__agent_save_page_name__';
-            pageNameInput.placeholder = '例如: 首页、商品详情页、搜索结果页';
-            pageNameInput.style.cssText = inputStyle;
-            pageNameField.appendChild(pageNameInput);
-            body.appendChild(pageNameField);
-            
-            // 11. URL 匹配模式
-            const pageMatchField = document.createElement('div');
-            pageMatchField.style.cssText = fieldStyle;
-            pageMatchField.innerHTML = '<label style="' + labelStyle + '">URL 匹配模式 <span style="font-weight:400;color:#9ca3af;">(可选，用于识别页面类型)</span></label>';
-            const pageMatchInput = document.createElement('input');
-            pageMatchInput.type = 'text';
-            pageMatchInput.id = '__agent_save_page_match__';
-            pageMatchInput.value = ${JSON.stringify(pagePath)};
-            pageMatchInput.placeholder = '例如: /item/、/search?、首页用 /$';
-            pageMatchInput.style.cssText = inputStyle;
-            pageMatchField.appendChild(pageMatchInput);
-            body.appendChild(pageMatchField);
-            
-            // 12. 页面描述
-            const pageDescField = document.createElement('div');
-            pageDescField.style.cssText = fieldStyle;
-            pageDescField.innerHTML = '<label style="' + labelStyle + '">页面描述 <span style="font-weight:400;color:#9ca3af;">(可选)</span></label>';
-            const pageDescInput = document.createElement('textarea');
-            pageDescInput.id = '__agent_save_page_desc__';
-            pageDescInput.placeholder = '描述这个页面的主要功能和布局特点...';
-            pageDescInput.style.cssText = textareaStyle;
-            pageDescField.appendChild(pageDescInput);
-            body.appendChild(pageDescField);
-            
             // 底部按钮
             const footer = document.createElement('div');
             footer.style.cssText = 'padding:16px 24px;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end;gap:12px;position:sticky;bottom:0;background:white;';
@@ -2679,6 +2587,57 @@ function setupIpcHandlers() {
               
               const agentId = idInput.value.trim() || ${JSON.stringify(defaultId)};
               
+              // 从坐标数据自动提取域名和路径分组
+              const coordsByDomain = {};
+              ${JSON.stringify(coordinates)}.forEach(c => {
+                try {
+                  const url = new URL(c.url || 'http://' + ${JSON.stringify(domain)});
+                  const domainKey = url.hostname;
+                  const pathKey = url.pathname;
+                  if (!coordsByDomain[domainKey]) {
+                    coordsByDomain[domainKey] = {};
+                  }
+                  if (!coordsByDomain[domainKey][pathKey]) {
+                    coordsByDomain[domainKey][pathKey] = [];
+                  }
+                  coordsByDomain[domainKey][pathKey].push(c);
+                } catch (e) {
+                  // 如果 URL 解析失败，使用默认域名
+                  const defaultDomain = ${JSON.stringify(domain)};
+                  if (!coordsByDomain[defaultDomain]) {
+                    coordsByDomain[defaultDomain] = {};
+                  }
+                  const defaultPath = '/'
+                  if (!coordsByDomain[defaultDomain][defaultPath]) {
+                    coordsByDomain[defaultDomain][defaultPath] = [];
+                  }
+                  coordsByDomain[defaultDomain][defaultPath].push(c);
+                }
+              });
+              
+              // 构建 sites 结构
+              const sites = Object.entries(coordsByDomain).map(([domain, paths]) => ({
+                domain: domain,
+                pages: Object.entries(paths).map(([path, coords]) => ({
+                  match: path,
+                  coordinates: coords.map((c, idx) => ({
+                    name: c.name || ('coord_' + (idx + 1)),
+                    url: c.url,  // 保留原始 URL，供 AI 匹配使用
+                    docX: c.docX ?? 0,
+                    docY: c.docY ?? 0,
+                    viewportX: c.viewportX ?? 0,
+                    viewportY: c.viewportY ?? 0,
+                    scrollX: c.scrollX ?? 0,
+                    scrollY: c.scrollY ?? 0,
+                    viewportWidth: c.viewportWidth ?? 0,
+                    viewportHeight: c.viewportHeight ?? 0,
+                    description: c.description || '',
+                    tag: c.tag || '',
+                    screenshot: c.screenshotPath || null
+                  }))
+                }))
+              }));
+              
               closeModal({
                 metadata: {
                   id: agentId,
@@ -2688,32 +2647,8 @@ function setupIpcHandlers() {
                   color: selectedColor.value,
                   colorEnd: selectedColor.end
                 },
-                sites: [{
-                  domain: ${JSON.stringify(domain)},
-                  name: siteNameInput.value.trim(),
-                  description: siteDescInput.value.trim(),
-                  pages: [{
-                    name: pageNameInput.value.trim(),
-                    match: pageMatchInput.value.trim() || ${JSON.stringify(pagePath)},
-                    description: pageDescInput.value.trim(),
-                    coordinates: ${JSON.stringify(coordinates)}.map((c, idx) => ({
-                      name: c.name || ('coord_' + (idx + 1)),
-                      docX: c.docX ?? 0,
-                      docY: c.docY ?? 0,
-                      viewportX: c.viewportX ?? 0,
-                      viewportY: c.viewportY ?? 0,
-                      scrollX: c.scrollX ?? 0,
-                      scrollY: c.scrollY ?? 0,
-                      viewportWidth: c.viewportWidth ?? 0,
-                      viewportHeight: c.viewportHeight ?? 0,
-                      description: c.description || '',
-                      screenshot: c.screenshotPath || null
-                    }))
-                  }]
-                }],
-                knowledge: {
-                  personality: personalityInput.value.trim()
-                }
+                sites: sites,
+                knowledge: personalityInput.value.trim()
               });
             };
             
