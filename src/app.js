@@ -1732,10 +1732,14 @@ function setupIpcHandlers() {
                       path: pagePath,
                       coordinates: coordinates.map((c, idx) => ({
                         name: c.name || ('coord_' + (idx + 1)),
-                        x: c.docX ?? c.x ?? 0,
-                        y: c.docY ?? c.y ?? 0,
+                        docX: c.docX ?? 0,
+                        docY: c.docY ?? 0,
                         viewportX: c.viewportX ?? 0,
                         viewportY: c.viewportY ?? 0,
+                        scrollX: c.scrollX ?? 0,
+                        scrollY: c.scrollY ?? 0,
+                        viewportWidth: c.viewportWidth ?? 0,
+                        viewportHeight: c.viewportHeight ?? 0,
                         description: c.description || '',
                         screenshot: c.screenshotPath || null
                       }))
@@ -1959,8 +1963,10 @@ function setupIpcHandlers() {
             }
             
             // 记录多种坐标信息
-            const viewportX = e.clientX / window.innerWidth;   // 视口比例坐标 (0-1)
-            const viewportY = e.clientY / window.innerHeight;  // 视口比例坐标 (0-1)
+            const viewportWidth = window.innerWidth;           // 视口宽度
+            const viewportHeight = window.innerHeight;         // 视口高度
+            const viewportX = e.clientX / viewportWidth;       // 视口比例坐标 (0-1)
+            const viewportY = e.clientY / viewportHeight;      // 视口比例坐标 (0-1)
             const docX = e.clientX + scrollX;                  // 文档绝对坐标 (像素)
             const docY = e.clientY + scrollY;                  // 文档绝对坐标 (像素)
             
@@ -2034,6 +2040,8 @@ function setupIpcHandlers() {
               docY: docY,                // 文档绝对 Y (像素)
               scrollX: scrollX,          // 滚动位置 X
               scrollY: scrollY,          // 滚动位置 Y
+              viewportWidth: viewportWidth,   // 视口宽度
+              viewportHeight: viewportHeight, // 视口高度
               tag: tag,                  // 元素标签
               selector: selector,        // CSS 选择器
               url: location.href         // 页面 URL
@@ -2586,10 +2594,14 @@ function setupIpcHandlers() {
                     path: ${JSON.stringify(pagePath)},
                     coordinates: ${JSON.stringify(coordinates)}.map((c, idx) => ({
                       name: c.name || ('coord_' + (idx + 1)),
-                      x: c.docX ?? c.x ?? 0,
-                      y: c.docY ?? c.y ?? 0,
+                      docX: c.docX ?? 0,
+                      docY: c.docY ?? 0,
                       viewportX: c.viewportX ?? 0,
                       viewportY: c.viewportY ?? 0,
+                      scrollX: c.scrollX ?? 0,
+                      scrollY: c.scrollY ?? 0,
+                      viewportWidth: c.viewportWidth ?? 0,
+                      viewportHeight: c.viewportHeight ?? 0,
                       description: c.description || '',
                       screenshot: c.screenshotPath || null
                     }))

@@ -48,6 +48,8 @@ window.addEventListener('message', (e) => {
       docY: e.data.docY,
       scrollX: e.data.scrollX,
       scrollY: e.data.scrollY,
+      viewportWidth: e.data.viewportWidth,
+      viewportHeight: e.data.viewportHeight,
       tag: e.data.tag || 'element',
       selector: e.data.selector || '',
       url: e.data.url || location.href,
