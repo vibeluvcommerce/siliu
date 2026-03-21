@@ -2133,6 +2133,13 @@
         // 成功获取到 agents，重置重试计数器
         renderAgentListRetryCount = 0;
         
+        // 按 updatedAt 排序（最新的在前）
+        agents.sort((a, b) => {
+          const timeA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+          const timeB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+          return timeB - timeA; // 降序，最新的在前
+        });
+        
         allAgents = agents;
         const agentListEl = document.getElementById('agent-list');
         if (!agentListEl) {

@@ -29,6 +29,17 @@ class ConfigurableAgent extends BaseAgent {
   }
 
   /**
+   * 获取 Agent 展示信息（覆盖基类，添加 updatedAt）
+   */
+  getDisplayInfo() {
+    const baseInfo = super.getDisplayInfo();
+    return {
+      ...baseInfo,
+      updatedAt: this.config.metadata?.updatedAt || null
+    };
+  }
+
+  /**
    * 获取适用域名列表
    */
   getDomains() {
