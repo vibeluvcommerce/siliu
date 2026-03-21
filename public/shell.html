@@ -2692,6 +2692,7 @@
       
       annotationSession.coordinates.push(coord);
       console.log('[Agent Editor] Coordinate saved:', coord);
+      console.log('[Agent Editor] All coordinates now:', annotationSession.coordinates.map(c => ({name: c.name, url: c.url})));
       
       // 同步坐标数据到主进程
       await window.siliuAPI?.syncAgentEditorData?.(currentViewId, annotationSession.coordinates);

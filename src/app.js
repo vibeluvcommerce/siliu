@@ -2696,6 +2696,7 @@ function setupIpcHandlers() {
       `;
       
       console.log('[Agent Editor] Showing save dialog in view:', viewId);
+      console.log('[Agent Editor] All coordinates to save:', JSON.stringify(allCoordinates, null, 2));
       const result = await view.webContents.executeJavaScript(script, true);
       console.log('[Agent Editor] Save dialog result:', result);
       
