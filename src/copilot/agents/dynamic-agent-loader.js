@@ -30,10 +30,19 @@ class DynamicAgentLoader {
     // 确定 Agent 配置目录
     this.agentsDir = path.join(this.workspaceManager.workspaceBase, 'agents');
     
+    console.log('[DynamicAgentLoader] Workspace base:', this.workspaceManager.workspaceBase);
+    console.log('[DynamicAgentLoader] Agents directory:', this.agentsDir);
+    
     // 确保目录存在
     await this._ensureDirectory();
     
-    console.log('[DynamicAgentLoader] Agents directory:', this.agentsDir);
+    // 验证目录存在
+    try {
+      const stats = await fs.stat(this.agentsDir);
+      console.log('[DynamicAgentLoader] Directory exists:', stats.isDirectory());
+    } catch (err) {
+      console.error('[DynamicAgentLoader] Directory check failed:', err.message);
+    }
     
     // 加载所有已有配置
     await this._loadAllAgents();
@@ -243,12 +252,18 @@ class DynamicAgentLoader {
       .on('ready', () => {
         console.log('[DynamicAgentLoader] Watcher ready, watching:', this.agentsDir);
         console.log('[DynamicAgentLoader] Currently loaded agents:', this.loadedAgents.size);
+        
+        // 打印当前被监听的文件列表
+        const watched = this.watcher.getWatched();
+        console.log('[DynamicAgentLoader] Watched paths:', JSON.stringify(watched, null, 2));
       })
       .on('raw', (event, path, details) => {
         // 原始事件调试（仅在需要时启用）
-        if (event === 'add' || event === 'change' || event === 'unlink') {
-          console.log(`[DynamicAgentLoader] Raw event: ${event} - ${path}`);
-        }
+        console.log(`[DynamicAgentLoader] Raw event: ${event} - ${path}`);
+      })
+      .on('all', (event, filePath) => {
+        // 捕获所有事件
+        console.log(`[DynamicAgentLoader] All event: ${event} - ${filePath}`);
       });
     
     console.log('[DynamicAgentLoader] Watcher setup complete');
@@ -366,6 +381,47 @@ class DynamicAgentLoader {
       const content = await fs.readFile(filePath, 'utf-8');
       return { success: true, content };
     } catch (err) {
+      return { success: false, error: err.message };
+    }
+  }
+
+  /**
+   * 手动刷新所有 Agent（用于热加载失效时的备选）
+   */
+  async refresh() {
+    console.log('[DynamicAgentLoader] Manual refresh triggered...');
+    
+    // 获取当前目录下的所有文件
+    try {
+      const files = await fs.readdir(this.agentsDir);
+      const configFiles = files.filter(f => 
+        f.endsWith('.yaml') || f.endsWith('.yml') || f.endsWith('.json')
+      );
+      
+      console.log(`[DynamicAgentLoader] Refresh: found ${configFiles.length} files in directory`);
+      
+      // 检查每个已加载的 agent 是否还存在
+      for (const [filePath, agentId] of this.loadedAgents) {
+        const filename = path.basename(filePath);
+        if (!configFiles.includes(filename)) {
+          console.log(`[DynamicAgentLoader] Refresh: removing deleted agent ${agentId}`);
+          this._unloadAgent(filename);
+        }
+      }
+      
+      // 加载新文件
+      for (const file of configFiles) {
+        const filePath = path.resolve(this.agentsDir, file);
+        if (!this.loadedAgents.has(filePath)) {
+          console.log(`[DynamicAgentLoader] Refresh: loading new agent ${file}`);
+          await this._loadAgent(file);
+        }
+      }
+      
+      console.log('[DynamicAgentLoader] Manual refresh complete');
+      return { success: true, loaded: this.loadedAgents.size };
+    } catch (err) {
+      console.error('[DynamicAgentLoader] Manual refresh failed:', err);
       return { success: false, error: err.message };
     }
   }
