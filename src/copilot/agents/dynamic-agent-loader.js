@@ -182,14 +182,29 @@ class DynamicAgentLoader {
   _setupWatcher() {
     console.log('[DynamicAgentLoader] Setting up watcher for:', this.agentsDir);
     
+    // Windows 上使用轮询模式更可靠
+    const isWindows = process.platform === 'win32';
+    
     this.watcher = chokidar.watch(this.agentsDir, {
       ignored: /(^|[\/\\])\../, // 忽略隐藏文件
       persistent: true,
       depth: 1,
+      usePolling: isWindows, // Windows 使用轮询
+      useFsEvents: !isWindows, // Windows 不使用 fsevents
+      interval: isWindows ? 500 : undefined, // 轮询间隔
+      binaryInterval: isWindows ? 500 : undefined,
       awaitWriteFinish: {
-        stabilityThreshold: 500,
+        stabilityThreshold: 300,
         pollInterval: 100
       }
+    });
+    
+    console.log('[DynamicAgentLoader] Watcher config:', {
+      platform: process.platform,
+      usePolling: isWindows,
+      useFsEvents: !isWindows,
+      interval: isWindows ? 500 : undefined,
+      awaitWriteFinish: { stabilityThreshold: 300, pollInterval: 100 }
     });
 
     this.watcher
@@ -227,7 +242,16 @@ class DynamicAgentLoader {
       })
       .on('ready', () => {
         console.log('[DynamicAgentLoader] Watcher ready, watching:', this.agentsDir);
+        console.log('[DynamicAgentLoader] Currently loaded agents:', this.loadedAgents.size);
+      })
+      .on('raw', (event, path, details) => {
+        // 原始事件调试（仅在需要时启用）
+        if (event === 'add' || event === 'change' || event === 'unlink') {
+          console.log(`[DynamicAgentLoader] Raw event: ${event} - ${path}`);
+        }
       });
+    
+    console.log('[DynamicAgentLoader] Watcher setup complete');
   }
 
   /**
