@@ -241,10 +241,9 @@ class DynamicAgentLoader {
       // 兼容旧格式
       if (config.domains) cleanConfig.domains = config.domains;
       if (config.coordinates) cleanConfig.coordinates = config.coordinates;
-      if (config.knowledge) cleanConfig.knowledge = config.knowledge;
+      // knowledge 始终保存（即使为空字符串），用于性格与能力描述
+      cleanConfig.knowledge = config.knowledge || '';
       if (config.behavior) cleanConfig.behavior = config.behavior;
-      
-      console.log('[DynamicAgentLoader] Clean config knowledge:', cleanConfig.knowledge);
 
       // 转换为 YAML
       const yamlContent = yaml.dump(cleanConfig, {
