@@ -101,10 +101,18 @@ class ConfigurableAgent extends BaseAgent {
       for (const [name, info] of Object.entries(coords)) {
         const action = info.action || 'click';
         parts.push(`- ${name}:`);
-        // 优先使用 docX/docY，兼容旧格式 x/y
-        const x = info.docX ?? info.x ?? 0;
-        const y = info.docY ?? info.y ?? 0;
-        parts.push(`  坐标: (${x}, ${y})`);
+        // 使用 viewportX/viewportY（相对坐标 0-1）
+        const vx = info.viewportX ?? 0;
+        const vy = info.viewportY ?? 0;
+        parts.push(`  视口坐标: (${vx.toFixed(3)}, ${vy.toFixed(3)})`);
+        // 提供滚动位置信息，帮助 AI 计算
+        if (info.scrollX !== undefined || info.scrollY !== undefined) {
+          parts.push(`  记录时滚动位置: scrollX=${info.scrollX ?? 0}, scrollY=${info.scrollY ?? 0}`);
+        }
+        // 提供视口尺寸信息
+        if (info.viewportWidth !== undefined || info.viewportHeight !== undefined) {
+          parts.push(`  记录时视口尺寸: ${info.viewportWidth ?? 'unknown'}x${info.viewportHeight ?? 'unknown'}`);
+        }
         parts.push(`  描述: ${info.description || '无描述'}`);
         parts.push(`  默认操作: ${action}`);
         if (info.selector) {
