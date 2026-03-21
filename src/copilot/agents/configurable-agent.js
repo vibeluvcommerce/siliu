@@ -56,9 +56,26 @@ class ConfigurableAgent extends BaseAgent {
   }
 
   /**
-   * 获取预置坐标配置
+   * 获取预置坐标配置（从 sites 中提取）
    */
   getPresetCoordinates() {
+    // 新格式：从 sites 中提取坐标
+    if (this.config.sites) {
+      const coords = {};
+      for (const site of this.config.sites) {
+        if (site.pages) {
+          for (const page of site.pages) {
+            if (page.coordinates) {
+              for (const coord of page.coordinates) {
+                coords[coord.name] = coord;
+              }
+            }
+          }
+        }
+      }
+      return coords;
+    }
+    // 兼容旧格式
     return this.config.coordinates || {};
   }
 
@@ -84,7 +101,10 @@ class ConfigurableAgent extends BaseAgent {
       for (const [name, info] of Object.entries(coords)) {
         const action = info.action || 'click';
         parts.push(`- ${name}:`);
-        parts.push(`  坐标: (${info.x}, ${info.y})`);
+        // 优先使用 docX/docY，兼容旧格式 x/y
+        const x = info.docX ?? info.x ?? 0;
+        const y = info.docY ?? info.y ?? 0;
+        parts.push(`  坐标: (${x}, ${y})`);
         parts.push(`  描述: ${info.description || '无描述'}`);
         parts.push(`  默认操作: ${action}`);
         if (info.selector) {
