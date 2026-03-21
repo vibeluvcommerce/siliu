@@ -159,22 +159,32 @@ class DynamicAgentLoader {
    * 设置文件监听（热重载）
    */
   _setupWatcher() {
+    console.log('[DynamicAgentLoader] Setting up watcher for:', this.agentsDir);
+    
     this.watcher = chokidar.watch(this.agentsDir, {
       ignored: /(^|[\/\\])\../, // 忽略隐藏文件
       persistent: true,
-      depth: 1
+      depth: 1,
+      awaitWriteFinish: {
+        stabilityThreshold: 500,
+        pollInterval: 100
+      }
     });
 
     this.watcher
       .on('add', (filePath) => {
         const filename = path.basename(filePath);
+        console.log(`[DynamicAgentLoader] Watcher: add event - ${filename}`);
         if (this._isConfigFile(filename)) {
           console.log(`[DynamicAgentLoader] File added: ${filename}`);
           this._loadAgent(filename);
+        } else {
+          console.log(`[DynamicAgentLoader] Ignored non-config file: ${filename}`);
         }
       })
       .on('change', (filePath) => {
         const filename = path.basename(filePath);
+        console.log(`[DynamicAgentLoader] Watcher: change event - ${filename}`);
         if (this._isConfigFile(filename)) {
           console.log(`[DynamicAgentLoader] File changed: ${filename}`);
           this._reloadAgent(filename);
@@ -182,6 +192,7 @@ class DynamicAgentLoader {
       })
       .on('unlink', (filePath) => {
         const filename = path.basename(filePath);
+        console.log(`[DynamicAgentLoader] Watcher: unlink event - ${filename}`);
         if (this._isConfigFile(filename)) {
           console.log(`[DynamicAgentLoader] File removed: ${filename}`);
           this._unloadAgent(filename);
@@ -189,6 +200,9 @@ class DynamicAgentLoader {
       })
       .on('error', err => {
         console.error('[DynamicAgentLoader] Watcher error:', err);
+      })
+      .on('ready', () => {
+        console.log('[DynamicAgentLoader] Watcher ready, watching:', this.agentsDir);
       });
   }
 
