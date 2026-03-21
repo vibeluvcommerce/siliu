@@ -1462,16 +1462,16 @@ function setupIpcHandlers() {
                 return svg.replace('<svg', '<svg style="width:20px;height:20px;display:block;"');
               };
               const icons = [
-                { name: '机器人', svg: formatSvg(iconSvgs['robot']) },
-                { name: '搜索', svg: formatSvg(iconSvgs['magnifying-glass']) },
-                { name: '购物', svg: formatSvg(iconSvgs['shopping-cart']) },
-                { name: '数据', svg: formatSvg(iconSvgs['chart-bar']) },
-                { name: '文档', svg: formatSvg(iconSvgs['file-text']) },
-                { name: '游戏', svg: formatSvg(iconSvgs['game-controller']) },
-                { name: '用户', svg: formatSvg(iconSvgs['users']) },
-                { name: '工具', svg: formatSvg(iconSvgs['wrench']) },
-                { name: '星标', svg: formatSvg(iconSvgs['star']) },
-                { name: '书签', svg: formatSvg(iconSvgs['bookmark']) }
+                { name: '机器人', icon: 'robot', svg: formatSvg(iconSvgs['robot']) },
+                { name: '搜索', icon: 'magnifying-glass', svg: formatSvg(iconSvgs['magnifying-glass']) },
+                { name: '购物', icon: 'shopping-cart', svg: formatSvg(iconSvgs['shopping-cart']) },
+                { name: '数据', icon: 'chart-bar', svg: formatSvg(iconSvgs['chart-bar']) },
+                { name: '文档', icon: 'file-text', svg: formatSvg(iconSvgs['file-text']) },
+                { name: '游戏', icon: 'game-controller', svg: formatSvg(iconSvgs['game-controller']) },
+                { name: '用户', icon: 'users', svg: formatSvg(iconSvgs['users']) },
+                { name: '工具', icon: 'wrench', svg: formatSvg(iconSvgs['wrench']) },
+                { name: '星标', icon: 'star', svg: formatSvg(iconSvgs['star']) },
+                { name: '书签', icon: 'bookmark', svg: formatSvg(iconSvgs['bookmark']) }
               ];
               
               // 颜色选项 - 鲜色系（与灰色图标区分）
@@ -1732,10 +1732,10 @@ function setupIpcHandlers() {
                       path: pagePath,
                       coordinates: coordinates.map((c, idx) => ({
                         name: c.name || ('coord_' + (idx + 1)),
-                        x: c.x,
-                        y: c.y,
-                        viewportX: c.viewportX,
-                        viewportY: c.viewportY,
+                        x: c.docX ?? c.x ?? 0,
+                        y: c.docY ?? c.y ?? 0,
+                        viewportX: c.viewportX ?? 0,
+                        viewportY: c.viewportY ?? 0,
                         description: c.description || '',
                         screenshot: c.screenshotPath || null
                       }))
@@ -2357,18 +2357,18 @@ function setupIpcHandlers() {
             const existing = document.getElementById('__agent_editor_save_modal__');
             if (existing) existing.remove();
             
-            // 图标选项
+            // 图标选项（Phosphor 图标名称）
             const icons = [
-              { name: '机器人', icon: '🤖' },
-              { name: '导航', icon: '🗺️' },
-              { name: '购物', icon: '🛒' },
-              { name: '搜索', icon: '🔍' },
-              { name: '数据', icon: '📊' },
-              { name: '文档', icon: '📄' },
-              { name: '娱乐', icon: '🎮' },
-              { name: '社交', icon: '👥' },
-              { name: '工具', icon: '🔧' },
-              { name: '心形', icon: '❤️' }
+              { name: '机器人', icon: 'robot' },
+              { name: '导航', icon: 'magnifying-glass' },
+              { name: '购物', icon: 'shopping-cart' },
+              { name: '搜索', icon: 'magnifying-glass' },
+              { name: '数据', icon: 'chart-bar' },
+              { name: '文档', icon: 'file-text' },
+              { name: '娱乐', icon: 'game-controller' },
+              { name: '社交', icon: 'users' },
+              { name: '工具', icon: 'wrench' },
+              { name: '星标', icon: 'star' }
             ];
             
             // 颜色选项
@@ -2586,10 +2586,10 @@ function setupIpcHandlers() {
                     path: ${JSON.stringify(pagePath)},
                     coordinates: ${JSON.stringify(coordinates)}.map((c, idx) => ({
                       name: c.name || ('coord_' + (idx + 1)),
-                      x: c.x,
-                      y: c.y,
-                      viewportX: c.viewportX,
-                      viewportY: c.viewportY,
+                      x: c.docX ?? c.x ?? 0,
+                      y: c.docY ?? c.y ?? 0,
+                      viewportX: c.viewportX ?? 0,
+                      viewportY: c.viewportY ?? 0,
                       description: c.description || '',
                       screenshot: c.screenshotPath || null
                     }))
