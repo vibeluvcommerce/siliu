@@ -156,9 +156,14 @@ class ConfigurableAgent extends BaseAgent {
           
           parts.push(`  📄 路径: ${page.match || '/'}`);
           
-          // 坐标列表（简洁版）
+          // 坐标列表（简洁版，包含滚动信息）
           for (const coord of page.coordinates) {
-            const coordInfo = `     • ${coord.name}: (${coord.viewportX.toFixed(3)}, ${coord.viewportY.toFixed(3)})`;
+            let coordInfo = `     • ${coord.name}: (${coord.viewportX.toFixed(3)}, ${coord.viewportY.toFixed(3)})`;
+            // 如果有滚动，添加标记
+            const hasScroll = (coord.scrollX && coord.scrollX !== 0) || (coord.scrollY && coord.scrollY !== 0);
+            if (hasScroll) {
+              coordInfo += ` [滚动: ${coord.scrollX ?? 0}, ${coord.scrollY ?? 0}]`;
+            }
             parts.push(coordInfo);
           }
           parts.push('');
@@ -170,8 +175,11 @@ class ConfigurableAgent extends BaseAgent {
       parts.push('1. 匹配逻辑：系统会自动对比当前 URL 与预置坐标的原始 URL');
       parts.push('2. 匹配规则：域名必须相同，路径相同或前缀匹配');
       parts.push('3. 坐标格式：{"type": "coordinate", "x": 0.302, "y": 0.522}');
-      parts.push('4. 优先使用：匹配度高的坐标会在【当前页面可用的预置坐标】中列出');
-      parts.push('5. 失效处理：如果坐标失效，结合 screenshot 重新定位元素');
+      parts.push('4. 滚动注意：如果坐标标记了[滚动:x,y]，说明记录时页面已滚动');
+      parts.push('   - 当前页面滚动位置应与记录时相近，坐标才准确');
+      parts.push('   - 如果滚动位置差异大，建议重新定位元素');
+      parts.push('5. 优先使用：匹配度高的坐标会在【当前页面可用的预置坐标】中列出');
+      parts.push('6. 失效处理：如果坐标失效，结合 screenshot 重新定位元素');
       parts.push('');
     } else if (Object.keys(flatCoords).length > 0) {
       // 兼容旧格式：扁平化输出
@@ -342,6 +350,12 @@ ${hasStructure ? `1. 坐标已按【网站 → 页面】层级组织，请先判
         }
         if (coord.tag) {
           parts.push(`    元素类型: ${coord.tag}`);
+        }
+        // 添加滚动信息，帮助 AI 理解坐标记录时的页面状态
+        const hasScroll = (coord.scrollX && coord.scrollX !== 0) || (coord.scrollY && coord.scrollY !== 0);
+        if (hasScroll) {
+          parts.push(`    记录时滚动: scrollX=${coord.scrollX ?? 0}, scrollY=${coord.scrollY ?? 0}`);
+          parts.push(`    ⚠️ 注意: 此坐标记录时页面有滚动，使用前请检查当前页面滚动位置`);
         }
         parts.push(`    使用: {"type": "coordinate", "x": ${coord.viewportX?.toFixed(3) ?? 0}, "y": ${coord.viewportY?.toFixed(3) ?? 0}}`);
         parts.push('');
