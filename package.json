@@ -4,8 +4,8 @@
   "description": "Siliu Browser with AI Copilot (with Widevine DRM support)",
   "main": "src/app.js",
   "scripts": {
-    "start": "electron . --no-sandbox",
-    "dev": "electron . --dev --no-sandbox",
+    "start": "set ELECTRON_RUN_AS_NODE=&& electron . --no-sandbox",
+    "dev": "set ELECTRON_RUN_AS_NODE=&& electron . --dev --no-sandbox",
     "test": "jest",
     "dist": "electron-builder",
     "dist:win": "electron-builder --win zip",

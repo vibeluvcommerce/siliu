@@ -610,22 +610,22 @@ ipcMain?.on?.('menu:link-action', (e, { action }) => {
   instance?.handleLinkAction(action);
 });
 
-ipcMain.on('menu:image-action', (e, { action }) => {
+ipcMain?.on?.('menu:image-action', (e, { action }) => {
   const instance = CustomMenuWindow.getInstance(e.sender.id);
   instance?.handleImageAction(action);
 });
 
-ipcMain.on('menu:text-action', (e, { action }) => {
+ipcMain?.on?.('menu:text-action', (e, { action }) => {
   const instance = CustomMenuWindow.getInstance(e.sender.id);
   instance?.handleTextAction(action);
 });
 
-ipcMain.on('menu:shell-text-action', (e, { action }) => {
+ipcMain?.on?.('menu:shell-text-action', (e, { action }) => {
   const instance = CustomMenuWindow.getInstance(e.sender.id);
   instance?.handleShellTextAction(action);
 });
 
-ipcMain.on('menu:close', (e) => {
+ipcMain?.on?.('menu:close', (e) => {
   const instance = CustomMenuWindow.getInstance(e.sender.id);
   instance?.hideMenu();
 });

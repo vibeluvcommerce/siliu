@@ -212,7 +212,13 @@ class TabManager extends EventEmitter {
     });
 
     // 加载 URL
-    if (url?.startsWith('http') || url?.startsWith('file://')) {
+    if (url?.startsWith('siliu://')) {
+      // 内置页面协议
+      const page = url.replace('siliu://', '');
+      const pagePath = path.join(__dirname, '../../public', `${page}.html`);
+      console.log('[TabManager] Loading internal page:', pagePath);
+      view.webContents.loadFile(pagePath);
+    } else if (url?.startsWith('http') || url?.startsWith('file://')) {
       view.webContents.loadURL(url);
     } else {
       view.webContents.loadFile(url || this.config.newTabUrl);

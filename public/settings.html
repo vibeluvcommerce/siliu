@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>设置 - Siliu Browser</title>
+  
+  <!-- Inter Font -->
+  <link rel="stylesheet" href="fonts/inter.css">
+  <!-- Phosphor Icons -->
+  <link rel="stylesheet" href="fonts/phosphor.css">
+  
+  <style>
+    /* ===== CSS 变量 ===== */
+    :root {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f8f9fa;
+      --bg-tertiary: #f1f3f4;
+      --text-primary: #202124;
+      --text-secondary: #5f6368;
+      --text-tertiary: #80868b;
+      --border-color: #dadce0;
+      --primary-color: #1a73e8;
+      --primary-hover: #185abc;
+      --sidebar-width: 260px;
+      --header-height: 64px;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --shadow-sm: 0 1px 2px rgba(60, 64, 67, 0.1);
+      --shadow-md: 0 2px 6px rgba(60, 64, 67, 0.15);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      color: var(--text-primary);
+      background: var(--bg-primary);
+      overflow: hidden;
+    }
+
+    /* ===== 布局框架 ===== */
+    .settings-container {
+      display: flex;
+      height: 100vh;
+    }
+
+    /* ===== 左侧导航 ===== */
+    .settings-sidebar {
+      width: var(--sidebar-width);
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .sidebar-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .sidebar-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .sidebar-title i {
+      font-size: 20px;
+      color: var(--primary-color);
+    }
+
+    .nav-list {
+      padding: 12px 0;
+      flex: 1;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 24px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border-left: 3px solid transparent;
+    }
+
+    .nav-item:hover {
+      background: rgba(26, 115, 232, 0.04);
+    }
+
+    .nav-item.active {
+      background: rgba(26, 115, 232, 0.08);
+      border-left-color: var(--primary-color);
+    }
+
+    .nav-item i {
+      font-size: 18px;
+      color: var(--text-secondary);
+      width: 20px;
+      text-align: center;
+    }
+
+    .nav-item.active i {
+      color: var(--primary-color);
+    }
+
+    .nav-item span {
+      font-size: 13px;
+      color: var(--text-primary);
+    }
+
+    .nav-item.active span {
+      font-weight: 500;
+      color: var(--primary-color);
+    }
+
+    .nav-divider {
+      height: 1px;
+      background: var(--border-color);
+      margin: 12px 24px;
+    }
+
+    /* ===== 右侧内容区 ===== */
+    .settings-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .content-header {
+      height: var(--header-height);
+      padding: 0 32px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-primary);
+    }
+
+    .content-title {
+      font-size: 20px;
+      font-weight: 500;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .icon-btn {
+      width: 36px;
+      height: 36px;
+      border: none;
+      background: transparent;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+      transition: all 0.2s ease;
+    }
+
+    .icon-btn:hover {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+    }
+
+    .content-body {
+      flex: 1;
+      padding: 24px 32px;
+      overflow-y: auto;
+    }
+
+    /* ===== 设置卡片 ===== */
+    .settings-section {
+      max-width: 680px;
+      margin-bottom: 32px;
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-tertiary);
+      margin-bottom: 12px;
+      padding-left: 4px;
+    }
+
+    .setting-card {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+
+    .setting-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      gap: 16px;
+    }
+
+    .setting-item:not(:last-child) {
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .setting-info {
+      flex: 1;
+    }
+
+    .setting-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .setting-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    .setting-control {
+      flex-shrink: 0;
+    }
+
+    /* ===== 控件样式 ===== */
+    .toggle {
+      width: 44px;
+      height: 24px;
+      background: var(--border-color);
+      border-radius: 12px;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .toggle.active {
+      background: var(--primary-color);
+    }
+
+    .toggle::after {
+      content: '';
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background: white;
+      border-radius: 50%;
+      top: 2px;
+      left: 2px;
+      transition: transform 0.2s ease;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .toggle.active::after {
+      transform: translateX(20px);
+    }
+
+    .text-input {
+      width: 200px;
+      padding: 8px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+
+    .text-input:focus {
+      border-color: var(--primary-color);
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-primary);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+      background: var(--bg-secondary);
+    }
+
+    .btn-primary {
+      background: var(--primary-color);
+      color: white;
+      border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-hover);
+    }
+
+    /* ===== 空状态 ===== */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--text-secondary);
+      gap: 16px;
+    }
+
+    .empty-state i {
+      font-size: 48px;
+      color: var(--border-color);
+    }
+
+    .empty-state p {
+      font-size: 14px;
+    }
+
+    /* ===== 滚动条 ===== */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-tertiary);
+    }
+  </style>
+</head>
+<body>
+  <div class="settings-container">
+    <!-- 左侧导航 -->
+    <aside class="settings-sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-title">
+          <i class="ph ph-gear"></i>
+          设置
+        </div>
+      </div>
+      
+      <nav class="nav-list">
+        <div class="nav-item active" data-section="general">
+          <i class="ph ph-house"></i>
+          <span>通用</span>
+        </div>
+        <div class="nav-item" data-section="appearance">
+          <i class="ph ph-paint-brush"></i>
+          <span>外观</span>
+        </div>
+        <div class="nav-item" data-section="ai">
+          <i class="ph ph-robot"></i>
+          <span>AI 服务</span>
+        </div>
+        <div class="nav-item" data-section="agent">
+          <i class="ph ph-users"></i>
+          <span>Agent</span>
+        </div>
+        
+        <div class="nav-divider"></div>
+        
+        <div class="nav-item" data-section="account">
+          <i class="ph ph-user-circle"></i>
+          <span>账户</span>
+        </div>
+        <div class="nav-item" data-section="sync">
+          <i class="ph ph-cloud-arrow-up"></i>
+          <span>同步</span>
+        </div>
+        
+        <div class="nav-divider"></div>
+        
+        <div class="nav-item" data-section="advanced">
+          <i class="ph ph-sliders-horizontal"></i>
+          <span>高级</span>
+        </div>
+        <div class="nav-item" data-section="about">
+          <i class="ph ph-info"></i>
+          <span>关于</span>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- 右侧内容 -->
+    <main class="settings-content">
+      <header class="content-header">
+        <h1 class="content-title" id="page-title">通用设置</h1>
+        <div class="header-actions">
+          <button class="icon-btn" onclick="closeSettings()" title="关闭">
+            <i class="ph ph-x"></i>
+          </button>
+        </div>
+      </header>
+
+      <div class="content-body" id="content-body">
+        <!-- 通用设置 -->
+        <div class="settings-section" id="section-general">
+          <div class="section-title">启动</div>
+          <div class="setting-card">
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">启动时恢复上次会话</div>
+                <div class="setting-desc">打开浏览器时自动恢复上次的标签页</div>
+              </div>
+              <div class="setting-control">
+                <div class="toggle active" onclick="toggleSwitch(this)"></div>
+              </div>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">默认主页</div>
+                <div class="setting-desc">新标签页打开的页面</div>
+              </div>
+              <div class="setting-control">
+                <input type="text" class="text-input" value="https://www.google.com" placeholder="输入网址">
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title" style="margin-top: 24px;">下载</div>
+          <div class="setting-card">
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">下载位置</div>
+                <div class="setting-desc">文件默认保存到下载文件夹</div>
+              </div>
+              <div class="setting-control">
+                <button class="btn">更改</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 其他设置面板（默认隐藏） -->
+        <div class="settings-section" id="section-appearance" style="display: none;">
+          <div class="empty-state">
+            <i class="ph ph-paint-brush"></i>
+            <p>外观设置即将推出</p>
+          </div>
+        </div>
+
+        <div class="settings-section" id="section-ai" style="display: none;">
+          <div class="empty-state">
+            <i class="ph ph-robot"></i>
+            <p>AI 服务设置即将推出</p>
+          </div>
+        </div>
+
+        <div class="settings-section" id="section-agent" style="display: none;">
+          <div class="empty-state">
+            <i class="ph ph-users"></i>
+            <p>Agent 设置即将推出</p>
+          </div>
+        </div>
+
+        <div class="settings-section" id="section-account" style="display: none;">
+          <div class="empty-state">
+            <i class="ph ph-user-circle"></i>
+            <p>账户设置即将推出</p>
+          </div>
+        </div>
+
+        <div class="settings-section" id="section-sync" style="display: none;">
+          <div class="empty-state">
+            <i class="ph ph-cloud-arrow-up"></i>
+            <p>同步设置即将推出</p>
+          </div>
+        </div>
+
+        <div class="settings-section" id="section-advanced" style="display: none;">
+          <div class="empty-state">
+            <i class="ph ph-sliders-horizontal"></i>
+            <p>高级设置即将推出</p>
+          </div>
+        </div>
+
+        <div class="settings-section" id="section-about" style="display: none;">
+          <div class="setting-card">
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">Siliu Browser</div>
+                <div class="setting-desc">版本 2.0.0</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // 导航切换
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const section = item.dataset.section;
+        
+        // 更新导航状态
+        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+        
+        // 更新标题
+        const titles = {
+          general: '通用设置',
+          appearance: '外观设置',
+          ai: 'AI 服务设置',
+          agent: 'Agent 设置',
+          account: '账户设置',
+          sync: '同步设置',
+          advanced: '高级设置',
+          about: '关于'
+        };
+        document.getElementById('page-title').textContent = titles[section];
+        
+        // 切换内容面板
+        document.querySelectorAll('.settings-section').forEach(s => s.style.display = 'none');
+        document.getElementById(`section-${section}`).style.display = 'block';
+      });
+    });
+
+    // Toggle 开关
+    function toggleSwitch(el) {
+      el.classList.toggle('active');
+    }
+
+    // 关闭设置页面
+    function closeSettings() {
+      window.close();
+    }
+  </script>
+</body>
+</html>
