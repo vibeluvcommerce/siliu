@@ -751,12 +751,17 @@ function setupIpcHandlers() {
     // event.sender 就是发送消息的 webContents，直接使用
     console.log('[Agent Editor] Sender webContents id:', event.sender.id);
     
+    // 【关键】获取 view 的实际 URL（覆盖可能错误的 file:/// 或过期 URL）
+    const actualUrl = event.sender.getURL();
+    console.log('[Agent Editor] Actual view URL:', actualUrl);
+    
     // 直接广播到所有 shell 窗口，不需要查找 view
     modules.core?.sendToRenderer?.('agentEditor:click', {
       ...data,
+      url: actualUrl,  // 使用实际 URL 覆盖
       viewId: event.sender.id
     });
-    console.log('[Agent Editor] Broadcasted to shell');
+    console.log('[Agent Editor] Broadcasted to shell with actual URL:', actualUrl);
   };
   
   // 使用 ipcMain.on 而不是 safeHandle，因为这是一个事件而不是请求
@@ -997,6 +1002,16 @@ function setupIpcHandlers() {
     console.log('[Agent Editor] Name confirmed, sender id:', event.sender?.id);
     console.log('[Agent Editor] Received data:', data);
     
+    // 【关键】获取 view 的实际 URL（覆盖可能错误的 file:/// 或过期 URL）
+    const actualUrl = event.sender.getURL();
+    console.log('[Agent Editor] Actual view URL for confirmation:', actualUrl);
+    
+    // 使用实际 URL 覆盖传入的 URL
+    const confirmedData = {
+      ...data,
+      url: actualUrl
+    };
+    
     // 获取当前 view 的截图
     const senderId = event.sender.id;
     const tabManager = modules.core?.tabManager;
@@ -1030,7 +1045,7 @@ function setupIpcHandlers() {
         await fs.mkdir(screenshotsDir, { recursive: true });
         
         // 生成文件名: {site}_{page}_{timestamp}.png
-        const url = new URL(data.url || 'http://unknown');
+        const url = new URL(confirmedData.url || 'http://unknown');
         const hostname = url.hostname.replace(/^www\./, '').replace(/[^a-zA-Z0-9]/g, '_');
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const filename = `${hostname}_${timestamp}.png`;
@@ -1050,18 +1065,18 @@ function setupIpcHandlers() {
     console.log('[Agent Editor] Broadcasting to shell, sendToRenderer exists:', !!modules.core?.sendToRenderer);
     console.log('[Agent Editor] screenshotPath to send:', screenshotPath);
     const dataToSend = {
-      name: data.name,
-      viewportX: data.viewportX,
-      viewportY: data.viewportY,
-      docX: data.docX,
-      docY: data.docY,
-      scrollX: data.scrollX,
-      scrollY: data.scrollY,
-      viewportWidth: data.viewportWidth,
-      viewportHeight: data.viewportHeight,
-      tag: data.tag,
-      selector: data.selector,
-      url: data.url,
+      name: confirmedData.name,
+      viewportX: confirmedData.viewportX,
+      viewportY: confirmedData.viewportY,
+      docX: confirmedData.docX,
+      docY: confirmedData.docY,
+      scrollX: confirmedData.scrollX,
+      scrollY: confirmedData.scrollY,
+      viewportWidth: confirmedData.viewportWidth,
+      viewportHeight: confirmedData.viewportHeight,
+      tag: confirmedData.tag,
+      selector: confirmedData.selector,
+      url: confirmedData.url,  // 使用实际 URL
       screenshotPath: screenshotPath  // 文件路径，不是 base64
     };
     console.log('[Agent Editor] Full data to send:', JSON.stringify(dataToSend, null, 2));
@@ -1144,6 +1159,10 @@ function setupIpcHandlers() {
       
       // 将坐标数据序列化为 JSON 字符串传入脚本
       const coordinatesJson = JSON.stringify(savedCoordinates);
+      
+      // 【关键】获取 view 的实际 URL（而不是 location.href 可能是 newtab）
+      const viewUrl = view.webContents.getURL();
+      console.log('[Agent Editor] View actual URL:', viewUrl);
       
       const script = `
         (function() {
@@ -2052,7 +2071,7 @@ function setupIpcHandlers() {
               viewportHeight: viewportHeight, // 视口高度
               tag: tag,                  // 元素标签
               selector: selector,        // CSS 选择器
-              url: location.href         // 页面 URL
+              url: ${JSON.stringify(viewUrl)}  // 使用 view 的实际 URL，而不是 location.href（可能是 newtab）
             }, '*');
             console.log('[Siliu Overlay] Message posted with full coordinate data');
           });
