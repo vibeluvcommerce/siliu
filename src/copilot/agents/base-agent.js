@@ -43,7 +43,8 @@ class BaseAgent {
       icon: this.icon,           // Phosphor 图标名，如 'robot'
       color: this.color,         // 渐变起点色
       colorEnd: this.colorEnd,   // 渐变终点色
-      description: this.description
+      description: this.description,
+      isBuiltIn: true            // 内置 Agent
     };
   }
 

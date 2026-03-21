@@ -29,13 +29,14 @@ class ConfigurableAgent extends BaseAgent {
   }
 
   /**
-   * 获取 Agent 展示信息（覆盖基类，添加 updatedAt）
+   * 获取 Agent 展示信息（覆盖基类，添加 updatedAt 和 isBuiltIn）
    */
   getDisplayInfo() {
     const baseInfo = super.getDisplayInfo();
     return {
       ...baseInfo,
-      updatedAt: this.config.metadata?.updatedAt || null
+      updatedAt: this.config.metadata?.updatedAt || null,
+      isBuiltIn: false // 可配置 Agent 都是用户创建的
     };
   }
 

@@ -784,6 +784,40 @@
       animation: pulse 2s ease infinite;
     }
 
+    /* ===== Agent 删除按钮 ===== */
+    .agent-delete-btn {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      width: 18px;
+      height: 18px;
+      background: #ef4444;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      z-index: 10;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .agent-delete-btn:hover {
+      transform: scale(1.1);
+      background: #dc2626;
+    }
+
+    .agent-item.deletable:hover .agent-delete-btn {
+      opacity: 1;
+    }
+
+    .agent-delete-btn i {
+      color: white;
+      font-size: 10px;
+      font-weight: bold;
+    }
+
     /* ===== 内容区域 ===== */
     .content-area {
       position: fixed;
@@ -2158,12 +2192,19 @@
           const colorEnd = agent.colorEnd || '#4285F4';
           const gradient = `linear-gradient(135deg, ${color} 0%, ${colorEnd} 100%)`;
           const icon = agent.icon || 'robot';
+          // 非预置 Agent 显示删除按钮
+          const deleteBtn = !agent.isBuiltIn ? `
+            <div class="agent-delete-btn" onclick="event.stopPropagation(); deleteAgent('${agent.id}')" title="删除 Agent">
+              <i class="ph ph-x"></i>
+            </div>
+          ` : '';
           return `
-            <div class="agent-item ${isActive ? 'active' : ''}" data-id="${agent.id}" data-name="${agent.name}" title="${agent.description || agent.name}" onclick="selectAgent('${agent.id}')">
+            <div class="agent-item ${isActive ? 'active' : ''} ${!agent.isBuiltIn ? 'deletable' : ''}" data-id="${agent.id}" data-name="${agent.name}" title="${agent.description || agent.name}" onclick="selectAgent('${agent.id}')">
               <div class="agent-icon" style="background: ${gradient};">
                 <i class="ph ph-${icon}"></i>
               </div>
               ${isActive ? '<div class="status-dot"></div>' : ''}
+              ${deleteBtn}
             </div>
           `;
         }).join('');
@@ -2212,6 +2253,26 @@
       // 显示提示
       const agentName = selected?.getAttribute('data-name') || agentId;
       showToast(`已切换到: ${agentName}`);
+    }
+
+    // 删除 Agent
+    async function deleteAgent(agentId) {
+      if (!confirm('确定要删除这个 Agent 吗？')) return;
+      
+      console.log('[AgentPanel] Deleting agent:', agentId);
+      try {
+        const result = await window.siliuAPI?.deleteAgent?.(agentId);
+        if (result?.success) {
+          showToast('Agent 已删除');
+          // 刷新列表
+          renderAgentList();
+        } else {
+          showToast('删除失败: ' + (result?.error || '未知错误'));
+        }
+      } catch (err) {
+        console.error('[AgentPanel] Delete agent failed:', err);
+        showToast('删除失败');
+      }
     }
 
     // ========== Agent Editor: 标点描述与存储 ==========

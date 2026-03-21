@@ -88,6 +88,7 @@ contextBridge.exposeInMainWorld('siliuAPI', {
   getAllAgents: () => ipcRenderer.invoke('agents:getAll'),
   getCurrentAgent: () => ipcRenderer.invoke('agents:getCurrent'),
   switchToAgent: (agentId) => ipcRenderer.invoke('agents:switch', agentId),
+  deleteAgent: (agentId) => ipcRenderer.invoke('agents:delete', agentId),
   
   // ========== Agent Editor: 标注编辑器 ==========
   agentEditorInject: (viewId, customScript, coordinates) => ipcRenderer.invoke('agentEditor:inject', viewId, customScript, coordinates),

@@ -850,16 +850,20 @@ function setupIpcHandlers() {
         const result = await modules.agentLoader.saveAgent(data.config);
         console.log('[Agent Editor] Agent saved result:', result);
         if (result.success) {
-          // 1. 通知 shell 显示成功提示
+          // 1. 手动触发刷新（watcher 可能不工作）
+          console.log('[Agent Editor] Triggering manual refresh...');
+          await modules.agentLoader.refresh();
+          
+          // 2. 通知 shell 显示成功提示
           modules.core?.sendToRenderer?.('toast:show', { 
             message: `Agent "${data.config.metadata.name}" 保存成功！`, 
             type: 'success' 
           });
           
-          // 2. 通知 shell 刷新 Agent 列表
+          // 3. 通知 shell 刷新 Agent 列表
           modules.core?.sendToRenderer?.('agents:reload', {});
           
-          // 3. 退出 Agent Editor 模式（保持页面打开，仅关闭标注面板）
+          // 4. 退出 Agent Editor 模式（保持页面打开，仅关闭标注面板）
           const senderViewId = event.sender?.id;
           if (senderViewId) {
             // 移除该视图的 Agent Editor 状态
@@ -912,16 +916,20 @@ function setupIpcHandlers() {
         const result = await modules.agentLoader.saveAgent(data.config);
         console.log('[Agent Editor] Agent saved result:', result);
         if (result.success) {
-          // 1. 显示成功提示
+          // 1. 手动触发刷新（watcher 可能不工作）
+          console.log('[Agent Editor] Triggering manual refresh...');
+          await modules.agentLoader.refresh();
+          
+          // 2. 显示成功提示
           modules.core?.sendToRenderer?.('toast:show', { 
             message: `Agent "${data.config.metadata.name}" 保存成功！`, 
             type: 'success' 
           });
           
-          // 2. 刷新 Agent 列表
+          // 3. 刷新 Agent 列表
           modules.core?.sendToRenderer?.('agents:reload', {});
           
-          // 3. 关闭所有标签页并清空缓存（与取消按钮一致的行为）
+          // 4. 关闭所有标签页并清空缓存（与取消按钮一致的行为）
           console.log('[Agent Editor] Save completed, closing all tabs and clearing all data');
           
           // 立即清理所有 Agent Editor 状态
@@ -2775,7 +2783,12 @@ function setupIpcHandlers() {
     if (!modules.agentLoader) {
       return { success: false, error: 'Agent loader not initialized' };
     }
-    return await modules.agentLoader.deleteAgent(agentId);
+    const result = await modules.agentLoader.deleteAgent(agentId);
+    if (result.success) {
+      // 删除成功后刷新列表
+      modules.core?.sendToRenderer?.('agents:reload', {});
+    }
+    return result;
   });
 
   // 获取 Agent 配置内容（YAML）
@@ -2789,6 +2802,19 @@ function setupIpcHandlers() {
   // 检查是否为内置 Agent
   safeHandle('agents:isBuiltIn', (event, agentId) => {
     return registry.isBuiltInAgent(agentId);
+  });
+
+  // 手动刷新 Agent 列表（热加载备选）
+  safeHandle('agents:refresh', async () => {
+    if (!modules.agentLoader) {
+      return { success: false, error: 'Agent loader not initialized' };
+    }
+    const result = await modules.agentLoader.refresh();
+    if (result.success) {
+      // 通知前端刷新列表
+      modules.core?.sendToRenderer?.('agents:reload', {});
+    }
+    return result;
   });
 
   // 打开 Agent 编辑器窗口（预留，暂时返回不可用）
