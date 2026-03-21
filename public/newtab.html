@@ -564,14 +564,14 @@
       box-shadow: 0 4px 12px rgba(26, 115, 232, 0.3);
     }
 
-    /* 信息提示弹窗 */
+    /* 信息提示弹窗 - 扁长条风格 */
     .info-overlay {
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(0, 0, 0, 0.5);
+      background: rgba(0, 0, 0, 0.4);
       backdrop-filter: blur(4px);
       display: flex;
       align-items: center;
@@ -589,42 +589,60 @@
 
     .info-modal {
       background: var(--bg-primary);
-      border-radius: 16px;
-      width: 360px;
-      max-width: 90vw;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      border-radius: 12px;
+      min-width: 360px;
+      max-width: 480px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
       overflow: hidden;
-      transform: scale(0.95);
+      transform: scale(0.96);
       transition: transform 0.2s ease;
-      text-align: center;
-      padding: 32px 28px;
     }
 
     .info-overlay.active .info-modal {
       transform: scale(1);
     }
 
-    .info-icon {
-      width: 56px;
-      height: 56px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #E8F0FE 0%, #D2E3FC 100%);
+    .info-body {
+      padding: 20px 24px;
       display: flex;
       align-items: center;
-      justify-content: center;
-      margin: 0 auto 20px;
+      gap: 12px;
     }
 
-    .info-icon i {
-      font-size: 28px;
-      color: var(--accent);
-    }
-
-    .info-title {
-      font-size: 18px;
-      font-weight: 600;
+    .info-body p {
+      margin: 0;
+      font-size: 14px;
       color: var(--text-primary);
-      margin-bottom: 8px;
+      line-height: 1.5;
+      flex: 1;
+    }
+
+    .info-body i {
+      font-size: 20px;
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+
+    .info-footer {
+      padding: 12px 24px 16px;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .info-btn {
+      padding: 8px 20px;
+      font-size: 13px;
+      font-weight: 500;
+      color: white;
+      background: var(--accent);
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .info-btn:hover {
+      background: var(--accent-hover);
     }
 
     .info-message {
@@ -852,7 +870,7 @@
       const url = document.getElementById('shortcut-url').value.trim();
       
       if (!name || !url) {
-        await showInfoDialog('请填写名称和网址', '信息不完整', 'ph-warning-circle');
+        await showInfoDialog('请填写名称和网址', 'ph-warning-circle');
         return;
       }
       
@@ -959,10 +977,9 @@
     // 信息提示弹窗
     let infoCallback = null;
 
-    function showInfoDialog(message, title = '提示', icon = 'ph-info') {
+    function showInfoDialog(message, icon = 'ph-info') {
       return new Promise((resolve) => {
         infoCallback = resolve;
-        document.getElementById('info-title').textContent = title;
         document.getElementById('info-message').textContent = message;
         document.getElementById('info-icon').className = 'ph ' + icon;
         document.getElementById('info-overlay').classList.add('active');
@@ -1006,12 +1023,13 @@
   <!-- 信息提示弹窗 -->
   <div class="info-overlay" id="info-overlay">
     <div class="info-modal">
-      <div class="info-icon">
+      <div class="info-body">
         <i class="ph ph-info" id="info-icon"></i>
+        <p id="info-message">请填写名称和网址</p>
       </div>
-      <h3 class="info-title" id="info-title">提示</h3>
-      <p class="info-message" id="info-message">操作成功</p>
-      <button class="info-btn" onclick="closeInfoDialog()">确定</button>
+      <div class="info-footer">
+        <button class="info-btn" onclick="closeInfoDialog()">确定</button>
+      </div>
     </div>
   </div>
 </body>
