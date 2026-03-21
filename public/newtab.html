@@ -623,6 +623,36 @@
       flex-shrink: 0;
     }
 
+    /* 输入框错误提示 */
+    .form-group {
+      position: relative;
+      margin-bottom: 8px;
+    }
+    
+    .form-input.error {
+      border-color: #ea4335 !important;
+      background: #fef2f2;
+    }
+    
+    .form-input.error:focus {
+      box-shadow: 0 0 0 3px rgba(234, 67, 53, 0.1);
+    }
+    
+    .error-tip {
+      color: #ea4335;
+      font-size: 12px;
+      margin-top: 6px;
+      padding-left: 4px;
+      display: none;
+      animation: shake 0.3s ease;
+    }
+    
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-4px); }
+      75% { transform: translateX(4px); }
+    }
+
     .info-footer {
       padding: 12px 28px 20px;
       display: flex;
@@ -864,15 +894,62 @@
       document.getElementById('modal-overlay').classList.add('active');
     }
     
+    // 显示输入框错误提示
+    function showInputError(inputId, message) {
+      const input = document.getElementById(inputId);
+      input.classList.add('error');
+      input.style.borderColor = '#ea4335';
+      
+      // 找到或创建错误提示
+      let errorTip = input.parentElement.querySelector('.error-tip');
+      if (!errorTip) {
+        errorTip = document.createElement('div');
+        errorTip.className = 'error-tip';
+        input.parentElement.appendChild(errorTip);
+      }
+      errorTip.textContent = message;
+      errorTip.style.display = 'block';
+      
+      // 3秒后自动清除
+      setTimeout(() => {
+        clearInputError(inputId);
+      }, 3000);
+    }
+    
+    // 清除输入框错误提示
+    function clearInputError(inputId) {
+      const input = document.getElementById(inputId);
+      input.classList.remove('error');
+      input.style.borderColor = '';
+      
+      const errorTip = input.parentElement.querySelector('.error-tip');
+      if (errorTip) {
+        errorTip.style.display = 'none';
+      }
+    }
+    
     // 保存快捷访问
-    async function saveShortcut() {
+    function saveShortcut() {
       const name = document.getElementById('shortcut-name').value.trim();
       const url = document.getElementById('shortcut-url').value.trim();
       
-      if (!name || !url) {
-        await showInfoDialog('请填写名称和网址', 'ph-warning-circle');
-        return;
+      // 清除之前的错误提示
+      clearInputError('shortcut-name');
+      clearInputError('shortcut-url');
+      
+      let hasError = false;
+      
+      if (!name) {
+        showInputError('shortcut-name', '请输入名称');
+        hasError = true;
       }
+      
+      if (!url) {
+        showInputError('shortcut-url', '请输入网址');
+        hasError = true;
+      }
+      
+      if (hasError) return;
       
       // 确保 URL 有协议
       let finalUrl = url;
