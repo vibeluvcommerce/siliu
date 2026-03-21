@@ -186,87 +186,24 @@ class DynamicAgentLoader {
   }
 
   /**
-   * 设置文件监听（热重载）
+   * 设置文件监听（热重载）- 当前禁用，使用手动刷新
+   * 
+   * 注意：chokidar 在 Windows 上无法正常工作（getWatched 返回空对象）
+   * 暂时完全依赖手动刷新（refresh 方法），后续可考虑使用 fs.watch
    */
   _setupWatcher() {
-    console.log('[DynamicAgentLoader] Setting up watcher for:', this.agentsDir);
+    console.log('[DynamicAgentLoader] Watcher disabled on Windows, using manual refresh only');
+    console.log('[DynamicAgentLoader] Agents directory:', this.agentsDir);
+    console.log('[DynamicAgentLoader] Currently loaded agents:', this.loadedAgents.size);
     
-    // Windows 上使用轮询模式更可靠
-    const isWindows = process.platform === 'win32';
-    
-    this.watcher = chokidar.watch(this.agentsDir, {
-      ignored: /(^|[\/\\])\../, // 忽略隐藏文件
-      persistent: true,
-      depth: 1,
-      usePolling: isWindows, // Windows 使用轮询
-      useFsEvents: !isWindows, // Windows 不使用 fsevents
-      interval: isWindows ? 500 : undefined, // 轮询间隔
-      binaryInterval: isWindows ? 500 : undefined,
-      awaitWriteFinish: {
-        stabilityThreshold: 300,
-        pollInterval: 100
-      }
-    });
-    
-    console.log('[DynamicAgentLoader] Watcher config:', {
-      platform: process.platform,
-      usePolling: isWindows,
-      useFsEvents: !isWindows,
-      interval: isWindows ? 500 : undefined,
-      awaitWriteFinish: { stabilityThreshold: 300, pollInterval: 100 }
-    });
-
-    this.watcher
-      .on('add', (filePath) => {
-        const resolvedPath = path.resolve(filePath); // 统一路径格式
-        const filename = path.basename(resolvedPath);
-        console.log(`[DynamicAgentLoader] Watcher: add event - ${filename} (${resolvedPath})`);
-        if (this._isConfigFile(filename)) {
-          console.log(`[DynamicAgentLoader] File added: ${filename}`);
-          this._loadAgent(resolvedPath); // 传递完整路径
-        } else {
-          console.log(`[DynamicAgentLoader] Ignored non-config file: ${filename}`);
-        }
-      })
-      .on('change', (filePath) => {
-        const resolvedPath = path.resolve(filePath); // 统一路径格式
-        const filename = path.basename(resolvedPath);
-        console.log(`[DynamicAgentLoader] Watcher: change event - ${filename} (${resolvedPath})`);
-        if (this._isConfigFile(filename)) {
-          console.log(`[DynamicAgentLoader] File changed: ${filename}`);
-          this._reloadAgent(resolvedPath); // 传递完整路径
-        }
-      })
-      .on('unlink', (filePath) => {
-        const resolvedPath = path.resolve(filePath); // 统一路径格式
-        const filename = path.basename(resolvedPath);
-        console.log(`[DynamicAgentLoader] Watcher: unlink event - ${filename} (${resolvedPath})`);
-        if (this._isConfigFile(filename)) {
-          console.log(`[DynamicAgentLoader] File removed: ${filename}`);
-          this._unloadAgent(filename); // unlink 时只需要文件名
-        }
-      })
-      .on('error', err => {
-        console.error('[DynamicAgentLoader] Watcher error:', err);
-      })
-      .on('ready', () => {
-        console.log('[DynamicAgentLoader] Watcher ready, watching:', this.agentsDir);
-        console.log('[DynamicAgentLoader] Currently loaded agents:', this.loadedAgents.size);
-        
-        // 打印当前被监听的文件列表
-        const watched = this.watcher.getWatched();
-        console.log('[DynamicAgentLoader] Watched paths:', JSON.stringify(watched, null, 2));
-      })
-      .on('raw', (event, path, details) => {
-        // 原始事件调试（仅在需要时启用）
-        console.log(`[DynamicAgentLoader] Raw event: ${event} - ${path}`);
-      })
-      .on('all', (event, filePath) => {
-        // 捕获所有事件
-        console.log(`[DynamicAgentLoader] All event: ${event} - ${filePath}`);
+    // 每 5 秒自动刷新一次（备选方案）
+    this._refreshInterval = setInterval(() => {
+      this.refresh().catch(err => {
+        console.error('[DynamicAgentLoader] Auto refresh error:', err.message);
       });
+    }, 5000);
     
-    console.log('[DynamicAgentLoader] Watcher setup complete');
+    console.log('[DynamicAgentLoader] Auto refresh interval set (5s)');
   }
 
   /**
@@ -433,6 +370,10 @@ class DynamicAgentLoader {
     if (this.watcher) {
       this.watcher.close();
       this.watcher = null;
+    }
+    if (this._refreshInterval) {
+      clearInterval(this._refreshInterval);
+      this._refreshInterval = null;
     }
   }
 }
