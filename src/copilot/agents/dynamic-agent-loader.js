@@ -223,6 +223,8 @@ class DynamicAgentLoader {
       const filename = `${config.metadata.id}.yaml`;
       const filePath = path.join(this.agentsDir, filename);
 
+      console.log('[DynamicAgentLoader] Saving agent with knowledge:', config.knowledge);
+
       // 清理内部字段，保留所有必要数据
       const cleanConfig = {
         metadata: {
@@ -241,6 +243,8 @@ class DynamicAgentLoader {
       if (config.coordinates) cleanConfig.coordinates = config.coordinates;
       if (config.knowledge) cleanConfig.knowledge = config.knowledge;
       if (config.behavior) cleanConfig.behavior = config.behavior;
+      
+      console.log('[DynamicAgentLoader] Clean config knowledge:', cleanConfig.knowledge);
 
       // 转换为 YAML
       const yamlContent = yaml.dump(cleanConfig, {

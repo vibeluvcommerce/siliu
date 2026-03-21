@@ -845,6 +845,7 @@ function setupIpcHandlers() {
   // 监听保存 Agent 事件
   const agentEditorSaveHandler = async (event, data) => {
     console.log('[Agent Editor] Save agent clicked:', data.config?.metadata?.name);
+    console.log('[Agent Editor] Config knowledge:', data.config?.knowledge);
     try {
       if (modules.agentLoader && data.config) {
         const result = await modules.agentLoader.saveAgent(data.config);
