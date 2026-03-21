@@ -141,12 +141,14 @@ class ConfigurableAgent extends BaseAgent {
     console.log(`[ConfigurableAgent:${this.id}] Found ${Object.keys(flatCoords).length} preset coordinates in ${structuredSites?.length || 0} sites`);
     
     if (structuredSites && structuredSites.length > 0) {
-      parts.push('【预置坐标配置】');
-      parts.push('以下坐标由用户标注生成，每个坐标包含原始 URL 信息。请根据当前页面 URL 选择最合适的坐标使用。\n');
+      parts.push('【预置坐标配置 - 全局概览】');
+      parts.push(`本 Agent 包含 ${structuredSites.length} 个网站的预置坐标，每个坐标包含原始 URL 信息。`);
+      parts.push('系统会自动根据当前页面 URL 匹配最合适的坐标。\n');
       
       for (const site of structuredSites) {
-        // 网站级别信息（简化）
-        parts.push(`▸ ${site.domain}`);
+        // 计算该网站的坐标数量
+        const coordCount = site.pages.reduce((sum, p) => sum + p.coordinates.length, 0);
+        parts.push(`▸ ${site.domain} (${coordCount} 个坐标)`);
         
         // 页面级别
         for (const page of site.pages) {
@@ -154,16 +156,10 @@ class ConfigurableAgent extends BaseAgent {
           
           parts.push(`  📄 路径: ${page.match || '/'}`);
           
-          // 坐标列表
+          // 坐标列表（简洁版）
           for (const coord of page.coordinates) {
-            parts.push(`     • ${coord.name}: (${coord.viewportX.toFixed(3)}, ${coord.viewportY.toFixed(3)})`);
-            // 显示原始 URL，帮助 AI 判断匹配度
-            if (coord.url) {
-              parts.push(`       原始页面: ${coord.url}`);
-            }
-            if (coord.description) {
-              parts.push(`       说明: ${coord.description}`);
-            }
+            const coordInfo = `     • ${coord.name}: (${coord.viewportX.toFixed(3)}, ${coord.viewportY.toFixed(3)})`;
+            parts.push(coordInfo);
           }
           parts.push('');
         }
@@ -171,9 +167,11 @@ class ConfigurableAgent extends BaseAgent {
       
       // 添加坐标使用指南
       parts.push('【坐标使用指南】');
-      parts.push('1. 对比当前页面 URL 与坐标的"原始页面"URL，选择最匹配的坐标');
-      parts.push('2. 坐标格式: {"type": "coordinate", "x": 0.302, "y": 0.522}');
-      parts.push('3. 如果坐标失效，结合 screenshot 重新定位元素');
+      parts.push('1. 匹配逻辑：系统会自动对比当前 URL 与预置坐标的原始 URL');
+      parts.push('2. 匹配规则：域名必须相同，路径相同或前缀匹配');
+      parts.push('3. 坐标格式：{"type": "coordinate", "x": 0.302, "y": 0.522}');
+      parts.push('4. 优先使用：匹配度高的坐标会在【当前页面可用的预置坐标】中列出');
+      parts.push('5. 失效处理：如果坐标失效，结合 screenshot 重新定位元素');
       parts.push('');
     } else if (Object.keys(flatCoords).length > 0) {
       // 兼容旧格式：扁平化输出
@@ -284,6 +282,7 @@ ${hasStructure ? `1. 坐标已按【网站 → 页面】层级组织，请先判
     const parts = [];
     const currentUrl = url.toLowerCase();
     let matchedCoords = [];
+    let matchDetails = [];
     
     // 遍历所有坐标，找出 URL 匹配的
     for (const site of this.config.sites) {
@@ -292,25 +291,36 @@ ${hasStructure ? `1. 坐标已按【网站 → 页面】层级组织，请先判
           if (!coord.url) continue;
           
           const coordUrl = coord.url.toLowerCase();
-          // 计算 URL 相似度：域名相同 + 路径相似
-          const currentHostname = new URL(currentUrl).hostname;
-          const coordHostname = new URL(coordUrl).hostname;
           
-          // 只匹配同域名的坐标
-          if (currentHostname !== coordHostname) continue;
-          
-          const currentPath = new URL(currentUrl).pathname;
-          const coordPath = new URL(coordUrl).pathname;
-          
-          // 路径相同或当前路径以坐标路径开头（适用于子页面）
-          const isPathMatch = currentPath === coordPath || 
-                             currentPath.startsWith(coordPath + '/');
-          
-          if (isPathMatch) {
-            matchedCoords.push({
-              ...coord,
-              _matchScore: currentPath === coordPath ? 2 : 1 // 完全匹配分数更高
-            });
+          try {
+            const currentUrlObj = new URL(currentUrl);
+            const coordUrlObj = new URL(coordUrl);
+            
+            // 计算 URL 相似度：域名相同 + 路径相似
+            const currentHostname = currentUrlObj.hostname;
+            const coordHostname = coordUrlObj.hostname;
+            
+            // 只匹配同域名的坐标
+            if (currentHostname !== coordHostname) continue;
+            
+            const currentPath = currentUrlObj.pathname;
+            const coordPath = coordUrlObj.pathname;
+            
+            // 路径相同或当前路径以坐标路径开头（适用于子页面）
+            const isPathMatch = currentPath === coordPath || 
+                               currentPath.startsWith(coordPath + '/');
+            
+            if (isPathMatch) {
+              const matchType = currentPath === coordPath ? '完全匹配' : '前缀匹配';
+              matchedCoords.push({
+                ...coord,
+                _matchScore: currentPath === coordPath ? 2 : 1,
+                _matchType: matchType
+              });
+            }
+          } catch (e) {
+            // URL 解析失败，跳过
+            continue;
           }
         }
       }
@@ -321,17 +331,19 @@ ${hasStructure ? `1. 坐标已按【网站 → 页面】层级组织，请先判
     
     if (matchedCoords.length > 0) {
       parts.push('【当前页面可用的预置坐标】');
-      parts.push('以下坐标来自相同或相似的页面，可直接使用：');
+      parts.push(`找到 ${matchedCoords.length} 个匹配的预置坐标，已按匹配度排序：`);
       parts.push('');
       
       for (const coord of matchedCoords) {
         parts.push(`  • ${coord.name}: (${coord.viewportX?.toFixed(3) ?? 0}, ${coord.viewportY?.toFixed(3) ?? 0})`);
+        parts.push(`    匹配类型: ${coord._matchType}`);
         if (coord.description) {
           parts.push(`    说明: ${coord.description}`);
         }
         if (coord.tag) {
-          parts.push(`    元素: ${coord.tag}`);
+          parts.push(`    元素类型: ${coord.tag}`);
         }
+        parts.push(`    使用: {"type": "coordinate", "x": ${coord.viewportX?.toFixed(3) ?? 0}, "y": ${coord.viewportY?.toFixed(3) ?? 0}}`);
         parts.push('');
       }
     }
@@ -378,8 +390,24 @@ ${hasStructure ? `1. 坐标已按【网站 → 页面】层级组织，请先判
       ? this.getCurrentPageCoordinatesInfo(observation.url)
       : '';
     
+    // 添加坐标匹配指南
+    const matchingGuide = this.config.sites ? `
+【坐标匹配指南】
+当前页面: ${observation?.url || '未知'}
+预置坐标总数: ${this.config.sites.reduce((sum, s) => sum + (s.pages?.reduce((pSum, p) => pSum + (p.coordinates?.length || 0), 0) || 0), 0)} 个
+匹配逻辑: 域名相同 && (路径相同 || 路径前缀匹配)
+` : '';
+    
     if (currentCoords) {
-      return baseSection + '\n\n' + currentCoords;
+      return baseSection + matchingGuide + '\n' + currentCoords;
+    } else if (this.config.sites) {
+      // 有预置坐标但当前页面不匹配
+      return baseSection + matchingGuide + `
+【预置坐标提示】
+当前页面 URL 与所有预置坐标都不匹配。
+可用预置坐标网站: ${this.config.sites.map(s => s.domain).join(', ')}
+建议: 导航到上述网站使用预置坐标，或手动操作。
+`;
     }
     
     return baseSection;
