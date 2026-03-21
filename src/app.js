@@ -995,7 +995,17 @@ function setupIpcHandlers() {
   const annotationNameConfirmedHandler = async (event, data) => {
     console.log('[Agent Editor] annotationNameConfirmedHandler CALLED');
     console.log('[Agent Editor] Name confirmed, sender id:', event.sender?.id);
-    console.log('[Agent Editor] Received data:', data);
+    console.log('[Agent Editor] Received data url:', data?.url);
+    
+    // 【关键】获取 view 的实际 URL，覆盖可能错误的 file:/// 或注入时的过期 URL
+    const actualUrl = event.sender.getURL();
+    console.log('[Agent Editor] Actual view URL:', actualUrl);
+    
+    // 更新 data 中的 url 为实际 URL
+    const updatedData = {
+      ...data,
+      url: actualUrl
+    };
     
     // 获取当前 view 的截图
     const senderId = event.sender.id;
@@ -1030,7 +1040,7 @@ function setupIpcHandlers() {
         await fs.mkdir(screenshotsDir, { recursive: true });
         
         // 生成文件名: {site}_{page}_{timestamp}.png
-        const url = new URL(data.url || 'http://unknown');
+        const url = new URL(updatedData.url || 'http://unknown');
         const hostname = url.hostname.replace(/^www\./, '').replace(/[^a-zA-Z0-9]/g, '_');
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const filename = `${hostname}_${timestamp}.png`;
@@ -1050,18 +1060,18 @@ function setupIpcHandlers() {
     console.log('[Agent Editor] Broadcasting to shell, sendToRenderer exists:', !!modules.core?.sendToRenderer);
     console.log('[Agent Editor] screenshotPath to send:', screenshotPath);
     const dataToSend = {
-      name: data.name,
-      viewportX: data.viewportX,
-      viewportY: data.viewportY,
-      docX: data.docX,
-      docY: data.docY,
-      scrollX: data.scrollX,
-      scrollY: data.scrollY,
-      viewportWidth: data.viewportWidth,
-      viewportHeight: data.viewportHeight,
-      tag: data.tag,
-      selector: data.selector,
-      url: data.url,
+      name: updatedData.name,
+      viewportX: updatedData.viewportX,
+      viewportY: updatedData.viewportY,
+      docX: updatedData.docX,
+      docY: updatedData.docY,
+      scrollX: updatedData.scrollX,
+      scrollY: updatedData.scrollY,
+      viewportWidth: updatedData.viewportWidth,
+      viewportHeight: updatedData.viewportHeight,
+      tag: updatedData.tag,
+      selector: updatedData.selector,
+      url: updatedData.url,  // 使用实际 URL
       screenshotPath: screenshotPath  // 文件路径，不是 base64
     };
     console.log('[Agent Editor] Full data to send:', JSON.stringify(dataToSend, null, 2));
