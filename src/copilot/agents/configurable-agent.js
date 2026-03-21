@@ -98,7 +98,8 @@ class ConfigurableAgent extends BaseAgent {
       description: site.description,
       pages: (site.pages || []).map(page => ({
         name: page.name,
-        match: page.match,
+        // 兼容旧版 path 字段和新版 match 字段
+        match: page.match || page.path,
         description: page.description,
         coordinates: (page.coordinates || []).map(coord => ({
           name: coord.name,
@@ -218,6 +219,14 @@ class ConfigurableAgent extends BaseAgent {
 
     // 2. 页面结构知识
     const knowledge = this.config.knowledge || {};
+    
+    // 2.1 性格与能力（新版格式）
+    if (knowledge.personality) {
+      parts.push('【Agent 性格与能力】');
+      parts.push(knowledge.personality);
+      parts.push('');
+    }
+    
     if (knowledge.pageStructure) {
       parts.push('【页面结构】');
       parts.push(knowledge.pageStructure);
@@ -280,6 +289,63 @@ ${hasStructure ? `1. 坐标已按【网站 → 页面】层级组织，请先判
   }
 
   /**
+   * 获取当前 URL 匹配的预置坐标信息（用于 AI 提示词）
+   * @param {string} url - 当前页面 URL
+   * @returns {string} 格式化后的坐标信息
+   */
+  getCurrentPageCoordinatesInfo(url) {
+    if (!url || !this.config.sites) return '';
+    
+    const parts = [];
+    let matchFound = false;
+    
+    for (const site of this.config.sites) {
+      // 检查域名是否匹配
+      if (!site.domain || !url.includes(site.domain)) continue;
+      
+      for (const page of site.pages || []) {
+        // 检查页面是否匹配（使用 match 或 path）
+        const matchPattern = page.match || page.path;
+        if (!matchPattern) continue;
+        
+        // 检查 URL 是否匹配页面模式
+        const urlObj = new URL(url);
+        const pathname = urlObj.pathname;
+        const isMatch = matchPattern === '/$' 
+          ? pathname === '/' || pathname === ''
+          : pathname.includes(matchPattern.replace(/\*/g, ''));
+        
+        if (!isMatch && matchPattern !== '*') continue;
+        
+        matchFound = true;
+        parts.push('【当前页面匹配的预置坐标】');
+        parts.push(`网站: ${site.name || site.domain}`);
+        parts.push(`页面: ${page.name || '未命名页面'}`);
+        parts.push(`匹配模式: ${matchPattern}`);
+        parts.push('');
+        
+        if (page.coordinates && page.coordinates.length > 0) {
+          parts.push('本页可用坐标:');
+          for (const coord of page.coordinates) {
+            parts.push(`  • ${coord.name}: (${coord.viewportX?.toFixed(3) ?? 0}, ${coord.viewportY?.toFixed(3) ?? 0})`);
+            if (coord.description) {
+              parts.push(`    用途: ${coord.description}`);
+            }
+          }
+        } else {
+          parts.push('本页暂无预置坐标');
+        }
+        parts.push('');
+        break; // 找到第一个匹配的页面即可
+      }
+      
+      if (matchFound) break;
+    }
+    
+    return matchFound ? parts.join('\n') : '';
+  }
+
+  /**
    * 获取行为配置
    */
   getBehaviorConfig() {
@@ -304,6 +370,25 @@ ${hasStructure ? `1. 坐标已按【网站 → 页面】层级组织，请先判
       isConfigurable: true,
       sourceFile: this.sourceFile
     };
+  }
+
+  /**
+   * 构建页面观察部分（覆盖基类，添加当前 URL 匹配的坐标信息）
+   */
+  _buildObservationSection(observation) {
+    // 先获取基类的观察部分
+    const baseSection = super._buildObservationSection(observation);
+    
+    // 添加当前 URL 匹配的坐标信息
+    const currentCoords = observation?.url 
+      ? this.getCurrentPageCoordinatesInfo(observation.url)
+      : '';
+    
+    if (currentCoords) {
+      return baseSection + '\n\n' + currentCoords;
+    }
+    
+    return baseSection;
   }
 
   /**
