@@ -92,8 +92,11 @@ class ConfigurableAgent extends BaseAgent {
   getDomainKnowledge() {
     const parts = [];
     
+    console.log(`[ConfigurableAgent:${this.id}] Building domain knowledge...`);
+    
     // 1. 预置坐标
     const coords = this.getPresetCoordinates();
+    console.log(`[ConfigurableAgent:${this.id}] Found ${Object.keys(coords).length} preset coordinates`);
     if (Object.keys(coords).length > 0) {
       parts.push('【预置坐标配置】');
       parts.push('以下坐标可直接使用，提高操作准确性：\n');
@@ -154,7 +157,10 @@ class ConfigurableAgent extends BaseAgent {
       parts.push(knowledge.customPrompt);
     }
 
-    return parts.join('\n');
+    const result = parts.join('\n');
+    console.log(`[ConfigurableAgent:${this.id}] Generated domain knowledge (${result.length} chars)`);
+    console.log(`[ConfigurableAgent:${this.id}] Knowledge preview:`, result.substring(0, 200) + '...');
+    return result;
   }
 
   /**
