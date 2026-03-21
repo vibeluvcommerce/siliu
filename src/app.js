@@ -2356,6 +2356,15 @@ function setupIpcHandlers() {
         return { success: false, error: 'View not found' };
       }
       
+      // 【关键】收集所有标签页的坐标数据（支持多网站多页面）
+      const allCoordinates = [];
+      for (const [vid, coords] of agentEditorData.entries()) {
+        if (Array.isArray(coords)) {
+          allCoordinates.push(...coords);
+        }
+      }
+      console.log('[Agent Editor] Collecting coordinates from all tabs:', allCoordinates.length, 'total');
+      
       // 生成 10 位随机码: agent-xxxxxxxxxx (只含小写和数字)
       const generateRandomId = () => {
         const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
@@ -2427,7 +2436,7 @@ function setupIpcHandlers() {
             body.style.cssText = 'padding:20px 24px;';
             
             // 坐标数量提示
-            const coordCount = ${coordinates.length};
+            const coordCount = ${allCoordinates.length};
             const coordHint = document.createElement('div');
             coordHint.style.cssText = 'background:#f3f4f6;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:#6b7280;';
             coordHint.innerHTML = '<span style="font-weight:600;color:#111827;">当前页面:</span> ' + ${JSON.stringify(domain)} + ' <span style="margin:0 8px;">·</span> <span style="font-weight:600;color:#059669;">已标注 ' + coordCount + ' 个坐标</span>';
@@ -2589,7 +2598,7 @@ function setupIpcHandlers() {
               
               // 从坐标数据自动提取域名和路径分组
               const coordsByDomain = {};
-              ${JSON.stringify(coordinates)}.forEach(c => {
+              ${JSON.stringify(allCoordinates)}.forEach(c => {
                 try {
                   const url = new URL(c.url || 'http://' + ${JSON.stringify(domain)});
                   const domainKey = url.hostname;
