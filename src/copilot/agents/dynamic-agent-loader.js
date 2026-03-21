@@ -186,24 +186,16 @@ class DynamicAgentLoader {
   }
 
   /**
-   * 设置文件监听（热重载）- 当前禁用，使用手动刷新
+   * 设置文件监听（热重载）- 当前完全依赖手动刷新
    * 
    * 注意：chokidar 在 Windows 上无法正常工作（getWatched 返回空对象）
-   * 暂时完全依赖手动刷新（refresh 方法），后续可考虑使用 fs.watch
+   * 完全依赖手动刷新（refresh 方法），保存 Agent 时会自动调用
    */
   _setupWatcher() {
     console.log('[DynamicAgentLoader] Watcher disabled on Windows, using manual refresh only');
     console.log('[DynamicAgentLoader] Agents directory:', this.agentsDir);
     console.log('[DynamicAgentLoader] Currently loaded agents:', this.loadedAgents.size);
-    
-    // 每 5 秒自动刷新一次（备选方案）
-    this._refreshInterval = setInterval(() => {
-      this.refresh().catch(err => {
-        console.error('[DynamicAgentLoader] Auto refresh error:', err.message);
-      });
-    }, 5000);
-    
-    console.log('[DynamicAgentLoader] Auto refresh interval set (5s)');
+    console.log('[DynamicAgentLoader] Agent 保存时会自动触发刷新');
   }
 
   /**
@@ -377,10 +369,6 @@ class DynamicAgentLoader {
     if (this.watcher) {
       this.watcher.close();
       this.watcher = null;
-    }
-    if (this._refreshInterval) {
-      clearInterval(this._refreshInterval);
-      this._refreshInterval = null;
     }
   }
 }
