@@ -1735,6 +1735,66 @@ function setupIpcHandlers() {
                   return;
                 }
                 
+                // 【关键】从坐标数据自动提取域名和路径分组（支持多网站）
+                const coordsByDomain = {};
+                coordinates.forEach(c => {
+                  try {
+                    const url = new URL(c.url || 'http://' + domain);
+                    
+                    // 特殊处理本地文件 URL (file:///)
+                    let domainKey, pathKey;
+                    if (url.protocol === 'file:') {
+                      const pathParts = url.pathname.split('/');
+                      const filename = pathParts[pathParts.length - 1] || 'local';
+                      domainKey = 'local:' + filename;
+                      pathKey = url.pathname;
+                    } else {
+                      domainKey = url.hostname;
+                      pathKey = url.pathname;
+                    }
+                    
+                    if (!coordsByDomain[domainKey]) {
+                      coordsByDomain[domainKey] = {};
+                    }
+                    if (!coordsByDomain[domainKey][pathKey]) {
+                      coordsByDomain[domainKey][pathKey] = [];
+                    }
+                    coordsByDomain[domainKey][pathKey].push(c);
+                  } catch (e) {
+                    // URL 解析失败时使用默认值
+                    if (!coordsByDomain[domain]) {
+                      coordsByDomain[domain] = {};
+                    }
+                    if (!coordsByDomain[domain]['/']) {
+                      coordsByDomain[domain]['/'] = [];
+                    }
+                    coordsByDomain[domain]['/'].push(c);
+                  }
+                });
+                
+                // 构建 sites 结构
+                const sites = Object.entries(coordsByDomain).map(([domainKey, paths]) => ({
+                  domain: domainKey,
+                  pages: Object.entries(paths).map(([pathKey, coords]) => ({
+                    match: pathKey,
+                    coordinates: coords.map((c, idx) => ({
+                      name: c.name || ('coord_' + (idx + 1)),
+                      url: c.url,
+                      docX: c.docX ?? 0,
+                      docY: c.docY ?? 0,
+                      viewportX: c.viewportX ?? 0,
+                      viewportY: c.viewportY ?? 0,
+                      scrollX: c.scrollX ?? 0,
+                      scrollY: c.scrollY ?? 0,
+                      viewportWidth: c.viewportWidth ?? 0,
+                      viewportHeight: c.viewportHeight ?? 0,
+                      description: c.description || '',
+                      tag: c.tag || '',
+                      screenshot: c.screenshotPath || null
+                    }))
+                  }))
+                }));
+                
                 closeModal({
                   metadata: {
                     id: idInput.value.trim() || defaultId,
@@ -1744,25 +1804,7 @@ function setupIpcHandlers() {
                     color: selectedColor.value,
                     colorEnd: selectedColor.end
                   },
-                  sites: [{
-                    domain: domain,
-                    pages: [{
-                      path: pagePath,
-                      coordinates: coordinates.map((c, idx) => ({
-                        name: c.name || ('coord_' + (idx + 1)),
-                        docX: c.docX ?? 0,
-                        docY: c.docY ?? 0,
-                        viewportX: c.viewportX ?? 0,
-                        viewportY: c.viewportY ?? 0,
-                        scrollX: c.scrollX ?? 0,
-                        scrollY: c.scrollY ?? 0,
-                        viewportWidth: c.viewportWidth ?? 0,
-                        viewportHeight: c.viewportHeight ?? 0,
-                        description: c.description || '',
-                        screenshot: c.screenshotPath || null
-                      }))
-                    }]
-                  }],
+                  sites: sites,
                   knowledge: personalityInput.value.trim()
                 });
               };
