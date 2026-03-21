@@ -349,9 +349,16 @@ class DynamicAgentLoader {
       // 加载新文件
       for (const file of configFiles) {
         const filePath = path.resolve(this.agentsDir, file);
-        if (!this.loadedAgents.has(filePath)) {
+        const exists = this.loadedAgents.has(filePath);
+        console.log(`[DynamicAgentLoader] Refresh: checking ${file}`);
+        console.log(`[DynamicAgentLoader] Refresh: resolved path ${filePath}`);
+        console.log(`[DynamicAgentLoader] Refresh: exists in loadedAgents? ${exists}`);
+        console.log(`[DynamicAgentLoader] Refresh: loadedAgents keys:`, Array.from(this.loadedAgents.keys()));
+        if (!exists) {
           console.log(`[DynamicAgentLoader] Refresh: loading new agent ${file}`);
           await this._loadAgent(file);
+        } else {
+          console.log(`[DynamicAgentLoader] Refresh: agent already loaded ${file}`);
         }
       }
       
