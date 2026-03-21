@@ -79,8 +79,12 @@ class DynamicAgentLoader {
   /**
    * 加载单个 Agent 配置文件
    */
-  async _loadAgent(filename) {
-    const filePath = path.join(this.agentsDir, filename);
+  async _loadAgent(filenameOrPath) {
+    // 确保使用绝对路径（统一格式）
+    const filePath = path.resolve(this.agentsDir, filenameOrPath);
+    const filename = path.basename(filePath);
+    
+    console.log(`[DynamicAgentLoader] Loading agent from: ${filePath}`);
     
     try {
       const content = await fs.readFile(filePath, 'utf-8');
@@ -122,10 +126,11 @@ class DynamicAgentLoader {
       // 注册到注册表
       registry.register(agent);
       
-      // 记录已加载
+      // 记录已加载（使用绝对路径作为 key）
       this.loadedAgents.set(filePath, agent.id);
       
       console.log(`[DynamicAgentLoader] Loaded agent: ${agent.id} from ${filename}`);
+      console.log(`[DynamicAgentLoader] Current loaded agents:`, Array.from(this.loadedAgents.entries()));
       
     } catch (err) {
       console.error(`[DynamicAgentLoader] Failed to load ${filename}:`, err.message);
@@ -135,24 +140,40 @@ class DynamicAgentLoader {
   /**
    * 卸载（注销）一个 Agent
    */
-  _unloadAgent(filename) {
-    const filePath = path.join(this.agentsDir, filename);
-    const agentId = this.loadedAgents.get(filePath);
+  _unloadAgent(filenameOrPath) {
+    // 尝试直接查找（可能是完整路径）
+    let agentId = this.loadedAgents.get(filenameOrPath);
     
     if (agentId) {
       registry.unregister(agentId);
-      this.loadedAgents.delete(filePath);
+      this.loadedAgents.delete(filenameOrPath);
       console.log(`[DynamicAgentLoader] Unloaded agent: ${agentId}`);
+      return;
     }
+    
+    // 通过 basename 查找
+    const filename = path.basename(filenameOrPath);
+    for (const [fp, id] of this.loadedAgents) {
+      if (path.basename(fp) === filename) {
+        registry.unregister(id);
+        this.loadedAgents.delete(fp);
+        console.log(`[DynamicAgentLoader] Unloaded agent (by basename): ${id}`);
+        return;
+      }
+    }
+    
+    console.log(`[DynamicAgentLoader] No agent found to unload for: ${filename}`);
   }
 
   /**
    * 重新加载 Agent
    */
-  async _reloadAgent(filename) {
+  async _reloadAgent(filePath) {
+    const resolvedPath = path.resolve(filePath);
+    const filename = path.basename(resolvedPath);
     console.log(`[DynamicAgentLoader] Reloading ${filename}...`);
     this._unloadAgent(filename);
-    await this._loadAgent(filename);
+    await this._loadAgent(resolvedPath);
   }
 
   /**
@@ -173,29 +194,32 @@ class DynamicAgentLoader {
 
     this.watcher
       .on('add', (filePath) => {
-        const filename = path.basename(filePath);
-        console.log(`[DynamicAgentLoader] Watcher: add event - ${filename}`);
+        const resolvedPath = path.resolve(filePath); // 统一路径格式
+        const filename = path.basename(resolvedPath);
+        console.log(`[DynamicAgentLoader] Watcher: add event - ${filename} (${resolvedPath})`);
         if (this._isConfigFile(filename)) {
           console.log(`[DynamicAgentLoader] File added: ${filename}`);
-          this._loadAgent(filename);
+          this._loadAgent(resolvedPath); // 传递完整路径
         } else {
           console.log(`[DynamicAgentLoader] Ignored non-config file: ${filename}`);
         }
       })
       .on('change', (filePath) => {
-        const filename = path.basename(filePath);
-        console.log(`[DynamicAgentLoader] Watcher: change event - ${filename}`);
+        const resolvedPath = path.resolve(filePath); // 统一路径格式
+        const filename = path.basename(resolvedPath);
+        console.log(`[DynamicAgentLoader] Watcher: change event - ${filename} (${resolvedPath})`);
         if (this._isConfigFile(filename)) {
           console.log(`[DynamicAgentLoader] File changed: ${filename}`);
-          this._reloadAgent(filename);
+          this._reloadAgent(resolvedPath); // 传递完整路径
         }
       })
       .on('unlink', (filePath) => {
-        const filename = path.basename(filePath);
-        console.log(`[DynamicAgentLoader] Watcher: unlink event - ${filename}`);
+        const resolvedPath = path.resolve(filePath); // 统一路径格式
+        const filename = path.basename(resolvedPath);
+        console.log(`[DynamicAgentLoader] Watcher: unlink event - ${filename} (${resolvedPath})`);
         if (this._isConfigFile(filename)) {
           console.log(`[DynamicAgentLoader] File removed: ${filename}`);
-          this._unloadAgent(filename);
+          this._unloadAgent(filename); // unlink 时只需要文件名
         }
       })
       .on('error', err => {
