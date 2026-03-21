@@ -52,7 +52,7 @@ window.addEventListener('message', (e) => {
       viewportHeight: e.data.viewportHeight,
       tag: e.data.tag || 'element',
       selector: e.data.selector || '',
-      url: location.href,  // 使用当前页面实际 URL，而不是注入时传入的可能过期的 URL
+      url: e.data.url || location.href,
       viewId: null // 主进程会根据 sender 识别
     });
   }
