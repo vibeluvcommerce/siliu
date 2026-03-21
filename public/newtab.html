@@ -455,6 +455,103 @@
     .modal-btn.danger:hover {
       background: #D33B27;
     }
+
+    /* 自定义确认弹窗 */
+    .confirm-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      pointer-events: none;
+    }
+
+    .confirm-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .confirm-modal {
+      background: var(--bg-primary);
+      border-radius: 16px;
+      width: 380px;
+      max-width: 90vw;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      overflow: hidden;
+      transform: scale(0.95);
+      transition: transform 0.2s ease;
+    }
+
+    .confirm-overlay.active .confirm-modal {
+      transform: scale(1);
+    }
+
+    .confirm-header {
+      padding: 20px 24px 0;
+    }
+
+    .confirm-header h3 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .confirm-body {
+      padding: 16px 24px 24px;
+    }
+
+    .confirm-body p {
+      margin: 0;
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .confirm-footer {
+      padding: 0 24px 20px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .confirm-btn {
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 500;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .confirm-btn.cancel {
+      color: var(--text-secondary);
+      background: transparent;
+    }
+
+    .confirm-btn.cancel:hover {
+      background: var(--bg-tertiary);
+    }
+
+    .confirm-btn.danger {
+      color: white;
+      background: var(--danger);
+    }
+
+    .confirm-btn.danger:hover {
+      background: #D33B27;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(234, 67, 53, 0.3);
+    }
   </style>
 </head>
 <body>
@@ -692,9 +789,13 @@
     }
     
     // 删除快捷访问（从对话框）
-    function deleteShortcut() {
+    async function deleteShortcut() {
       if (!currentEditId) return;
-      if (!confirm('确定要删除这个快捷访问吗？')) return;
+      const confirmed = await showConfirmDialog(
+        '删除后无法恢复，确定要删除这个快捷访问吗？',
+        '删除快捷访问'
+      );
+      if (!confirmed) return;
       
       shortcuts = shortcuts.filter(s => s.id !== currentEditId);
       saveShortcuts();
@@ -703,8 +804,12 @@
     }
     
     // 删除快捷访问（从悬停按钮）
-    function deleteShortcutById(id) {
-      if (!confirm('确定要删除这个快捷访问吗？')) return;
+    async function deleteShortcutById(id) {
+      const confirmed = await showConfirmDialog(
+        '删除后无法恢复，确定要删除这个快捷访问吗？',
+        '删除快捷访问'
+      );
+      if (!confirmed) return;
       
       shortcuts = shortcuts.filter(s => s.id !== id);
       saveShortcuts();
@@ -722,6 +827,51 @@
       loadShortcuts();
       document.querySelector('.search-input').focus();
     });
+
+    // 自定义确认弹窗
+    let confirmCallback = null;
+
+    function showConfirmDialog(message, title = '确认删除') {
+      return new Promise((resolve) => {
+        confirmCallback = resolve;
+        document.getElementById('confirm-title').textContent = title;
+        document.getElementById('confirm-message').textContent = message;
+        document.getElementById('confirm-overlay').classList.add('active');
+      });
+    }
+
+    function closeConfirmDialog(result) {
+      document.getElementById('confirm-overlay').classList.remove('active');
+      if (confirmCallback) {
+        confirmCallback(result);
+        confirmCallback = null;
+      }
+    }
+
+    // 点击遮罩关闭
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('confirm-overlay')?.addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) {
+          closeConfirmDialog(false);
+        }
+      });
+    });
   </script>
+
+  <!-- 自定义确认弹窗 -->
+  <div class="confirm-overlay" id="confirm-overlay">
+    <div class="confirm-modal">
+      <div class="confirm-header">
+        <h3 id="confirm-title">确认删除</h3>
+      </div>
+      <div class="confirm-body">
+        <p id="confirm-message">确定要删除这个快捷访问吗？</p>
+      </div>
+      <div class="confirm-footer">
+        <button class="confirm-btn cancel" onclick="closeConfirmDialog(false)">取消</button>
+        <button class="confirm-btn danger" onclick="closeConfirmDialog(true)">删除</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
