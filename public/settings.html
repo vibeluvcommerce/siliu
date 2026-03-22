@@ -724,21 +724,34 @@
           <div class="section-title">启动</div>
           <div class="setting-card">
             <div class="setting-item">
-              <div class="setting-info">
-                <div class="setting-label">启动时恢复上次会话</div>
-                <div class="setting-desc">打开浏览器时自动恢复上次的标签页</div>
-              </div>
-              <div class="setting-control">
-                <div class="toggle active" onclick="toggleSwitch(this)"></div>
+              <div class="setting-info" style="flex: 1;">
+                <div class="setting-label">启动时</div>
+                <select class="text-input" id="startup-action" style="margin-top: 8px; width: 200px;">
+                  <option value="restore">恢复上次会话</option>
+                  <option value="homepage" selected>打开主页</option>
+                  <option value="newtab">打开新标签页</option>
+                </select>
               </div>
             </div>
             <div class="setting-item">
-              <div class="setting-info">
-                <div class="setting-label">默认主页</div>
-                <div class="setting-desc">新标签页打开的页面</div>
+              <div class="setting-info" style="flex: 1;">
+                <div class="setting-label">主页</div>
+                <input type="text" class="text-input" id="homepage-url" value="https://www.google.com" placeholder="输入网址" style="margin-top: 8px; width: 100%;">
               </div>
-              <div class="setting-control">
-                <input type="text" class="text-input" value="https://www.google.com" placeholder="输入网址">
+            </div>
+          </div>
+
+          <div class="section-title" style="margin-top: 24px;">搜索引擎</div>
+          <div class="setting-card">
+            <div class="setting-item">
+              <div class="setting-info" style="flex: 1;">
+                <div class="setting-label">默认搜索引擎</div>
+                <select class="text-input" id="search-engine" style="margin-top: 8px; width: 200px;">
+                  <option value="google" selected>Google</option>
+                  <option value="bing">Bing</option>
+                  <option value="baidu">百度</option>
+                  <option value="duckduckgo">DuckDuckGo</option>
+                </select>
               </div>
             </div>
           </div>
@@ -748,12 +761,47 @@
             <div class="setting-item">
               <div class="setting-info">
                 <div class="setting-label">下载位置</div>
-                <div class="setting-desc">文件默认保存到下载文件夹</div>
+                <div class="setting-desc" id="download-path">~/Downloads</div>
               </div>
               <div class="setting-control">
-                <button class="btn">更改</button>
+                <button class="btn" onclick="changeDownloadPath()">更改</button>
               </div>
             </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">下载前询问保存位置</div>
+                <div class="setting-desc">每次下载时选择保存位置</div>
+              </div>
+              <div class="setting-control">
+                <div class="toggle" id="ask-download-location" onclick="toggleSwitch(this)"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title" style="margin-top: 24px;">语言</div>
+          <div class="setting-card">
+            <div class="setting-item">
+              <div class="setting-info" style="flex: 1;">
+                <div class="setting-label">显示语言</div>
+                <select class="text-input" id="language" style="margin-top: 8px; width: 200px;">
+                  <option value="zh-CN" selected>简体中文</option>
+                  <option value="zh-TW">繁體中文</option>
+                  <option value="en">English</option>
+                  <option value="ja">日本語</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="setting-actions" style="margin-top: 32px; display: flex; gap: 12px; justify-content: flex-end;">
+            <button class="btn" onclick="resetGeneralConfig()">
+              <i class="ph ph-arrow-counter-clockwise"></i>
+              恢复默认
+            </button>
+            <button class="btn btn-primary" onclick="saveGeneralConfig()">
+              <i class="ph ph-floppy-disk"></i>
+              保存设置
+            </button>
           </div>
         </div>
 
@@ -1521,13 +1569,143 @@
         </div>
 
         <div class="settings-section" id="section-about" style="display: none;">
+          <div class="about-header" style="text-align: center; padding: 40px 0;">
+            <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #1A73E8 0%, #4285F4 100%); border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; box-shadow: 0 4px 12px rgba(26, 115, 232, 0.3);">
+              <i class="ph ph-robot" style="font-size: 40px; color: white;"></i>
+            </div>
+            <h2 style="font-size: 24px; font-weight: 600; margin-bottom: 8px;">Siliu Browser</h2>
+            <p style="color: var(--text-secondary); font-size: 14px;">智能 AI 驱动的浏览器体验</p>
+          </div>
+
           <div class="setting-card">
             <div class="setting-item">
               <div class="setting-info">
-                <div class="setting-label">Siliu Browser</div>
-                <div class="setting-desc">版本 2.0.0</div>
+                <div class="setting-label">版本</div>
+                <div class="setting-desc">2.0.0 (Build 2024.03.21)</div>
               </div>
             </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">Electron</div>
+                <div class="setting-desc">v26.6.10</div>
+              </div>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">Chromium</div>
+                <div class="setting-desc">v116.0.5845.190</div>
+              </div>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">Node.js</div>
+                <div class="setting-desc">v18.16.1</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title" style="margin-top: 24px;">更新</div>
+          <div class="setting-card">
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">检查更新</div>
+                <div class="setting-desc">当前已是最新版本</div>
+              </div>
+              <div class="setting-control">
+                <button class="btn" onclick="checkForUpdates()">
+                  <i class="ph ph-arrows-clockwise"></i>
+                  检查
+                </button>
+              </div>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">自动更新</div>
+                <div class="setting-desc">自动下载并安装更新</div>
+              </div>
+              <div class="setting-control">
+                <div class="toggle active" id="auto-update" onclick="toggleSwitch(this)"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title" style="margin-top: 24px;">链接</div>
+          <div class="setting-card">
+            <div class="setting-item" style="cursor: pointer;" onclick="window.open('https://siliu.ai', '_blank')">
+              <div class="setting-info">
+                <div class="setting-label">
+                  <i class="ph ph-globe" style="margin-right: 8px; color: var(--primary-color);"></i>
+                  官方网站
+                </div>
+              </div>
+              <div class="setting-control">
+                <i class="ph ph-caret-right" style="color: var(--text-secondary);"></i>
+              </div>
+            </div>
+            <div class="setting-item" style="cursor: pointer;" onclick="window.open('https://docs.siliu.ai', '_blank')">
+              <div class="setting-info">
+                <div class="setting-label">
+                  <i class="ph ph-book" style="margin-right: 8px; color: var(--primary-color);"></i>
+                  使用文档
+                </div>
+              </div>
+              <div class="setting-control">
+                <i class="ph ph-caret-right" style="color: var(--text-secondary);"></i>
+              </div>
+            </div>
+            <div class="setting-item" style="cursor: pointer;" onclick="window.open('https://github.com/vibeluvcommerce/siliu', '_blank')">
+              <div class="setting-info">
+                <div class="setting-label">
+                  <i class="ph ph-github-logo" style="margin-right: 8px; color: var(--text-secondary);"></i>
+                  GitHub
+                </div>
+              </div>
+              <div class="setting-control">
+                <i class="ph ph-caret-right" style="color: var(--text-secondary);"></i>
+              </div>
+            </div>
+            <div class="setting-item" style="cursor: pointer;" onclick="window.open('mailto:support@siliu.ai')">
+              <div class="setting-info">
+                <div class="setting-label">
+                  <i class="ph ph-envelope" style="margin-right: 8px; color: var(--primary-color);"></i>
+                  反馈建议
+                </div>
+              </div>
+              <div class="setting-control">
+                <i class="ph ph-caret-right" style="color: var(--text-secondary);"></i>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title" style="margin-top: 24px;">许可</div>
+          <div class="setting-card">
+            <div class="setting-item" style="cursor: pointer;" onclick="showLicense()">
+              <div class="setting-info">
+                <div class="setting-label">
+                  <i class="ph ph-scroll" style="margin-right: 8px; color: var(--text-secondary);"></i>
+                  开源许可
+                </div>
+                <div class="setting-desc">MIT License</div>
+              </div>
+              <div class="setting-control">
+                <i class="ph ph-caret-right" style="color: var(--text-secondary);"></i>
+              </div>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">
+                  <i class="ph ph-shield-check" style="margin-right: 8px; color: var(--text-secondary);"></i>
+                  隐私政策
+                </div>
+              </div>
+              <div class="setting-control">
+                <i class="ph ph-caret-right" style="color: var(--text-secondary);"></i>
+              </div>
+            </div>
+          </div>
+
+          <div style="text-align: center; padding: 24px; color: var(--text-tertiary); font-size: 12px;">
+            © 2024 Siliu Inc. All rights reserved.
           </div>
         </div>
       </div>
@@ -1749,6 +1927,7 @@
       loadAppearanceConfig();
       loadSyncConfig();
       loadAdvancedConfig();
+      loadGeneralConfig();
     });
 
     // ========== 外观设置 ==========
@@ -2199,6 +2378,98 @@
         });
       }
     });
+
+    // ========== 通用设置 ==========
+    let currentGeneralConfig = {};
+
+    // 加载通用配置
+    async function loadGeneralConfig() {
+      try {
+        const config = await window.siliuAPI?.invoke?.('config:get', 'general');
+        if (config) {
+          currentGeneralConfig = config;
+          applyGeneralConfig(config);
+        }
+      } catch (err) {
+        console.error('[Settings] Failed to load general config:', err);
+      }
+    }
+
+    // 应用通用配置到表单
+    function applyGeneralConfig(config) {
+      document.getElementById('startup-action').value = config.startupAction || 'homepage';
+      document.getElementById('homepage-url').value = config.homepageUrl || 'https://www.google.com';
+      document.getElementById('search-engine').value = config.searchEngine || 'google';
+      document.getElementById('download-path').textContent = config.downloadPath || '~/Downloads';
+      
+      if (config.askDownloadLocation) document.getElementById('ask-download-location').classList.add('active');
+      else document.getElementById('ask-download-location').classList.remove('active');
+      
+      document.getElementById('language').value = config.language || 'zh-CN';
+    }
+
+    // 更改下载路径
+    async function changeDownloadPath() {
+      console.log('[General] Change download path');
+      alert('选择下载文件夹功能即将推出');
+    }
+
+    // 收集通用配置
+    function collectGeneralConfig() {
+      return {
+        startupAction: document.getElementById('startup-action').value,
+        homepageUrl: document.getElementById('homepage-url').value,
+        searchEngine: document.getElementById('search-engine').value,
+        downloadPath: currentGeneralConfig.downloadPath || '~/Downloads',
+        askDownloadLocation: document.getElementById('ask-download-location').classList.contains('active'),
+        language: document.getElementById('language').value
+      };
+    }
+
+    // 保存通用配置
+    async function saveGeneralConfig() {
+      const config = collectGeneralConfig();
+      
+      try {
+        await window.siliuAPI?.invoke?.('config:set', 'general', config);
+        alert('通用设置已保存');
+      } catch (err) {
+        alert('保存失败: ' + err.message);
+      }
+    }
+
+    // 重置通用配置
+    async function resetGeneralConfig() {
+      if (confirm('确定要恢复默认通用设置吗？')) {
+        try {
+          const defaultConfig = {
+            startupAction: 'homepage',
+            homepageUrl: 'https://www.google.com',
+            searchEngine: 'google',
+            downloadPath: '~/Downloads',
+            askDownloadLocation: false,
+            language: 'zh-CN'
+          };
+          await window.siliuAPI?.invoke?.('config:set', 'general', defaultConfig);
+          applyGeneralConfig(defaultConfig);
+          alert('已恢复默认设置');
+        } catch (err) {
+          alert('重置失败: ' + err.message);
+        }
+      }
+    }
+
+    // 检查更新
+    function checkForUpdates() {
+      console.log('[About] Check for updates');
+      alert('检查更新功能即将推出');
+    }
+
+    // 显示开源许可
+    function showLicense() {
+      console.log('[About] Show license');
+      alert('MIT License\n\nCopyright (c) 2024 Siliu Inc.\n\nPermission is hereby granted...');
+    }
 
     // ========== 高级设置 ==========
     let currentAdvancedConfig = {};
