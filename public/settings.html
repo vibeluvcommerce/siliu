@@ -473,11 +473,6 @@
     }
 
     /* 账户设置样式 */
-    .account-header {
-      text-align: center;
-      padding: 20px 0;
-    }
-
     .account-avatar-placeholder {
       width: 80px;
       height: 80px;
@@ -486,7 +481,6 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      margin: 0 auto 16px;
       border: 3px solid var(--border-color);
     }
 
@@ -495,97 +489,10 @@
       color: var(--primary-color);
     }
 
-    .account-welcome h3 {
-      font-size: 20px;
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
-
-    .account-welcome p {
-      font-size: 14px;
-      color: var(--text-secondary);
-    }
-
-    .login-form {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .form-label {
-      display: block;
-      font-size: 13px;
-      font-weight: 500;
-      margin-bottom: 6px;
-      color: var(--text-primary);
-    }
-
-    .login-options {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 13px;
-    }
-
-    .checkbox-wrapper {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      cursor: pointer;
-    }
-
-    .checkbox-wrapper input[type="checkbox"] {
-      width: 16px;
-      height: 16px;
-      accent-color: var(--primary-color);
-    }
-
-    .forgot-link {
-      color: var(--primary-color);
-      text-decoration: none;
-    }
-
-    .forgot-link:hover {
-      text-decoration: underline;
-    }
-
     .btn-large {
       padding: 12px 24px;
       font-size: 15px;
       justify-content: center;
-    }
-
-    .login-divider {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      color: var(--text-secondary);
-      font-size: 13px;
-    }
-
-    .login-divider::before,
-    .login-divider::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: var(--border-color);
-    }
-
-    .social-login {
-      display: flex;
-      gap: 12px;
-    }
-
-    .register-hint {
-      text-align: center;
-      font-size: 13px;
-      color: var(--text-secondary);
-    }
-
-    .register-hint a {
-      color: var(--primary-color);
-      text-decoration: none;
-      font-weight: 500;
     }
 
     /* 已登录状态 */
@@ -1120,64 +1027,20 @@
         <div class="settings-section" id="section-account" style="display: none;">
           <!-- 未登录状态 -->
           <div id="account-login" style="display: block;">
-            <div class="section-title">登录</div>
+            <div class="section-title">账户</div>
             <div class="setting-card">
-              <div class="setting-item" style="flex-direction: column; align-items: stretch; gap: 16px;">
-                <div class="account-header">
-                  <div class="account-avatar-placeholder">
-                    <i class="ph ph-user"></i>
-                  </div>
-                  <div class="account-welcome">
-                    <h3>欢迎回来</h3>
-                    <p>登录以同步您的设置和数据</p>
-                  </div>
+              <div class="setting-item" style="flex-direction: column; align-items: center; gap: 20px; padding: 40px;">
+                <div class="account-avatar-placeholder" style="width: 100px; height: 100px;">
+                  <i class="ph ph-user" style="font-size: 48px;"></i>
                 </div>
-
-                <div class="login-form">
-                  <div class="form-group">
-                    <label class="form-label">邮箱</label>
-                    <input type="email" class="text-input" id="login-email" placeholder="your@email.com">
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">密码</label>
-                    <div class="input-group">
-                      <input type="password" class="text-input" id="login-password" placeholder="请输入密码" style="flex: 1;">
-                      <button class="btn" onclick="togglePassword('login-password')" title="显示/隐藏">
-                        <i class="ph ph-eye"></i>
-                      </button>
-                    </div>
-                  </div>
-                  <div class="login-options">
-                    <label class="checkbox-wrapper">
-                      <input type="checkbox" id="remember-me" checked>
-                      <span>记住我</span>
-                    </label>
-                    <a href="#" class="forgot-link" onclick="showForgotPassword()">忘记密码？</a>
-                  </div>
-                  <button class="btn btn-primary btn-large" onclick="handleLogin()" style="width: 100%;">
-                    <i class="ph ph-sign-in"></i>
-                    登录
-                  </button>
+                <div style="text-align: center;">
+                  <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">未登录</h3>
+                  <p style="font-size: 14px; color: var(--text-secondary);">登录以同步您的设置和数据</p>
                 </div>
-
-                <div class="login-divider">
-                  <span>或</span>
-                </div>
-
-                <div class="social-login">
-                  <button class="btn btn-secondary" onclick="loginWithGoogle()" style="flex: 1;">
-                    <i class="ph ph-google-logo"></i>
-                    Google
-                  </button>
-                  <button class="btn btn-secondary" onclick="loginWithGitHub()" style="flex: 1;">
-                    <i class="ph ph-github-logo"></i>
-                    GitHub
-                  </button>
-                </div>
-
-                <div class="register-hint">
-                  还没有账户？<a href="#" onclick="showRegister()">立即注册</a>
-                </div>
+                <button class="btn btn-primary btn-large" onclick="openLoginPage()" style="width: 200px; justify-content: center;">
+                  <i class="ph ph-sign-in"></i>
+                  去登录
+                </button>
               </div>
             </div>
           </div>
@@ -1665,33 +1528,10 @@
       document.getElementById('account-profile').style.display = isLoggedIn ? 'block' : 'none';
     }
 
-    // 处理登录
-    async function handleLogin() {
-      const email = document.getElementById('login-email').value.trim();
-      const password = document.getElementById('login-password').value;
-      const rememberMe = document.getElementById('remember-me').checked;
-
-      if (!email || !password) {
-        alert('请填写邮箱和密码');
-        return;
-      }
-
-      // 模拟登录成功
-      currentUser = {
-        email,
-        name: email.split('@')[0],
-        plan: '免费版',
-        avatar: null,
-        stats: {
-          agents: 3,
-          tasks: 42,
-          storage: 15
-        }
-      };
-
-      // 更新UI
-      updateProfileUI();
-      toggleAccountView(true);
+    // 打开登录页面
+    function openLoginPage() {
+      // 在新标签页打开登录页面
+      window.open('login.html', '_blank');
     }
 
     // 更新用户资料UI
@@ -1723,27 +1563,21 @@
       }
     }
 
-    // 第三方登录
-    function loginWithGoogle() {
-      console.log('[Account] Login with Google');
-      alert('Google 登录即将推出');
-    }
-
-    function loginWithGitHub() {
-      console.log('[Account] Login with GitHub');
-      alert('GitHub 登录即将推出');
-    }
-
-    // 显示注册
-    function showRegister() {
-      console.log('[Account] Show register');
-      alert('注册功能即将推出');
-    }
-
-    // 忘记密码
-    function showForgotPassword() {
-      console.log('[Account] Forgot password');
-      alert('密码找回功能即将推出');
+    // 模拟登录（实际使用时由 login.html 登录成功后调用）
+    function simulateLogin() {
+      currentUser = {
+        email: 'user@example.com',
+        name: 'User',
+        plan: '免费版',
+        avatar: null,
+        stats: {
+          agents: 3,
+          tasks: 42,
+          storage: 15
+        }
+      };
+      updateProfileUI();
+      toggleAccountView(true);
     }
 
     // 编辑资料
