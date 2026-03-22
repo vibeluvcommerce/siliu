@@ -1321,9 +1321,202 @@
         </div>
 
         <div class="settings-section" id="section-advanced" style="display: none;">
-          <div class="empty-state">
-            <i class="ph ph-sliders-horizontal"></i>
-            <p>高级设置即将推出</p>
+          <div class="info-box" style="margin-bottom: 24px;">
+            <i class="ph ph-warning"></i>
+            <span>以下设置仅供高级用户使用，不正确的配置可能影响浏览器稳定性</span>
+          </div>
+
+          <div class="section-title">开发者选项</div>
+          <div class="setting-card">
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">开发者模式</div>
+                <div class="setting-desc">启用开发者工具和调试功能</div>
+              </div>
+              <div class="setting-control">
+                <div class="toggle" id="dev-mode" onclick="toggleSwitch(this)"></div>
+              </div>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">打开开发者工具</div>
+                <div class="setting-desc">使用 Chromium DevTools 调试页面</div>
+              </div>
+              <div class="setting-control">
+                <button class="btn" onclick="openDevTools()">
+                  <i class="ph ph-bug"></i>
+                  打开
+                </button>
+              </div>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">日志级别</div>
+                <div class="setting-desc">控制台输出的详细程度</div>
+              </div>
+              <div class="setting-control">
+                <select class="text-input" id="log-level" style="width: 120px;">
+                  <option value="verbose">详细</option>
+                  <option value="info" selected>信息</option>
+                  <option value="warning">警告</option>
+                  <option value="error">错误</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title" style="margin-top: 24px;">性能</div>
+          <div class="setting-card">
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">硬件加速</div>
+                <div class="setting-desc">使用 GPU 加速渲染页面</div>
+              </div>
+              <div class="setting-control">
+                <div class="toggle active" id="hardware-acceleration" onclick="toggleSwitch(this)"></div>
+              </div>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">平滑滚动</div>
+                <div class="setting-desc">启用流畅的滚动动画</div>
+              </div>
+              <div class="setting-control">
+                <div class="toggle active" id="smooth-scrolling" onclick="toggleSwitch(this)"></div>
+              </div>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">后台标签页限制</div>
+                <div class="setting-desc">当标签页过多时暂停后台页面</div>
+              </div>
+              <div class="setting-control">
+                <div class="toggle active" id="background-tab-limit" onclick="toggleSwitch(this)"></div>
+              </div>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info" style="flex: 1;">
+                <div class="setting-label">内存限制 (MB)</div>
+                <input type="number" class="text-input" id="memory-limit" value="2048" min="512" max="8192" step="256" style="width: 120px; margin-top: 8px;">
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title" style="margin-top: 24px;">实验性功能</div>
+          <div class="setting-card">
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">新标签页预览</div>
+                <div class="setting-desc">鼠标悬停时显示标签页缩略图</div>
+              </div>
+              <div class="setting-control">
+                <div class="toggle" id="tab-preview" onclick="toggleSwitch(this)"></div>
+              </div>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">垂直标签页</div>
+                <div class="setting-desc">在侧边栏显示垂直标签页列表</div>
+              </div>
+              <div class="setting-control">
+                <div class="toggle" id="vertical-tabs" onclick="toggleSwitch(this)"></div>
+              </div>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">AI 智能分组</div>
+                <div class="setting-desc">自动按主题分组标签页</div>
+              </div>
+              <div class="setting-control">
+                <div class="toggle" id="ai-grouping" onclick="toggleSwitch(this)"></div>
+              </div>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">画中画模式</div>
+                <div class="setting-desc">视频播放时启用浮动窗口</div>
+              </div>
+              <div class="setting-control">
+                <div class="toggle active" id="picture-in-picture" onclick="toggleSwitch(this)"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title" style="margin-top: 24px;">网络</div>
+          <div class="setting-card">
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">使用系统代理</div>
+                <div class="setting-desc">跟随系统网络代理设置</div>
+              </div>
+              <div class="setting-control">
+                <div class="toggle active" id="system-proxy" onclick="toggleSwitch(this)"></div>
+              </div>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info" style="flex: 1;">
+                <div class="setting-label">自定义代理</div>
+                <input type="text" class="text-input" id="custom-proxy" placeholder="http://proxy.example.com:8080" style="margin-top: 8px; width: 100%;">
+              </div>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">DNS over HTTPS</div>
+                <div class="setting-desc">使用加密的 DNS 查询</div>
+              </div>
+              <div class="setting-control">
+                <div class="toggle" id="doh" onclick="toggleSwitch(this)"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title" style="margin-top: 24px;">隐私与安全</div>
+          <div class="setting-card">
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">发送使用统计</div>
+                <div class="setting-desc">帮助改进产品（匿名数据）</div>
+              </div>
+              <div class="setting-control">
+                <div class="toggle" id="telemetry" onclick="toggleSwitch(this)"></div>
+              </div>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">崩溃报告</div>
+                <div class="setting-desc">自动发送崩溃信息以便修复</div>
+              </div>
+              <div class="setting-control">
+                <div class="toggle active" id="crash-reports" onclick="toggleSwitch(this)"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title" style="margin-top: 24px;">重置</div>
+          <div class="setting-card">
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label" style="color: #ea4335;">重置所有设置</div>
+                <div class="setting-desc">恢复出厂设置，所有数据将被清除</div>
+              </div>
+              <div class="setting-control">
+                <button class="btn btn-danger" onclick="resetAllSettings()">
+                  <i class="ph ph-arrow-counter-clockwise"></i>
+                  重置
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="setting-actions" style="margin-top: 32px; display: flex; gap: 12px; justify-content: flex-end;">
+            <button class="btn" onclick="resetAdvancedConfig()">
+              <i class="ph ph-arrow-counter-clockwise"></i>
+              恢复默认
+            </button>
+            <button class="btn btn-primary" onclick="saveAdvancedConfig()">
+              <i class="ph ph-floppy-disk"></i>
+              保存设置
+            </button>
           </div>
         </div>
 
@@ -1555,6 +1748,7 @@
       loadCopilotConfig();
       loadAppearanceConfig();
       loadSyncConfig();
+      loadAdvancedConfig();
     });
 
     // ========== 外观设置 ==========
@@ -2005,6 +2199,151 @@
         });
       }
     });
+
+    // ========== 高级设置 ==========
+    let currentAdvancedConfig = {};
+
+    // 加载高级配置
+    async function loadAdvancedConfig() {
+      try {
+        const config = await window.siliuAPI?.invoke?.('config:get', 'advanced');
+        if (config) {
+          currentAdvancedConfig = config;
+          applyAdvancedConfig(config);
+        }
+      } catch (err) {
+        console.error('[Settings] Failed to load advanced config:', err);
+      }
+    }
+
+    // 应用高级配置到表单
+    function applyAdvancedConfig(config) {
+      // 开发者选项
+      if (config.devMode) document.getElementById('dev-mode').classList.add('active');
+      else document.getElementById('dev-mode').classList.remove('active');
+
+      document.getElementById('log-level').value = config.logLevel || 'info';
+
+      // 性能
+      if (config.hardwareAcceleration !== false) document.getElementById('hardware-acceleration').classList.add('active');
+      else document.getElementById('hardware-acceleration').classList.remove('active');
+
+      if (config.smoothScrolling !== false) document.getElementById('smooth-scrolling').classList.add('active');
+      else document.getElementById('smooth-scrolling').classList.remove('active');
+
+      if (config.backgroundTabLimit !== false) document.getElementById('background-tab-limit').classList.add('active');
+      else document.getElementById('background-tab-limit').classList.remove('active');
+
+      document.getElementById('memory-limit').value = config.memoryLimit || 2048;
+
+      // 实验性功能
+      if (config.tabPreview) document.getElementById('tab-preview').classList.add('active');
+      else document.getElementById('tab-preview').classList.remove('active');
+
+      if (config.verticalTabs) document.getElementById('vertical-tabs').classList.add('active');
+      else document.getElementById('vertical-tabs').classList.remove('active');
+
+      if (config.aiGrouping) document.getElementById('ai-grouping').classList.add('active');
+      else document.getElementById('ai-grouping').classList.remove('active');
+
+      if (config.pictureInPicture !== false) document.getElementById('picture-in-picture').classList.add('active');
+      else document.getElementById('picture-in-picture').classList.remove('active');
+
+      // 网络
+      if (config.systemProxy !== false) document.getElementById('system-proxy').classList.add('active');
+      else document.getElementById('system-proxy').classList.remove('active');
+
+      document.getElementById('custom-proxy').value = config.customProxy || '';
+
+      if (config.doh) document.getElementById('doh').classList.add('active');
+      else document.getElementById('doh').classList.remove('active');
+
+      // 隐私
+      if (config.telemetry) document.getElementById('telemetry').classList.add('active');
+      else document.getElementById('telemetry').classList.remove('active');
+
+      if (config.crashReports !== false) document.getElementById('crash-reports').classList.add('active');
+      else document.getElementById('crash-reports').classList.remove('active');
+    }
+
+    // 打开开发者工具
+    function openDevTools() {
+      window.siliuAPI?.openDevTools?.();
+    }
+
+    // 收集高级配置
+    function collectAdvancedConfig() {
+      return {
+        devMode: document.getElementById('dev-mode').classList.contains('active'),
+        logLevel: document.getElementById('log-level').value,
+        hardwareAcceleration: document.getElementById('hardware-acceleration').classList.contains('active'),
+        smoothScrolling: document.getElementById('smooth-scrolling').classList.contains('active'),
+        backgroundTabLimit: document.getElementById('background-tab-limit').classList.contains('active'),
+        memoryLimit: parseInt(document.getElementById('memory-limit').value),
+        tabPreview: document.getElementById('tab-preview').classList.contains('active'),
+        verticalTabs: document.getElementById('vertical-tabs').classList.contains('active'),
+        aiGrouping: document.getElementById('ai-grouping').classList.contains('active'),
+        pictureInPicture: document.getElementById('picture-in-picture').classList.contains('active'),
+        systemProxy: document.getElementById('system-proxy').classList.contains('active'),
+        customProxy: document.getElementById('custom-proxy').value,
+        doh: document.getElementById('doh').classList.contains('active'),
+        telemetry: document.getElementById('telemetry').classList.contains('active'),
+        crashReports: document.getElementById('crash-reports').classList.contains('active')
+      };
+    }
+
+    // 保存高级配置
+    async function saveAdvancedConfig() {
+      const config = collectAdvancedConfig();
+      
+      try {
+        await window.siliuAPI?.invoke?.('config:set', 'advanced', config);
+        alert('高级设置已保存');
+      } catch (err) {
+        alert('保存失败: ' + err.message);
+      }
+    }
+
+    // 重置高级配置
+    async function resetAdvancedConfig() {
+      if (confirm('确定要恢复默认高级设置吗？')) {
+        try {
+          const defaultConfig = {
+            devMode: false,
+            logLevel: 'info',
+            hardwareAcceleration: true,
+            smoothScrolling: true,
+            backgroundTabLimit: true,
+            memoryLimit: 2048,
+            tabPreview: false,
+            verticalTabs: false,
+            aiGrouping: false,
+            pictureInPicture: true,
+            systemProxy: true,
+            customProxy: '',
+            doh: false,
+            telemetry: false,
+            crashReports: true
+          };
+          await window.siliuAPI?.invoke?.('config:set', 'advanced', defaultConfig);
+          applyAdvancedConfig(defaultConfig);
+          alert('已恢复默认设置');
+        } catch (err) {
+          alert('重置失败: ' + err.message);
+        }
+      }
+    }
+
+    // 重置所有设置
+    function resetAllSettings() {
+      if (confirm('确定要重置所有设置吗？此操作不可恢复！')) {
+        if (prompt('请输入 "RESET" 确认重置所有设置：') === 'RESET') {
+          console.log('[Advanced] All settings reset');
+          localStorage.clear();
+          alert('所有设置已重置，请重启浏览器');
+        }
+      }
+    }
 
     // 关闭设置页面
     function closeSettings() {
