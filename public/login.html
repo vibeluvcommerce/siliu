@@ -37,9 +37,12 @@
         display: grid;
         grid-template-columns: 1fr 1fr;
         width: 100%;
+        max-width: 1200px;
         min-height: 600px;
         max-height: 800px;
         background: var(--bg-primary);
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
         overflow: hidden;
       }
       
@@ -370,6 +373,8 @@
           max-width: 100%;
           min-height: 100vh;
           max-height: none;
+          border-radius: 0;
+          box-shadow: none;
         }
         .left {
           padding: 40px 24px 0;
