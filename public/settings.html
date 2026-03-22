@@ -415,6 +415,63 @@
       gap: 6px;
     }
 
+    /* 外观设置 - 主题选择器 */
+    .theme-selector {
+      display: flex;
+      gap: 16px;
+    }
+
+    .theme-option {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+      border: 2px solid transparent;
+    }
+
+    .theme-option:hover {
+      background: var(--bg-secondary);
+    }
+
+    .theme-option.active {
+      border-color: var(--primary-color);
+      background: rgba(26, 115, 232, 0.08);
+    }
+
+    .theme-preview {
+      width: 64px;
+      height: 48px;
+      border-radius: 8px;
+      border: 2px solid var(--border-color);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .theme-preview.light {
+      background: linear-gradient(135deg, #ffffff 0%, #f1f3f4 100%);
+    }
+
+    .theme-preview.dark {
+      background: linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%);
+    }
+
+    .theme-preview.auto {
+      background: linear-gradient(90deg, #ffffff 50%, #2d2d2d 50%);
+    }
+
+    .theme-option span {
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .theme-option.active span {
+      color: var(--primary-color);
+    }
+
     /* ===== 滚动条 ===== */
     ::-webkit-scrollbar {
       width: 8px;
@@ -539,9 +596,131 @@
 
         <!-- 其他设置面板（默认隐藏） -->
         <div class="settings-section" id="section-appearance" style="display: none;">
-          <div class="empty-state">
-            <i class="ph ph-paint-brush"></i>
-            <p>外观设置即将推出</p>
+          <div class="section-title">主题</div>
+          <div class="setting-card">
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">主题模式</div>
+                <div class="setting-desc">选择浅色或深色主题</div>
+              </div>
+              <div class="setting-control">
+                <div class="theme-selector">
+                  <div class="theme-option active" data-theme="light" onclick="selectTheme('light')">
+                    <div class="theme-preview light"></div>
+                    <span>浅色</span>
+                  </div>
+                  <div class="theme-option" data-theme="dark" onclick="selectTheme('dark')">
+                    <div class="theme-preview dark"></div>
+                    <span>深色</span>
+                  </div>
+                  <div class="theme-option" data-theme="auto" onclick="selectTheme('auto')">
+                    <div class="theme-preview auto"></div>
+                    <span>跟随系统</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title" style="margin-top: 24px;">侧边栏</div>
+          <div class="setting-card">
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">默认展开侧边栏</div>
+                <div class="setting-desc">启动时自动展开 Copilot 侧边栏</div>
+              </div>
+              <div class="setting-control">
+                <div class="toggle" id="sidebar-default-open" onclick="toggleSwitch(this)"></div>
+              </div>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">侧边栏宽度</div>
+                <div class="setting-desc">调整 Copilot 侧边栏的默认宽度</div>
+              </div>
+              <div class="setting-control">
+                <select class="text-input" id="sidebar-width" style="width: 120px;">
+                  <option value="320">窄 (320px)</option>
+                  <option value="360" selected>标准 (360px)</option>
+                  <option value="400">宽 (400px)</option>
+                  <option value="480">超宽 (480px)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title" style="margin-top: 24px;">界面元素</div>
+          <div class="setting-card">
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">显示标签页收藏按钮</div>
+                <div class="setting-desc">在标签页上显示快速收藏按钮</div>
+              </div>
+              <div class="setting-control">
+                <div class="toggle active" id="show-tab-favorite" onclick="toggleSwitch(this)"></div>
+              </div>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">显示下载按钮</div>
+                <div class="setting-desc">在工具栏显示下载管理按钮</div>
+              </div>
+              <div class="setting-control">
+                <div class="toggle active" id="show-download-btn" onclick="toggleSwitch(this)"></div>
+              </div>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">紧凑模式</div>
+                <div class="setting-desc">减小标签页和工具栏的高度</div>
+              </div>
+              <div class="setting-control">
+                <div class="toggle" id="compact-mode" onclick="toggleSwitch(this)"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title" style="margin-top: 24px;">字体</div>
+          <div class="setting-card">
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">界面字体大小</div>
+                <div class="setting-desc">调整浏览器界面文字大小</div>
+              </div>
+              <div class="setting-control">
+                <select class="text-input" id="ui-font-size" style="width: 100px;">
+                  <option value="small">小</option>
+                  <option value="medium" selected>中</option>
+                  <option value="large">大</option>
+                </select>
+              </div>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">网页字体大小</div>
+                <div class="setting-desc">调整网页默认缩放比例</div>
+              </div>
+              <div class="setting-control">
+                <select class="text-input" id="page-zoom" style="width: 100px;">
+                  <option value="0.8">80%</option>
+                  <option value="0.9">90%</option>
+                  <option value="1" selected>100%</option>
+                  <option value="1.1">110%</option>
+                  <option value="1.2">120%</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="setting-actions" style="margin-top: 32px; display: flex; gap: 12px; justify-content: flex-end;">
+            <button class="btn" onclick="resetAppearanceConfig()">
+              <i class="ph ph-arrow-counter-clockwise"></i>
+              恢复默认
+            </button>
+            <button class="btn btn-primary" onclick="saveAppearanceConfig()">
+              <i class="ph ph-floppy-disk"></i>
+              保存设置
+            </button>
           </div>
         </div>
 
@@ -955,7 +1134,126 @@
     // 初始化 AI 设置
     document.addEventListener('DOMContentLoaded', () => {
       loadCopilotConfig();
+      loadAppearanceConfig();
     });
+
+    // ========== 外观设置 ==========
+    let currentAppearanceConfig = {};
+
+    // 选择主题
+    function selectTheme(theme) {
+      document.querySelectorAll('.theme-option').forEach(el => {
+        el.classList.toggle('active', el.dataset.theme === theme);
+      });
+      
+      // 预览主题效果（仅设置页面内）
+      document.body.classList.remove('theme-light', 'theme-dark');
+      if (theme === 'dark') {
+        document.body.classList.add('theme-dark');
+      } else if (theme === 'light') {
+        document.body.classList.add('theme-light');
+      }
+    }
+
+    // 加载外观配置
+    async function loadAppearanceConfig() {
+      try {
+        const config = await window.siliuAPI?.invoke?.('config:get', 'appearance');
+        if (config) {
+          currentAppearanceConfig = config;
+          applyAppearanceConfig(config);
+        }
+      } catch (err) {
+        console.error('[Settings] Failed to load appearance config:', err);
+      }
+    }
+
+    // 应用外观配置到表单
+    function applyAppearanceConfig(config) {
+      // 主题
+      const theme = config.theme || 'light';
+      selectTheme(theme);
+
+      // 侧边栏默认展开
+      const sidebarOpen = config.sidebarDefaultOpen !== false;
+      const sidebarToggle = document.getElementById('sidebar-default-open');
+      if (sidebarOpen) sidebarToggle.classList.add('active');
+      else sidebarToggle.classList.remove('active');
+
+      // 侧边栏宽度
+      document.getElementById('sidebar-width').value = config.sidebarWidth || '360';
+
+      // 界面元素
+      const showTabFavorite = config.showTabFavorite !== false;
+      const showDownloadBtn = config.showDownloadBtn !== false;
+      const compactMode = config.compactMode === true;
+
+      const tabFavToggle = document.getElementById('show-tab-favorite');
+      const downloadToggle = document.getElementById('show-download-btn');
+      const compactToggle = document.getElementById('compact-mode');
+
+      if (showTabFavorite) tabFavToggle.classList.add('active');
+      else tabFavToggle.classList.remove('active');
+
+      if (showDownloadBtn) downloadToggle.classList.add('active');
+      else downloadToggle.classList.remove('active');
+
+      if (compactMode) compactToggle.classList.add('active');
+      else compactToggle.classList.remove('active');
+
+      // 字体
+      document.getElementById('ui-font-size').value = config.uiFontSize || 'medium';
+      document.getElementById('page-zoom').value = config.pageZoom || '1';
+    }
+
+    // 收集外观配置
+    function collectAppearanceConfig() {
+      return {
+        theme: document.querySelector('.theme-option.active')?.dataset.theme || 'light',
+        sidebarDefaultOpen: document.getElementById('sidebar-default-open').classList.contains('active'),
+        sidebarWidth: document.getElementById('sidebar-width').value,
+        showTabFavorite: document.getElementById('show-tab-favorite').classList.contains('active'),
+        showDownloadBtn: document.getElementById('show-download-btn').classList.contains('active'),
+        compactMode: document.getElementById('compact-mode').classList.contains('active'),
+        uiFontSize: document.getElementById('ui-font-size').value,
+        pageZoom: document.getElementById('page-zoom').value
+      };
+    }
+
+    // 保存外观配置
+    async function saveAppearanceConfig() {
+      const config = collectAppearanceConfig();
+      
+      try {
+        await window.siliuAPI?.invoke?.('config:set', 'appearance', config);
+        alert('外观设置已保存');
+      } catch (err) {
+        alert('保存失败: ' + err.message);
+      }
+    }
+
+    // 重置外观配置
+    async function resetAppearanceConfig() {
+      if (confirm('确定要恢复默认外观设置吗？')) {
+        try {
+          const defaultConfig = {
+            theme: 'light',
+            sidebarDefaultOpen: true,
+            sidebarWidth: '360',
+            showTabFavorite: true,
+            showDownloadBtn: true,
+            compactMode: false,
+            uiFontSize: 'medium',
+            pageZoom: '1'
+          };
+          await window.siliuAPI?.invoke?.('config:set', 'appearance', defaultConfig);
+          applyAppearanceConfig(defaultConfig);
+          alert('已恢复默认设置');
+        } catch (err) {
+          alert('重置失败: ' + err.message);
+        }
+      }
+    }
 
     // 关闭设置页面
     function closeSettings() {
