@@ -2618,7 +2618,12 @@
 
     // 关闭设置页面
     function closeSettings() {
-      window.close();
+      // 关闭当前标签页
+      if (window.siliuAPI?.closeCurrentView) {
+        window.siliuAPI.closeCurrentView();
+      } else {
+        window.close();
+      }
     }
   </script>
 </body>

@@ -75,6 +75,12 @@ class ViewEventHandler {
     });
 
     wc.on('did-navigate', () => {
+      viewData.url = wc.getURL();
+      if (this.isActiveView(viewId)) {
+        this.sendActiveViewUpdate(viewId);
+      }
+      // 通知 TabManager 页面已导航（用于 Agent Editor 等功能）
+      this.tabManager.emit('view:url-changed', { viewId, url: viewData.url });
       this.tabManager.emit('taskbar:update-buttons', viewId);
     });
 
@@ -103,15 +109,6 @@ class ViewEventHandler {
       if (this.isActiveView(viewId)) {
         this.sendActiveViewUpdate(viewId);
       }
-    });
-
-    wc.on('did-navigate', () => {
-      viewData.url = wc.getURL();
-      if (this.isActiveView(viewId)) {
-        this.sendActiveViewUpdate(viewId);
-      }
-      // 通知 TabManager 页面已导航（用于 Agent Editor 等功能）
-      this.tabManager.emit('view:url-changed', { viewId, url: viewData.url });
     });
 
     wc.on('did-navigate-in-page', () => {

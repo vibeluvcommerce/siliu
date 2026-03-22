@@ -2001,7 +2001,7 @@
       <div class="add-btn" onclick="addNewAgent()" title="创建新 Agent">
         <i class="ph ph-plus"></i>
       </div>
-      <div class="settings-btn" onclick="openAgentSettings()" title="Agent 管理">
+      <div class="settings-btn" onclick="openAgentSettings()" title="设置">
         <i class="ph ph-gear"></i>
       </div>
     </div>
@@ -3189,8 +3189,25 @@
       console.log('[Agent Editor] Display updated with current tab data');
     });
 
-    function openAgentSettings() {
+    async function openAgentSettings() {
       console.log('[AgentPanel] Open settings page');
+      
+      // 检查是否已存在设置标签页（检测 siliu://settings 或 file://.../settings.html）
+      const existingSettingsTab = views.find(v => {
+        if (!v.url) return false;
+        // 检测 siliu://settings 协议
+        if (v.url === 'siliu://settings') return true;
+        // 检测 file://.../settings.html 路径（排除 copilot-settings.html）
+        if (v.url.includes('settings.html') && !v.url.includes('copilot-settings.html')) return true;
+        return false;
+      });
+      
+      if (existingSettingsTab) {
+        // 切换到已存在的设置标签页
+        await switchTab(existingSettingsTab.id);
+        return;
+      }
+      
       // 在新标签页打开设置页面
       window.siliuAPI?.createView?.('siliu://settings', true);
     }
@@ -4099,7 +4116,7 @@
         // 处理地址栏显示 - 新标签页和设置页面不显示本地路径
         if (url) {
           const addressInput = document.getElementById('address-input');
-          if (url.startsWith('file://') && (url.includes('newtab.html') || url.includes('copilot-settings.html'))) {
+          if (url?.startsWith('file://') && (url.includes('newtab.html') || url.includes('settings.html') || url.includes('copilot-settings.html'))) {
             addressInput.value = '';
             addressInput.placeholder = url.includes('copilot-settings.html') ? 'Copilot 设置' : '搜索或输入网址';
           } else {
@@ -4153,7 +4170,7 @@
         }
         if (currentViewId && url) {
           const addressInput = document.getElementById('address-input');
-          if (url.startsWith('file://') && (url.includes('newtab.html') || url.includes('copilot-settings.html'))) {
+          if (url?.startsWith('file://') && (url.includes('newtab.html') || url.includes('settings.html') || url.includes('copilot-settings.html'))) {
             addressInput.value = '';
             addressInput.placeholder = url.includes('copilot-settings.html') ? 'Copilot 设置' : '搜索或输入网址';
           } else {

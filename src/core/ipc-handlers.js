@@ -105,16 +105,16 @@ class IPCHandlers {
       const senderId = e.sender.id;
       const tabManager = this._getTabManagerForSender(e.sender);
       
-      // 查找 sender 对应的 viewId
-      const views = tabManager.getAllViews();
-      const view = views.find(v => v.view?.webContents?.id === senderId);
-      
-      if (view) {
-        console.log('[IPC] Closing current view:', view.id);
-        tabManager.closeView(view.id);
-      } else {
-        console.warn('[IPC] Could not find view for sender:', senderId);
+      // 查找 sender 对应的 viewId（使用内部 views Map）
+      for (const [viewId, viewData] of tabManager.views) {
+        if (viewData?.view?.webContents?.id === senderId) {
+          console.log('[IPC] Closing current view:', viewId);
+          tabManager.closeView(viewId);
+          return;
+        }
       }
+      
+      console.warn('[IPC] Could not find view for sender:', senderId);
     });
 
     ipcMain.handle('view:setActive', (e, { viewId, sidebarOpen }) => {
