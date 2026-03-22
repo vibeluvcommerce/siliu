@@ -331,6 +331,90 @@
       font-size: 14px;
     }
 
+    /* AI 服务设置样式 */
+    .info-box {
+      background: #E8F0FE;
+      border-left: 4px solid var(--primary-color);
+      padding: 12px 16px;
+      border-radius: 0 8px 8px 0;
+      font-size: 13px;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .info-box i {
+      color: var(--primary-color);
+      font-size: 16px;
+    }
+
+    .service-selector {
+      display: flex;
+      gap: 12px;
+    }
+
+    .service-option {
+      flex: 1;
+      padding: 16px;
+      border: 2px solid var(--border-color);
+      border-radius: 12px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s ease;
+    }
+
+    .service-option:hover {
+      border-color: var(--primary-color);
+      background: rgba(26, 115, 232, 0.05);
+    }
+
+    .service-option.active {
+      border-color: var(--primary-color);
+      background: rgba(26, 115, 232, 0.1);
+    }
+
+    .service-option i {
+      font-size: 28px;
+      margin-bottom: 8px;
+      display: block;
+      color: var(--text-secondary);
+    }
+
+    .service-option.active i {
+      color: var(--primary-color);
+    }
+
+    .service-option .name {
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+
+    .service-option .desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .config-section {
+      display: none;
+    }
+
+    .config-section.active {
+      display: block;
+    }
+
+    .input-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    .setting-actions .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
     /* ===== 滚动条 ===== */
     ::-webkit-scrollbar {
       width: 8px;
@@ -462,9 +546,158 @@
         </div>
 
         <div class="settings-section" id="section-ai" style="display: none;">
-          <div class="empty-state">
-            <i class="ph ph-robot"></i>
-            <p>AI 服务设置即将推出</p>
+          <div class="section-title">AI 服务类型</div>
+          <div class="setting-card">
+            <div class="setting-item" style="flex-direction: column; align-items: stretch; gap: 16px;">
+              <div class="info-box">
+                <i class="ph ph-info"></i>
+                <span id="service-info">选择本地 OpenClaw 免费使用，或连接 Siliu AI 云端服务</span>
+              </div>
+
+              <div class="service-selector">
+                <div class="service-option active" data-type="cloud" onclick="selectService('cloud')">
+                  <i class="ph ph-cloud"></i>
+                  <div class="name">Siliu AI 云端</div>
+                  <div class="desc">收费 · 更强能力</div>
+                </div>
+                <div class="service-option" data-type="local" onclick="selectService('local')">
+                  <i class="ph ph-desktop"></i>
+                  <div class="name">本地 OpenClaw</div>
+                  <div class="desc">免费 · 本地运行</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title" style="margin-top: 24px;">云端配置</div>
+          <div class="setting-card config-section active" id="cloud-config">
+            <div class="setting-item">
+              <div class="setting-info" style="flex: 1;">
+                <div class="setting-label">API Endpoint</div>
+                <input type="text" class="text-input" id="cloud-endpoint" value="https://api.siliu.ai/v1" placeholder="https://api.siliu.ai/v1" style="margin-top: 8px; width: 100%;">
+              </div>
+            </div>
+
+            <div class="setting-item">
+              <div class="setting-info" style="flex: 1;">
+                <div class="setting-label">
+                  API Key
+                  <span class="label-description">从 Siliu 控制台获取</span>
+                </div>
+                <div class="input-group" style="margin-top: 8px;">
+                  <input type="password" class="text-input" id="cloud-apikey" placeholder="sk-..." style="flex: 1;">
+                  <button class="btn" onclick="togglePassword('cloud-apikey')" title="显示/隐藏">
+                    <i class="ph ph-eye"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="setting-item">
+              <div class="setting-info" style="flex: 1;">
+                <div class="setting-label">模型</div>
+                <select class="text-input" id="cloud-model" style="margin-top: 8px; width: 100%;" onchange="updateModelHint()">
+                  <option value="kimi-k2.5">Kimi K2.5</option>
+                  <option value="k2p5">Kimi K2.5 (Coding)</option>
+                  <option value="MiniMax-M2.5-highspeed">MiniMax M2.5 HighSpeed</option>
+                </select>
+                <span class="label-description" id="model-hint"></span>
+              </div>
+            </div>
+
+            <div class="setting-item">
+              <div class="setting-info" style="flex: 1;">
+                <div class="setting-label">
+                  Temperature
+                  <span class="label-description">创造性程度 (0-2)</span>
+                </div>
+                <input type="number" class="text-input" id="cloud-temperature" value="0.7" min="0" max="2" step="0.1" style="margin-top: 8px; width: 100%;">
+              </div>
+            </div>
+
+            <div class="setting-item">
+              <div class="setting-info" style="flex: 1;">
+                <div class="setting-label">
+                  Max Tokens
+                  <span class="label-description">单次回复最大长度</span>
+                </div>
+                <input type="number" class="text-input" id="cloud-maxtokens" value="4096" min="100" max="8192" step="100" style="margin-top: 8px; width: 100%;">
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title" style="margin-top: 24px;">本地配置</div>
+          <div class="setting-card config-section" id="local-config">
+            <div class="setting-item">
+              <div class="setting-info" style="flex: 1;">
+                <div class="setting-label">Gateway URL</div>
+                <input type="text" class="text-input" id="local-url" value="ws://127.0.0.1:18789" placeholder="ws://127.0.0.1:18789" style="margin-top: 8px; width: 100%;">
+              </div>
+            </div>
+
+            <div class="setting-item">
+              <div class="setting-info" style="flex: 1;">
+                <div class="setting-label">
+                  Token
+                  <span class="label-description">OpenClaw 认证令牌</span>
+                </div>
+                <div class="input-group" style="margin-top: 8px;">
+                  <input type="password" class="text-input" id="local-token" placeholder="请输入 OpenClaw Token" style="flex: 1;">
+                  <button class="btn" onclick="togglePassword('local-token')" title="显示/隐藏">
+                    <i class="ph ph-eye"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="setting-item">
+              <div class="setting-info" style="flex: 1;">
+                <div class="setting-label">Session Key</div>
+                <input type="text" class="text-input" id="local-session" value="agent:main:main" placeholder="agent:main:main" style="margin-top: 8px; width: 100%;">
+              </div>
+            </div>
+
+            <div class="setting-item">
+              <div class="setting-control" style="display: flex; align-items: center; gap: 10px;">
+                <input type="checkbox" id="local-auto-connect" checked style="width: 18px; height: 18px; accent-color: var(--primary-color);">
+                <label for="local-auto-connect" style="font-size: 14px; cursor: pointer;">启动时自动连接</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title" style="margin-top: 24px;">通用设置</div>
+          <div class="setting-card">
+            <div class="setting-item">
+              <div class="setting-control" style="display: flex; align-items: center; gap: 10px;">
+                <input type="checkbox" id="general-browser-auto" checked style="width: 18px; height: 18px; accent-color: var(--primary-color);">
+                <label for="general-browser-auto" style="font-size: 14px; cursor: pointer;">启用浏览器自动化</label>
+              </div>
+            </div>
+
+            <div class="setting-item">
+              <div class="setting-info" style="flex: 1;">
+                <div class="setting-label">
+                  历史记录数量
+                  <span class="label-description">加载最近多少条对话</span>
+                </div>
+                <input type="number" class="text-input" id="general-history" value="50" min="10" max="200" step="10" style="margin-top: 8px; width: 120px;">
+              </div>
+            </div>
+          </div>
+
+          <div class="setting-actions" style="margin-top: 32px; display: flex; gap: 12px; justify-content: flex-end;">
+            <button class="btn" onclick="resetCopilotConfig()">
+              <i class="ph ph-arrow-counter-clockwise"></i>
+              重置默认
+            </button>
+            <button class="btn" onclick="testCopilotConnection()">
+              <i class="ph ph-plug"></i>
+              测试连接
+            </button>
+            <button class="btn btn-primary" onclick="saveCopilotConfig()">
+              <i class="ph ph-floppy-disk"></i>
+              保存设置
+            </button>
           </div>
         </div>
 
@@ -543,6 +776,186 @@
     function toggleSwitch(el) {
       el.classList.toggle('active');
     }
+
+    // ========== AI 服务设置 ==========
+    let currentCopilotConfig = {};
+
+    // 选择服务类型
+    function selectService(type) {
+      if (type !== 'cloud' && type !== 'local') {
+        type = 'local';
+      }
+
+      document.querySelectorAll('.service-option').forEach(el => {
+        el.classList.toggle('active', el.dataset.type === type);
+      });
+
+      document.querySelectorAll('.config-section').forEach(el => {
+        el.classList.toggle('active', el.id === type + '-config');
+      });
+
+      document.getElementById('service-info').textContent = type === 'local'
+        ? '本地 OpenClaw 需要在本机运行 OpenClaw Gateway'
+        : 'Siliu AI 云端需要有效的 API Key，可在控制台获取';
+    }
+
+    // 根据选择的模型更新提示
+    function updateModelHint() {
+      const modelSelect = document.getElementById('cloud-model');
+      const modelHint = document.getElementById('model-hint');
+      if (modelSelect.value === 'k2p5') {
+        modelHint.textContent = '使用 Kimi Coding API (Anthropic 格式)';
+      } else if (modelSelect.value.startsWith('MiniMax-')) {
+        modelHint.textContent = '使用 MiniMax API (Anthropic 格式)';
+      } else {
+        modelHint.textContent = '使用普通 Kimi API (OpenAI 格式)';
+      }
+    }
+
+    // 切换密码显示
+    function togglePassword(id) {
+      const input = document.getElementById(id);
+      input.type = input.type === 'password' ? 'text' : 'password';
+    }
+
+    // 加载 Copilot 配置
+    async function loadCopilotConfig() {
+      try {
+        const result = await window.siliuAPI?.copilotGetConfig?.();
+        const config = result?.config || result;
+        if (config) {
+          currentCopilotConfig = config;
+          applyCopilotConfig(config);
+        }
+      } catch (err) {
+        console.error('[Settings] Failed to load copilot config:', err);
+      }
+    }
+
+    // 应用配置到表单
+    function applyCopilotConfig(config) {
+      const serviceType = config.serviceType || 'cloud';
+      selectService(serviceType);
+
+      if (config.local) {
+        document.getElementById('local-url').value = config.local.url || 'ws://127.0.0.1:18789';
+        document.getElementById('local-token').value = config.local.token || '';
+        document.getElementById('local-session').value = config.local.sessionKey || 'agent:main:main';
+      }
+
+      if (config.cloud) {
+        document.getElementById('cloud-endpoint').value = config.cloud.apiEndpoint || '';
+        document.getElementById('cloud-apikey').value = config.cloud.apiKey || '';
+        const modelSelect = document.getElementById('cloud-model');
+        const modelValue = config.cloud.model;
+        if (modelValue === 'k2p5' || modelValue === 'k2') {
+          modelSelect.value = 'k2p5';
+        } else if (modelValue === 'kimi-k2.5' || modelValue === 'kimi-latest') {
+          modelSelect.value = modelValue;
+        } else if (modelValue && modelValue.startsWith('MiniMax-')) {
+          modelSelect.value = modelValue;
+        } else {
+          modelSelect.value = 'kimi-k2.5';
+        }
+        updateModelHint();
+        document.getElementById('cloud-temperature').value = config.cloud.temperature || 0.7;
+        document.getElementById('cloud-maxtokens').value = config.cloud.maxTokens || 4096;
+      }
+
+      if (config.general) {
+        document.getElementById('general-browser-auto').checked = config.general.browserAutomation !== false;
+        document.getElementById('general-history').value = config.general.historyLimit || 50;
+      }
+    }
+
+    // 收集表单数据
+    function collectCopilotConfig() {
+      const serviceType = document.querySelector('.service-option.active')?.dataset.type || 'local';
+      
+      return {
+        serviceType,
+        local: {
+          url: document.getElementById('local-url').value,
+          token: document.getElementById('local-token').value,
+          sessionKey: document.getElementById('local-session').value
+        },
+        cloud: {
+          apiEndpoint: document.getElementById('cloud-endpoint').value,
+          apiKey: document.getElementById('cloud-apikey').value,
+          model: document.getElementById('cloud-model').value,
+          temperature: parseFloat(document.getElementById('cloud-temperature').value),
+          maxTokens: parseInt(document.getElementById('cloud-maxtokens').value)
+        },
+        general: {
+          browserAutomation: document.getElementById('general-browser-auto').checked,
+          historyLimit: parseInt(document.getElementById('general-history').value)
+        }
+      };
+    }
+
+    // 保存配置
+    async function saveCopilotConfig() {
+      const config = collectCopilotConfig();
+      
+      if (config.serviceType === 'local' && !config.local?.token) {
+        alert('请先输入 OpenClaw Token');
+        document.getElementById('local-token')?.focus();
+        return;
+      }
+
+      try {
+        const result = await window.siliuAPI?.copilotSaveConfig?.(config);
+        
+        if (result?.configChanged === false) {
+          return;
+        }
+
+        if (!result?.success) {
+          alert('保存失败: ' + (result?.error || '未知错误'));
+          return;
+        }
+
+        alert(result.message || '保存成功');
+      } catch (err) {
+        alert('保存失败: ' + err.message);
+      }
+    }
+
+    // 测试连接
+    async function testCopilotConnection() {
+      const config = collectCopilotConfig();
+      try {
+        const result = await window.siliuAPI?.copilotTestConnection?.(config);
+        if (result?.success) {
+          alert('连接成功！');
+        } else {
+          alert('连接失败: ' + (result?.error || '未知错误'));
+        }
+      } catch (err) {
+        alert('连接失败: ' + err.message);
+      }
+    }
+
+    // 重置配置
+    async function resetCopilotConfig() {
+      const currentServiceType = document.querySelector('.service-option.active')?.dataset.type || 'local';
+      const serviceName = currentServiceType === 'local' ? '本地 OpenClaw' : 'Siliu AI 云端';
+
+      if (confirm(`确定要重置 ${serviceName} 的配置吗？此操作将清空该服务的所有配置信息。`)) {
+        try {
+          await window.siliuAPI?.copilotResetConfig?.(currentServiceType);
+          loadCopilotConfig();
+          alert('已重置为默认配置');
+        } catch (err) {
+          alert('重置失败: ' + err.message);
+        }
+      }
+    }
+
+    // 初始化 AI 设置
+    document.addEventListener('DOMContentLoaded', () => {
+      loadCopilotConfig();
+    });
 
     // 关闭设置页面
     function closeSettings() {
