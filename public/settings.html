@@ -1162,10 +1162,7 @@
                   <div class="setting-desc">退出当前账户，本地数据将保留</div>
                 </div>
                 <div class="setting-control">
-                  <button class="btn btn-danger" onclick="logout()">
-                    <i class="ph ph-sign-out"></i>
-                    退出
-                  </button>
+                  <button class="btn btn-danger" onclick="logout()">退出登录</button>
                 </div>
               </div>
               <div class="setting-item">
@@ -1603,8 +1600,7 @@
       updateProfileUI();
       toggleAccountView(true);
       
-      // 显示登录成功提示
-      showToast('登录成功！', 'success');
+      // 自然切换到用户面板，无弹窗提示
     }
 
     // 显示提示（简单实现）
