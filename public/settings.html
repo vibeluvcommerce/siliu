@@ -495,24 +495,25 @@
       justify-content: center;
     }
 
-    /* 已登录状态 */
+    /* 已登录状态 - 参考 Chrome 设置风格 */
     .profile-header {
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 20px;
+      padding: 8px 0;
     }
 
     .profile-avatar {
-      width: 72px;
-      height: 72px;
+      width: 80px;
+      height: 80px;
       border-radius: 50%;
       overflow: hidden;
-      background: linear-gradient(135deg, #E8F0FE 0%, #D2E3FC 100%);
+      background: linear-gradient(135deg, #1A73E8 0%, #4285F4 100%);
       display: flex;
       align-items: center;
       justify-content: center;
-      border: 3px solid var(--border-color);
       flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(26, 115, 232, 0.25);
     }
 
     .profile-avatar img {
@@ -522,9 +523,9 @@
     }
 
     .avatar-fallback {
-      font-size: 28px;
-      font-weight: 600;
-      color: var(--primary-color);
+      font-size: 32px;
+      font-weight: 500;
+      color: white;
     }
 
     .profile-info {
@@ -532,68 +533,72 @@
     }
 
     .profile-info h3 {
-      font-size: 18px;
-      font-weight: 600;
-      margin-bottom: 2px;
+      font-size: 20px;
+      font-weight: 500;
+      margin-bottom: 4px;
+      color: var(--text-primary);
     }
 
     .profile-info p {
       font-size: 14px;
       color: var(--text-secondary);
-      margin-bottom: 6px;
+      margin-bottom: 8px;
     }
 
     .user-badge {
       display: inline-block;
-      padding: 2px 10px;
+      padding: 3px 10px;
       background: var(--bg-tertiary);
-      border-radius: 12px;
+      border-radius: 10px;
       font-size: 12px;
       color: var(--text-secondary);
+      font-weight: 500;
     }
 
     .profile-stats {
       display: flex;
-      gap: 32px;
-      padding-top: 16px;
+      gap: 48px;
+      padding: 20px 0 8px;
       border-top: 1px solid var(--border-color);
+      margin-top: 4px;
     }
 
     .stat-item {
-      text-align: center;
+      text-align: left;
     }
 
     .stat-value {
-      font-size: 24px;
-      font-weight: 700;
-      color: var(--primary-color);
+      font-size: 22px;
+      font-weight: 500;
+      color: var(--text-primary);
+      line-height: 1.2;
     }
 
     .stat-label {
       font-size: 12px;
       color: var(--text-secondary);
-      margin-top: 2px;
+      margin-top: 4px;
     }
 
     .plan-info {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 10px;
     }
 
     .plan-badge {
       display: inline-block;
       padding: 4px 12px;
-      background: linear-gradient(135deg, #FBBC04 0%, #F9AB00 100%);
-      color: white;
-      border-radius: 12px;
+      background: #fef3c7;
+      color: #92400e;
+      border-radius: 10px;
       font-size: 12px;
-      font-weight: 600;
+      font-weight: 500;
       width: fit-content;
     }
 
     .plan-desc {
-      font-size: 13px;
+      font-size: 14px;
       color: var(--text-secondary);
       line-height: 1.5;
     }
@@ -607,6 +612,27 @@
     .btn-danger:hover {
       background: #ea4335;
       color: white;
+    }
+
+    .btn-small {
+      padding: 6px 14px;
+      font-size: 12px;
+    }
+
+    .btn-text-danger {
+      color: #ea4335;
+      background: transparent;
+      border-color: transparent;
+    }
+
+    .btn-text-danger:hover {
+      background: #fef2f2;
+    }
+
+    .btn-upgrade {
+      width: 100%;
+      justify-content: center;
+      padding: 12px;
     }
 
     /* ===== 滚动条 ===== */
@@ -1063,10 +1089,7 @@
                     <p id="user-email">user@example.com</p>
                     <span class="user-badge" id="user-plan">免费版</span>
                   </div>
-                  <button class="btn" onclick="editProfile()">
-                    <i class="ph ph-pencil"></i>
-                    编辑
-                  </button>
+                  <button class="btn btn-small" onclick="editProfile()">编辑资料</button>
                 </div>
 
                 <div class="profile-stats">
@@ -1124,10 +1147,7 @@
                   <div class="plan-badge" id="current-plan">免费版</div>
                   <p class="plan-desc">免费版包含基础功能，升级到专业版解锁更多 Agent 和云同步功能。</p>
                 </div>
-                <button class="btn btn-primary" onclick="upgradePlan()">
-                  <i class="ph ph-crown"></i>
-                  升级到专业版
-                </button>
+                <button class="btn btn-primary btn-upgrade" onclick="upgradePlan()">升级到专业版</button>
               </div>
             </div>
 
@@ -1139,10 +1159,7 @@
                   <div class="setting-desc">退出当前账户，本地数据将保留</div>
                 </div>
                 <div class="setting-control">
-                  <button class="btn" style="color: #ea4335; border-color: #ea4335;" onclick="logout()">
-                    <i class="ph ph-sign-out"></i>
-                    退出
-                  </button>
+                  <button class="btn btn-text-danger" onclick="logout()">退出登录</button>
                 </div>
               </div>
               <div class="setting-item">
@@ -1151,10 +1168,7 @@
                   <div class="setting-desc">永久删除账户和所有云端数据，此操作不可恢复</div>
                 </div>
                 <div class="setting-control">
-                  <button class="btn btn-danger" onclick="deleteAccount()">
-                    <i class="ph ph-trash"></i>
-                    删除
-                  </button>
+                  <button class="btn btn-danger" onclick="deleteAccount()">删除账户</button>
                 </div>
               </div>
             </div>
