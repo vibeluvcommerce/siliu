@@ -472,6 +472,236 @@
       color: var(--primary-color);
     }
 
+    /* 账户设置样式 */
+    .account-header {
+      text-align: center;
+      padding: 20px 0;
+    }
+
+    .account-avatar-placeholder {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #E8F0FE 0%, #D2E3FC 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+      border: 3px solid var(--border-color);
+    }
+
+    .account-avatar-placeholder i {
+      font-size: 40px;
+      color: var(--primary-color);
+    }
+
+    .account-welcome h3 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .account-welcome p {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    .login-form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 6px;
+      color: var(--text-primary);
+    }
+
+    .login-options {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+    }
+
+    .checkbox-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+
+    .checkbox-wrapper input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--primary-color);
+    }
+
+    .forgot-link {
+      color: var(--primary-color);
+      text-decoration: none;
+    }
+
+    .forgot-link:hover {
+      text-decoration: underline;
+    }
+
+    .btn-large {
+      padding: 12px 24px;
+      font-size: 15px;
+      justify-content: center;
+    }
+
+    .login-divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--text-secondary);
+      font-size: 13px;
+    }
+
+    .login-divider::before,
+    .login-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border-color);
+    }
+
+    .social-login {
+      display: flex;
+      gap: 12px;
+    }
+
+    .register-hint {
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .register-hint a {
+      color: var(--primary-color);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    /* 已登录状态 */
+    .profile-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .profile-avatar {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      overflow: hidden;
+      background: linear-gradient(135deg, #E8F0FE 0%, #D2E3FC 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 3px solid var(--border-color);
+      flex-shrink: 0;
+    }
+
+    .profile-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .avatar-fallback {
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--primary-color);
+    }
+
+    .profile-info {
+      flex: 1;
+    }
+
+    .profile-info h3 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .profile-info p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+
+    .user-badge {
+      display: inline-block;
+      padding: 2px 10px;
+      background: var(--bg-tertiary);
+      border-radius: 12px;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .profile-stats {
+      display: flex;
+      gap: 32px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .stat-item {
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--primary-color);
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    .plan-info {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .plan-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      background: linear-gradient(135deg, #FBBC04 0%, #F9AB00 100%);
+      color: white;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      width: fit-content;
+    }
+
+    .plan-desc {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    .btn-danger {
+      background: #fef2f2;
+      color: #ea4335;
+      border-color: #ea4335;
+    }
+
+    .btn-danger:hover {
+      background: #ea4335;
+      color: white;
+    }
+
     /* ===== 滚动条 ===== */
     ::-webkit-scrollbar {
       width: 8px;
@@ -888,9 +1118,180 @@
         </div>
 
         <div class="settings-section" id="section-account" style="display: none;">
-          <div class="empty-state">
-            <i class="ph ph-user-circle"></i>
-            <p>账户设置即将推出</p>
+          <!-- 未登录状态 -->
+          <div id="account-login" style="display: block;">
+            <div class="section-title">登录</div>
+            <div class="setting-card">
+              <div class="setting-item" style="flex-direction: column; align-items: stretch; gap: 16px;">
+                <div class="account-header">
+                  <div class="account-avatar-placeholder">
+                    <i class="ph ph-user"></i>
+                  </div>
+                  <div class="account-welcome">
+                    <h3>欢迎回来</h3>
+                    <p>登录以同步您的设置和数据</p>
+                  </div>
+                </div>
+
+                <div class="login-form">
+                  <div class="form-group">
+                    <label class="form-label">邮箱</label>
+                    <input type="email" class="text-input" id="login-email" placeholder="your@email.com">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">密码</label>
+                    <div class="input-group">
+                      <input type="password" class="text-input" id="login-password" placeholder="请输入密码" style="flex: 1;">
+                      <button class="btn" onclick="togglePassword('login-password')" title="显示/隐藏">
+                        <i class="ph ph-eye"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="login-options">
+                    <label class="checkbox-wrapper">
+                      <input type="checkbox" id="remember-me" checked>
+                      <span>记住我</span>
+                    </label>
+                    <a href="#" class="forgot-link" onclick="showForgotPassword()">忘记密码？</a>
+                  </div>
+                  <button class="btn btn-primary btn-large" onclick="handleLogin()" style="width: 100%;">
+                    <i class="ph ph-sign-in"></i>
+                    登录
+                  </button>
+                </div>
+
+                <div class="login-divider">
+                  <span>或</span>
+                </div>
+
+                <div class="social-login">
+                  <button class="btn btn-secondary" onclick="loginWithGoogle()" style="flex: 1;">
+                    <i class="ph ph-google-logo"></i>
+                    Google
+                  </button>
+                  <button class="btn btn-secondary" onclick="loginWithGitHub()" style="flex: 1;">
+                    <i class="ph ph-github-logo"></i>
+                    GitHub
+                  </button>
+                </div>
+
+                <div class="register-hint">
+                  还没有账户？<a href="#" onclick="showRegister()">立即注册</a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 已登录状态 -->
+          <div id="account-profile" style="display: none;">
+            <div class="section-title">个人信息</div>
+            <div class="setting-card">
+              <div class="setting-item" style="flex-direction: column; align-items: stretch; gap: 20px;">
+                <div class="profile-header">
+                  <div class="profile-avatar">
+                    <img src="" alt="avatar" id="user-avatar" style="display: none;">
+                    <div class="avatar-fallback" id="avatar-fallback">U</div>
+                  </div>
+                  <div class="profile-info">
+                    <h3 id="user-name">User Name</h3>
+                    <p id="user-email">user@example.com</p>
+                    <span class="user-badge" id="user-plan">免费版</span>
+                  </div>
+                  <button class="btn" onclick="editProfile()">
+                    <i class="ph ph-pencil"></i>
+                    编辑
+                  </button>
+                </div>
+
+                <div class="profile-stats">
+                  <div class="stat-item">
+                    <div class="stat-value" id="stat-agents">0</div>
+                    <div class="stat-label">自定义 Agent</div>
+                  </div>
+                  <div class="stat-item">
+                    <div class="stat-value" id="stat-tasks">0</div>
+                    <div class="stat-label">执行任务</div>
+                  </div>
+                  <div class="stat-item">
+                    <div class="stat-value" id="stat-storage">0%</div>
+                    <div class="stat-label">存储空间</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="section-title" style="margin-top: 24px;">账户安全</div>
+            <div class="setting-card">
+              <div class="setting-item">
+                <div class="setting-info">
+                  <div class="setting-label">修改密码</div>
+                  <div class="setting-desc">定期更改密码以保护账户安全</div>
+                </div>
+                <div class="setting-control">
+                  <button class="btn" onclick="changePassword()">修改</button>
+                </div>
+              </div>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <div class="setting-label">双因素认证</div>
+                  <div class="setting-desc">添加额外的安全保护层</div>
+                </div>
+                <div class="setting-control">
+                  <div class="toggle" id="two-factor-toggle" onclick="toggleSwitch(this)"></div>
+                </div>
+              </div>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <div class="setting-label">登录设备管理</div>
+                  <div class="setting-desc">查看和管理已登录的设备</div>
+                </div>
+                <div class="setting-control">
+                  <button class="btn" onclick="manageDevices()">管理</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="section-title" style="margin-top: 24px;">订阅计划</div>
+            <div class="setting-card">
+              <div class="setting-item" style="flex-direction: column; align-items: stretch; gap: 16px;">
+                <div class="plan-info">
+                  <div class="plan-badge" id="current-plan">免费版</div>
+                  <p class="plan-desc">免费版包含基础功能，升级到专业版解锁更多 Agent 和云同步功能。</p>
+                </div>
+                <button class="btn btn-primary" onclick="upgradePlan()">
+                  <i class="ph ph-crown"></i>
+                  升级到专业版
+                </button>
+              </div>
+            </div>
+
+            <div class="section-title" style="margin-top: 24px;">危险区域</div>
+            <div class="setting-card">
+              <div class="setting-item">
+                <div class="setting-info">
+                  <div class="setting-label" style="color: #ea4335;">退出登录</div>
+                  <div class="setting-desc">退出当前账户，本地数据将保留</div>
+                </div>
+                <div class="setting-control">
+                  <button class="btn" style="color: #ea4335; border-color: #ea4335;" onclick="logout()">
+                    <i class="ph ph-sign-out"></i>
+                    退出
+                  </button>
+                </div>
+              </div>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <div class="setting-label" style="color: #ea4335;">删除账户</div>
+                  <div class="setting-desc">永久删除账户和所有云端数据，此操作不可恢复</div>
+                </div>
+                <div class="setting-control">
+                  <button class="btn btn-danger" onclick="deleteAccount()">
+                    <i class="ph ph-trash"></i>
+                    删除
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1251,6 +1652,143 @@
           alert('已恢复默认设置');
         } catch (err) {
           alert('重置失败: ' + err.message);
+        }
+      }
+    }
+
+    // ========== 账户设置 ==========
+    let currentUser = null;
+
+    // 切换登录/已登录视图
+    function toggleAccountView(isLoggedIn) {
+      document.getElementById('account-login').style.display = isLoggedIn ? 'none' : 'block';
+      document.getElementById('account-profile').style.display = isLoggedIn ? 'block' : 'none';
+    }
+
+    // 处理登录
+    async function handleLogin() {
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+      const rememberMe = document.getElementById('remember-me').checked;
+
+      if (!email || !password) {
+        alert('请填写邮箱和密码');
+        return;
+      }
+
+      // 模拟登录成功
+      currentUser = {
+        email,
+        name: email.split('@')[0],
+        plan: '免费版',
+        avatar: null,
+        stats: {
+          agents: 3,
+          tasks: 42,
+          storage: 15
+        }
+      };
+
+      // 更新UI
+      updateProfileUI();
+      toggleAccountView(true);
+    }
+
+    // 更新用户资料UI
+    function updateProfileUI() {
+      if (!currentUser) return;
+
+      document.getElementById('user-name').textContent = currentUser.name;
+      document.getElementById('user-email').textContent = currentUser.email;
+      document.getElementById('user-plan').textContent = currentUser.plan;
+      document.getElementById('current-plan').textContent = currentUser.plan;
+
+      // 统计
+      document.getElementById('stat-agents').textContent = currentUser.stats.agents;
+      document.getElementById('stat-tasks').textContent = currentUser.stats.tasks;
+      document.getElementById('stat-storage').textContent = currentUser.stats.storage + '%';
+
+      // 头像
+      const avatarImg = document.getElementById('user-avatar');
+      const avatarFallback = document.getElementById('avatar-fallback');
+      
+      if (currentUser.avatar) {
+        avatarImg.src = currentUser.avatar;
+        avatarImg.style.display = 'block';
+        avatarFallback.style.display = 'none';
+      } else {
+        avatarImg.style.display = 'none';
+        avatarFallback.style.display = 'flex';
+        avatarFallback.textContent = currentUser.name.charAt(0).toUpperCase();
+      }
+    }
+
+    // 第三方登录
+    function loginWithGoogle() {
+      console.log('[Account] Login with Google');
+      alert('Google 登录即将推出');
+    }
+
+    function loginWithGitHub() {
+      console.log('[Account] Login with GitHub');
+      alert('GitHub 登录即将推出');
+    }
+
+    // 显示注册
+    function showRegister() {
+      console.log('[Account] Show register');
+      alert('注册功能即将推出');
+    }
+
+    // 忘记密码
+    function showForgotPassword() {
+      console.log('[Account] Forgot password');
+      alert('密码找回功能即将推出');
+    }
+
+    // 编辑资料
+    function editProfile() {
+      console.log('[Account] Edit profile');
+      alert('编辑资料功能即将推出');
+    }
+
+    // 修改密码
+    function changePassword() {
+      console.log('[Account] Change password');
+      alert('修改密码功能即将推出');
+    }
+
+    // 管理设备
+    function manageDevices() {
+      console.log('[Account] Manage devices');
+      alert('设备管理功能即将推出');
+    }
+
+    // 升级计划
+    function upgradePlan() {
+      console.log('[Account] Upgrade plan');
+      alert('升级功能即将推出');
+    }
+
+    // 退出登录
+    function logout() {
+      if (confirm('确定要退出登录吗？')) {
+        currentUser = null;
+        toggleAccountView(false);
+        // 清空表单
+        document.getElementById('login-email').value = '';
+        document.getElementById('login-password').value = '';
+      }
+    }
+
+    // 删除账户
+    function deleteAccount() {
+      if (confirm('确定要删除账户吗？此操作不可恢复！')) {
+        if (prompt('请输入 "DELETE" 确认删除账户：') === 'DELETE') {
+          console.log('[Account] Account deleted');
+          currentUser = null;
+          toggleAccountView(false);
+          alert('账户已删除');
         }
       }
     }
