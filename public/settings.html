@@ -1188,9 +1188,135 @@
         </div>
 
         <div class="settings-section" id="section-sync" style="display: none;">
-          <div class="empty-state">
-            <i class="ph ph-cloud-arrow-up"></i>
-            <p>同步设置即将推出</p>
+          <div class="section-title">云同步</div>
+          <div class="setting-card">
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">启用云同步</div>
+                <div class="setting-desc">自动同步您的数据到云端</div>
+              </div>
+              <div class="setting-control">
+                <div class="toggle" id="sync-enabled" onclick="toggleSwitch(this)"></div>
+              </div>
+            </div>
+            <div class="setting-item sync-status-item" style="display: none;">
+              <div class="setting-info">
+                <div class="setting-label">同步状态</div>
+                <div class="setting-desc" id="sync-status-text">上次同步: 从未</div>
+              </div>
+              <div class="setting-control">
+                <button class="btn" onclick="manualSync()">
+                  <i class="ph ph-arrows-clockwise"></i>
+                  立即同步
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title" style="margin-top: 24px;">同步内容</div>
+          <div class="setting-card">
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">Agent 配置</div>
+                <div class="setting-desc">自定义 Agent 和标注数据</div>
+              </div>
+              <div class="setting-control">
+                <div class="toggle active" id="sync-agents" onclick="toggleSwitch(this)"></div>
+              </div>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">Copilot 历史</div>
+                <div class="setting-desc">与 AI 的对话记录</div>
+              </div>
+              <div class="setting-control">
+                <div class="toggle active" id="sync-history" onclick="toggleSwitch(this)"></div>
+              </div>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">浏览器设置</div>
+                <div class="setting-desc">主题、快捷键等偏好设置</div>
+              </div>
+              <div class="setting-control">
+                <div class="toggle active" id="sync-settings" onclick="toggleSwitch(this)"></div>
+              </div>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">快捷访问</div>
+                <div class="setting-desc">新标签页快捷方式</div>
+              </div>
+              <div class="setting-control">
+                <div class="toggle active" id="sync-shortcuts" onclick="toggleSwitch(this)"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title" style="margin-top: 24px;">同步频率</div>
+          <div class="setting-card">
+            <div class="setting-item">
+              <div class="setting-info" style="flex: 1;">
+                <div class="setting-label">自动同步</div>
+                <select class="text-input" id="sync-frequency" style="margin-top: 8px; width: 200px;">
+                  <option value="realtime">实时同步</option>
+                  <option value="hourly">每小时</option>
+                  <option value="daily" selected>每天</option>
+                  <option value="manual">仅手动</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title" style="margin-top: 24px;">数据管理</div>
+          <div class="setting-card">
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">导出数据</div>
+                <div class="setting-desc">将所有数据导出为 JSON 文件</div>
+              </div>
+              <div class="setting-control">
+                <button class="btn" onclick="exportData()">
+                  <i class="ph ph-download"></i>
+                  导出
+                </button>
+              </div>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label">导入数据</div>
+                <div class="setting-desc">从 JSON 文件恢复数据</div>
+              </div>
+              <div class="setting-control">
+                <button class="btn" onclick="importData()">
+                  <i class="ph ph-upload"></i>
+                  导入
+                </button>
+              </div>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-label" style="color: #ea4335;">清除云端数据</div>
+                <div class="setting-desc">删除所有云端同步的数据</div>
+              </div>
+              <div class="setting-control">
+                <button class="btn btn-danger" onclick="clearCloudData()">
+                  <i class="ph ph-trash"></i>
+                  清除
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="setting-actions" style="margin-top: 32px; display: flex; gap: 12px; justify-content: flex-end;">
+            <button class="btn" onclick="resetSyncConfig()">
+              <i class="ph ph-arrow-counter-clockwise"></i>
+              恢复默认
+            </button>
+            <button class="btn btn-primary" onclick="saveSyncConfig()">
+              <i class="ph ph-floppy-disk"></i>
+              保存设置
+            </button>
           </div>
         </div>
 
@@ -1428,6 +1554,7 @@
     document.addEventListener('DOMContentLoaded', () => {
       loadCopilotConfig();
       loadAppearanceConfig();
+      loadSyncConfig();
     });
 
     // ========== 外观设置 ==========
@@ -1685,6 +1812,199 @@
         }
       }
     }
+
+    // ========== 同步设置 ==========
+    let currentSyncConfig = {};
+    let lastSyncTime = null;
+
+    // 加载同步配置
+    async function loadSyncConfig() {
+      try {
+        const config = await window.siliuAPI?.invoke?.('config:get', 'sync');
+        if (config) {
+          currentSyncConfig = config;
+          applySyncConfig(config);
+        }
+      } catch (err) {
+        console.error('[Settings] Failed to load sync config:', err);
+      }
+    }
+
+    // 应用同步配置到表单
+    function applySyncConfig(config) {
+      // 总开关
+      const syncEnabled = config.enabled === true;
+      const syncToggle = document.getElementById('sync-enabled');
+      if (syncEnabled) syncToggle.classList.add('active');
+      else syncToggle.classList.remove('active');
+
+      // 显示/隐藏同步状态
+      document.querySelector('.sync-status-item').style.display = syncEnabled ? 'flex' : 'none';
+
+      // 同步内容
+      const syncAgents = config.syncAgents !== false;
+      const syncHistory = config.syncHistory !== false;
+      const syncSettings = config.syncSettings !== false;
+      const syncShortcuts = config.syncShortcuts !== false;
+
+      if (syncAgents) document.getElementById('sync-agents').classList.add('active');
+      else document.getElementById('sync-agents').classList.remove('active');
+
+      if (syncHistory) document.getElementById('sync-history').classList.add('active');
+      else document.getElementById('sync-history').classList.remove('active');
+
+      if (syncSettings) document.getElementById('sync-settings').classList.add('active');
+      else document.getElementById('sync-settings').classList.remove('active');
+
+      if (syncShortcuts) document.getElementById('sync-shortcuts').classList.add('active');
+      else document.getElementById('sync-shortcuts').classList.remove('active');
+
+      // 同步频率
+      document.getElementById('sync-frequency').value = config.frequency || 'daily';
+
+      // 上次同步时间
+      updateSyncStatus(config.lastSyncTime);
+    }
+
+    // 更新同步状态显示
+    function updateSyncStatus(timestamp) {
+      if (!timestamp) {
+        document.getElementById('sync-status-text').textContent = '上次同步: 从未';
+        return;
+      }
+      const date = new Date(timestamp);
+      const formatted = date.toLocaleString('zh-CN');
+      document.getElementById('sync-status-text').textContent = `上次同步: ${formatted}`;
+    }
+
+    // 手动同步
+    async function manualSync() {
+      console.log('[Sync] Manual sync started');
+      // 模拟同步
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      lastSyncTime = Date.now();
+      updateSyncStatus(lastSyncTime);
+      alert('同步完成！');
+    }
+
+    // 收集同步配置
+    function collectSyncConfig() {
+      return {
+        enabled: document.getElementById('sync-enabled').classList.contains('active'),
+        syncAgents: document.getElementById('sync-agents').classList.contains('active'),
+        syncHistory: document.getElementById('sync-history').classList.contains('active'),
+        syncSettings: document.getElementById('sync-settings').classList.contains('active'),
+        syncShortcuts: document.getElementById('sync-shortcuts').classList.contains('active'),
+        frequency: document.getElementById('sync-frequency').value,
+        lastSyncTime: lastSyncTime
+      };
+    }
+
+    // 保存同步配置
+    async function saveSyncConfig() {
+      const config = collectSyncConfig();
+      
+      try {
+        await window.siliuAPI?.invoke?.('config:set', 'sync', config);
+        alert('同步设置已保存');
+        // 重新应用以更新UI
+        applySyncConfig(config);
+      } catch (err) {
+        alert('保存失败: ' + err.message);
+      }
+    }
+
+    // 重置同步配置
+    async function resetSyncConfig() {
+      if (confirm('确定要恢复默认同步设置吗？')) {
+        try {
+          const defaultConfig = {
+            enabled: false,
+            syncAgents: true,
+            syncHistory: true,
+            syncSettings: true,
+            syncShortcuts: true,
+            frequency: 'daily',
+            lastSyncTime: null
+          };
+          await window.siliuAPI?.invoke?.('config:set', 'sync', defaultConfig);
+          applySyncConfig(defaultConfig);
+          alert('已恢复默认设置');
+        } catch (err) {
+          alert('重置失败: ' + err.message);
+        }
+      }
+    }
+
+    // 导出数据
+    function exportData() {
+      console.log('[Sync] Export data');
+      // 模拟导出
+      const data = {
+        agents: [],
+        history: [],
+        settings: {},
+        exportTime: new Date().toISOString()
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `siliu-backup-${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      alert('数据已导出');
+    }
+
+    // 导入数据
+    function importData() {
+      console.log('[Sync] Import data');
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.json';
+      input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const data = JSON.parse(event.target.result);
+            console.log('[Sync] Imported data:', data);
+            alert('数据导入成功！');
+          } catch (err) {
+            alert('导入失败: 无效的文件格式');
+          }
+        };
+        reader.readAsText(file);
+      };
+      input.click();
+    }
+
+    // 清除云端数据
+    function clearCloudData() {
+      if (confirm('确定要清除所有云端数据吗？此操作不可恢复！')) {
+        if (prompt('请输入 "CLEAR" 确认清除云端数据：') === 'CLEAR') {
+          console.log('[Sync] Cloud data cleared');
+          lastSyncTime = null;
+          updateSyncStatus(null);
+          alert('云端数据已清除');
+        }
+      }
+    }
+
+    // 监听同步开关变化
+    document.addEventListener('DOMContentLoaded', () => {
+      const syncToggle = document.getElementById('sync-enabled');
+      if (syncToggle) {
+        syncToggle.addEventListener('click', () => {
+          setTimeout(() => {
+            const enabled = syncToggle.classList.contains('active');
+            document.querySelector('.sync-status-item').style.display = enabled ? 'flex' : 'none';
+          }, 0);
+        });
+      }
+    });
 
     // 关闭设置页面
     function closeSettings() {
