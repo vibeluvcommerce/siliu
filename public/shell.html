@@ -4116,7 +4116,7 @@
         // 处理地址栏显示 - 新标签页和设置页面不显示本地路径
         if (url) {
           const addressInput = document.getElementById('address-input');
-          if (url?.startsWith('file://') && (url.includes('newtab.html') || url.includes('settings.html') || url.includes('copilot-settings.html'))) {
+          if (url?.startsWith('file://') && (url.includes('newtab.html') || url.includes('settings.html') || url.includes('copilot-settings.html') || url.includes('login.html'))) {
             addressInput.value = '';
             addressInput.placeholder = url.includes('copilot-settings.html') ? 'Copilot 设置' : '搜索或输入网址';
           } else {
@@ -4170,7 +4170,7 @@
         }
         if (currentViewId && url) {
           const addressInput = document.getElementById('address-input');
-          if (url?.startsWith('file://') && (url.includes('newtab.html') || url.includes('settings.html') || url.includes('copilot-settings.html'))) {
+          if (url?.startsWith('file://') && (url.includes('newtab.html') || url.includes('settings.html') || url.includes('copilot-settings.html') || url.includes('login.html'))) {
             addressInput.value = '';
             addressInput.placeholder = url.includes('copilot-settings.html') ? 'Copilot 设置' : '搜索或输入网址';
           } else {

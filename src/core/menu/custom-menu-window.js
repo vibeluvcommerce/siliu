@@ -12,20 +12,23 @@ const menuToParent = new Map();
 // 公共 CSS 样式
 const COMMON_CSS = `
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
+  html, body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size: 13px;
     background: transparent;
     overflow: hidden;
     user-select: none;
+    width: 100%;
+    height: 100%;
   }
   .menu {
     background: rgba(255, 255, 255, 0.98);
     border: 1px solid #dadce0;
     border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 1px 0 rgba(0, 0, 0, 0.05) inset;
+    /* box-shadow disabled for testing */
     padding: 6px 0;
     min-width: 180px;
+    margin: 0;
   }
   .menu-item {
     padding: 8px 16px;
@@ -102,9 +105,8 @@ class CustomMenuWindow {
     if (this.menuWindow) this.hideMenu();
 
     const pos = this.calculatePosition(x, y, 200, 320, mainWindow);
-    this.createMenuWindow(pos.x, pos.y, 200, 320, mainWindow, true);  // 标签页菜单 focusable: true
+    this.createMenuWindow(pos.x, pos.y, 200, 320, mainWindow, true);
 
-    // 使用菜单窗口的 webContents id 注册实例 - 修复：添加缺失的注册
     instances.set(this.menuWindow.webContents.id, this);
 
     this.currentViewId = viewId;
@@ -113,7 +115,14 @@ class CustomMenuWindow {
 
     const html = this.buildHTML(this.generateMenuItems(viewId, isPinned, isMuted));
     await this.menuWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
-    this.menuWindow.show();
+    
+    // 延迟显示，确保内容渲染完成
+    setTimeout(() => {
+      if (this.menuWindow && !this.menuWindow.isDestroyed()) {
+        this.menuWindow.setOpacity(1);
+        this.menuWindow.show();
+      }
+    }, 30);
   }
 
   async showLinkMenu(menuData, x, y, windowManager, tabManager, parentWindowId) {
@@ -122,21 +131,18 @@ class CustomMenuWindow {
 
     if (this.menuWindow) this.hideMenu();
 
-    const pos = this.calculatePosition(x, y, 200, 160, mainWindow);
-    this.createMenuWindow(pos.x, pos.y, 200, 160, mainWindow, true);  // 链接菜单 focusable: true
+    const pos = this.calculatePosition(x, y, 200, 200, mainWindow);
+    this.createMenuWindow(pos.x, pos.y, 200, 200, mainWindow, true);
 
-    // 使用菜单窗口的 webContents id 注册实例（与点击处理时的 sender.id 一致）
     if (this.menuWindow) {
       instances.set(this.menuWindow.webContents.id, this);
       this.windowId = this.menuWindow.webContents.id;
-      console.log('[Menu] showLinkMenu registered with menu window id:', this.menuWindow.webContents.id);
     }
 
     this.currentTabManager = tabManager;
     this.currentWindow = mainWindow;
     this.currentLinkData = menuData;
 
-    // 生成链接菜单项
     const items = [
       { action: 'open-in-new-tab', label: '在新标签页中打开链接' },
       { action: 'open-in-new-window', label: '在新窗口中打开链接' },
@@ -154,7 +160,14 @@ class CustomMenuWindow {
 
     const html = this.buildHTML(itemsHtml);
     await this.menuWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
-    this.menuWindow.show();
+    
+    // 延迟显示，确保内容渲染完成
+    setTimeout(() => {
+      if (this.menuWindow && !this.menuWindow.isDestroyed()) {
+        this.menuWindow.setOpacity(1);
+        this.menuWindow.show();
+      }
+    }, 30);
   }
 
   async showImageMenu(menuData, x, y, windowManager, tabManager, parentWindowId) {
@@ -164,20 +177,17 @@ class CustomMenuWindow {
     if (this.menuWindow) this.hideMenu();
 
     const pos = this.calculatePosition(x, y, 200, 130, mainWindow);
-    this.createMenuWindow(pos.x, pos.y, 200, 130, mainWindow, true);  // 图片菜单 focusable: true
+    this.createMenuWindow(pos.x, pos.y, 200, 130, mainWindow, true);
 
-    // 使用菜单窗口的 webContents id 注册实例（与点击处理时的 sender.id 一致）
     if (this.menuWindow) {
       instances.set(this.menuWindow.webContents.id, this);
       this.windowId = this.menuWindow.webContents.id;
-      console.log('[Menu] showImageMenu registered with menu window id:', this.menuWindow.webContents.id);
     }
 
     this.currentTabManager = tabManager;
     this.currentWindow = mainWindow;
     this.currentImageData = menuData;
 
-    // 生成图片菜单项
     const items = [
       { action: 'open-in-new-tab', label: '在新标签页中打开图片' },
       { action: 'save-image', label: '保存图片为...' },
@@ -194,39 +204,37 @@ class CustomMenuWindow {
 
     const html = this.buildHTML(itemsHtml);
     await this.menuWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
-    this.menuWindow.show();
+    
+    // 延迟显示，确保内容渲染完成
+    setTimeout(() => {
+      if (this.menuWindow && !this.menuWindow.isDestroyed()) {
+        this.menuWindow.setOpacity(1);
+        this.menuWindow.show();
+      }
+    }, 30);
   }
 
   calculatePosition(x, y, width, height, mainWindow) {
     const { screen } = require('electron');
     
-    // 获取窗口在屏幕上的位置
     const windowBounds = mainWindow.getBounds();
-    
-    // clientX/clientY 是相对于窗口内容区域的坐标
-    // 转换为屏幕坐标
     let screenX = windowBounds.x + x;
     let screenY = windowBounds.y + y;
     
-    // 获取当前显示器的工作区域
     const display = screen.getDisplayNearestPoint({ x: screenX, y: screenY });
     const workArea = display.workArea;
     
-    // Chrome 行为：菜单紧贴鼠标，但防止超出屏幕
     let menuX = screenX;
     let menuY = screenY;
     
-    // 如果超出右边界，向左偏移
     if (menuX + width > workArea.x + workArea.width) {
       menuX = screenX - width;
     }
     
-    // 如果超出下边界，向上偏移
     if (menuY + height > workArea.y + workArea.height) {
       menuY = screenY - height;
     }
     
-    // 确保不超出左边界和上边界
     if (menuX < workArea.x) {
       menuX = workArea.x + 5;
     }
@@ -240,19 +248,21 @@ class CustomMenuWindow {
   createMenuWindow(x, y, width, height, parentWindow, focusable = false) {
     this.menuWindow = new BrowserWindow({
       width, height, x, y,
-      frame: false, transparent: true,
+      frame: false, 
+      transparent: true,
       alwaysOnTop: true, skipTaskbar: true,
       resizable: false, minimizable: false, maximizable: false,
       parent: parentWindow, modal: false, show: false,
-      backgroundColor: '#00000000',
-      focusable,  // 根据菜单类型设置是否获取焦点
+      opacity: 0,
+      focusable,
       webPreferences: {
         nodeIntegration: false, contextIsolation: true,
         preload: path.join(__dirname, '../../preload/menu-preload.js'),
       },
     });
 
-    this.menuWindow.setHasShadow(true);
+    // 禁用系统阴影，完全使用 CSS 阴影避免双层效果
+    this.menuWindow.setHasShadow(false);
 
     const parentId = parentWindow.webContents.id;
     menuToParent.set(this.menuWindow.webContents.id, parentId);
@@ -295,16 +305,14 @@ class CustomMenuWindow {
 
     if (this.menuWindow) this.hideMenu();
 
-    const pos = this.calculatePosition(x, y, 200, 160, mainWindow);
-    this.createMenuWindow(pos.x, pos.y, 200, 160, mainWindow, true);  // 文本菜单 focusable: true
+    const pos = this.calculatePosition(x, y, 200, 200, mainWindow);
+    this.createMenuWindow(pos.x, pos.y, 200, 200, mainWindow, true);
 
-    // 使用菜单窗口的 webContents id 注册实例（与点击处理时的 sender.id 一致）
     if (this.menuWindow) {
       instances.set(this.menuWindow.webContents.id, this);
       this.windowId = this.menuWindow.webContents.id;
     }
 
-    // 保存当前 BrowserView 的 webContents，用于菜单关闭后恢复焦点
     const activeViewData = tabManager.getActiveView();
     this.browserViewWebContents = activeViewData?.view?.webContents;
 
@@ -312,7 +320,6 @@ class CustomMenuWindow {
     this.currentWindow = mainWindow;
     this.currentTextData = menuData;
 
-    // 生成文本菜单项（直接使用原始文本，CSS会处理溢出省略）
     const { isEditable, text, hasSelection } = menuData;
     const items = [];
     
@@ -330,7 +337,6 @@ class CustomMenuWindow {
       );
     }
     
-    // 只有在有选中文本时才显示搜索选项
     if (hasSelection && text) {
       items.push(
         { action: 'search-google', label: `使用 Google 搜索 "${text}"` },
@@ -339,9 +345,7 @@ class CustomMenuWindow {
       );
     }
     
-    items.push(
-      { action: 'select-all', label: '全选' }
-    );
+    items.push({ action: 'select-all', label: '全选' });
 
     const itemsHtml = items.map(item => {
       if (item.type === 'separator') return '<div class="separator"></div>';
@@ -354,7 +358,14 @@ class CustomMenuWindow {
 
     const html = this.buildHTML(itemsHtml);
     await this.menuWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
-    this.menuWindow.show();
+    
+    // 延迟显示，确保内容渲染完成
+    setTimeout(() => {
+      if (this.menuWindow && !this.menuWindow.isDestroyed()) {
+        this.menuWindow.setOpacity(1);
+        this.menuWindow.show();
+      }
+    }, 30);
   }
 
   async showShellTextMenu(menuData, x, y, windowManager, tabManager, shellWebContents, parentWindowId) {
@@ -363,14 +374,12 @@ class CustomMenuWindow {
 
     if (this.menuWindow) this.hideMenu();
 
-    const pos = this.calculatePosition(x, y, 200, 160, mainWindow);
-    this.createMenuWindow(pos.x, pos.y, 200, 160, mainWindow, true);  // shell 文本菜单 focusable: true
+    const pos = this.calculatePosition(x, y, 200, 200, mainWindow);
+    this.createMenuWindow(pos.x, pos.y, 200, 200, mainWindow, true);
 
-    // 使用菜单窗口的 webContents id 注册实例（与点击处理时的 sender.id 一致）
     if (this.menuWindow) {
       instances.set(this.menuWindow.webContents.id, this);
       this.windowId = this.menuWindow.webContents.id;
-      console.log('[Menu] showShellTextMenu registered with menu window id:', this.menuWindow.webContents.id);
     }
 
     this.currentTabManager = tabManager;
@@ -378,7 +387,6 @@ class CustomMenuWindow {
     this.currentTextData = menuData;
     this.shellWebContents = shellWebContents;
 
-    // 生成文本菜单项
     const { isEditable, text, hasSelection } = menuData;
     const items = [];
     
@@ -417,7 +425,14 @@ class CustomMenuWindow {
 
     const html = this.buildHTML(itemsHtml);
     await this.menuWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
-    this.menuWindow.show();
+    
+    // 延迟显示，确保内容渲染完成
+    setTimeout(() => {
+      if (this.menuWindow && !this.menuWindow.isDestroyed()) {
+        this.menuWindow.setOpacity(1);
+        this.menuWindow.show();
+      }
+    }, 30);
   }
 
   hideMenu() {
@@ -525,7 +540,6 @@ class CustomMenuWindow {
   handleTextAction(action) {
     if (!this.currentTabManager || !this.currentWindow) return;
 
-    // 获取当前激活的 BrowserView
     const activeViewData = this.currentTabManager.getActiveView();
     const webContents = activeViewData?.view?.webContents;
 
@@ -534,15 +548,12 @@ class CustomMenuWindow {
       return;
     }
 
-    // 对于粘贴操作，需要先关闭菜单，再执行粘贴，否则焦点无法正确恢复
     if (action === 'paste') {
       this.hideMenu();
-      // 延迟执行粘贴，确保菜单已关闭
       setTimeout(() => {
         if (!webContents.isDestroyed()) {
           webContents.focus();
           webContents.send('editor:paste');
-          // 再次延迟，确保粘贴完成后恢复焦点
           setTimeout(() => {
             if (!webContents.isDestroyed()) {
               webContents.focus();
