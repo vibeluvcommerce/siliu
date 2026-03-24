@@ -8,7 +8,7 @@ class CDPController {
     this.cdp = new CDPManager(options);
     // 【调试模式】关闭所有拟人化功能以测试执行速度
     // this.humanize = { enabled: false };
-    this.humanize = options.humanize || { enabled: true, minDelay: 300, maxDelay: 800 };
+    this.humanize = options.humanize || { enabled: true, minDelay: 150, maxDelay: 400 };
     this.nodeIdMap = new Map(); // 缓存节点 ID
   }
 

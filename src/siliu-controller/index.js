@@ -15,10 +15,10 @@ const { resolveHomePath } = require('../core/path-utils');
 // 人类化配置默认值
 const DEFAULT_HUMANIZE_CONFIG = {
   enabled: true,
-  minDelay: 300,
-  maxDelay: 800,
-  typeDelay: 50,
-  scrollDelay: 200
+  minDelay: 150,
+  maxDelay: 400,
+  typeDelay: 25,
+  scrollDelay: 100
 };
 
 class SiliuController {

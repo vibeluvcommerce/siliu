@@ -43,10 +43,10 @@ const DEFAULT_CONFIG = {
     blockAds: true,
     humanize: {
       enabled: true,
-      minDelay: 300,
-      maxDelay: 800,
-      typeDelay: 50,
-      scrollDelay: 200
+      minDelay: 150,
+      maxDelay: 400,
+      typeDelay: 25,
+      scrollDelay: 100
     }
   },
   

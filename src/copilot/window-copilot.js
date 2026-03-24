@@ -2656,16 +2656,16 @@ ${text.substring(0, 500)}
    */
   async _smartWait(actionType, options = {}) {
     const baseWait = {
-      navigate: 1500,    // 导航后等待页面加载
-      click: 500,        // 点击后等待响应
-      hover: 500,        // hover后等待下拉菜单/Tooltip显示
-      select: 300,       // 选择后等待页面响应
-      type: 200,         // 输入后短暂等待
-      scroll: 800,       // 滚动后等待内容加载
-      wheel: 1000,       // 滚轮切换视频等待动画
+      navigate: 750,     // 导航后等待页面加载
+      click: 250,        // 点击后等待响应
+      hover: 250,        // hover后等待下拉菜单/Tooltip显示
+      select: 150,       // 选择后等待页面响应
+      type: 100,         // 输入后短暂等待
+      scroll: 400,       // 滚动后等待内容加载
+      wheel: 500,        // 滚轮切换视频等待动画
       screenshot: 0,     // 截图无需等待
-      press: 800,        // 按键后等待（如 Enter 提交）
-      wait: 1000         // 默认等待
+      press: 400,        // 按键后等待（如 Enter 提交）
+      wait: 500          // 默认等待
     };
 
     const waitTime = options.ms || baseWait[actionType] || 500;
