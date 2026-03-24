@@ -34,30 +34,28 @@ class TaskbarModule {
 
     this.tray = new Tray(icon);
     this.tray.setToolTip('Siliu Browser');
+    
+    // 点击托盘图标打开主窗口
+    this.tray.on('click', () => {
+      const win = this.windowManager?.getWindow?.() || this.core?.mainWindow;
+      if (win) {
+        if (win.isMinimized()) win.restore();
+        if (!win.isVisible()) win.show();
+        win.focus();
+      }
+    });
+    
     this.tray.setContextMenu(Menu.buildFromTemplate([
       {
-        label: '新建标签页',
+        label: '打开主窗口',
         click: () => {
-          const focusedWindow = BrowserWindow.getFocusedWindow();
-          if (focusedWindow) {
-            // 检查是否是分离窗口
-            const core = this.core;
-            if (core?.detachedWindows) {
-              for (const [windowId, data] of core.detachedWindows) {
-                if (data.window === focusedWindow) {
-                  data.tabManager?.createView(null, data.sidebarOpen);
-                  return;
-                }
-              }
-            }
+          const win = this.windowManager?.getWindow?.() || this.core?.mainWindow;
+          if (win) {
+            if (win.isMinimized()) win.restore();
+            if (!win.isVisible()) win.show();
+            win.focus();
           }
-          // 默认在主窗口创建
-          this.tabManager?.createView(null, this.core?.sidebarOpen);
         }
-      },
-      { 
-        label: '新建窗口', 
-        click: () => this.core?.createNewWindow?.()
       },
       { type: 'separator' },
       { label: '退出', click: () => app.quit() }
