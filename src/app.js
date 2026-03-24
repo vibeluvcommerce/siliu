@@ -99,16 +99,39 @@ if (!gotTheLock) {
 }
 
 // ========== 模块引用 ==========
+log('[模块加载] 开始加载模块...')
+
 const { globalEventBus } = require('./core/event-bus');
+log('[模块加载] ✓ event-bus 加载成功')
+
 const ConfigManager = require('./core/config-manager');
+log('[模块加载] ✓ config-manager 加载成功')
+
 const { AIServiceManager } = require('./services/ai-service');
+log('[模块加载] ✓ ai-service 加载成功')
+
 const { getWorkspaceManager } = require('./core/workspace-manager');
+log('[模块加载] ✓ workspace-manager 加载成功')
+
 const CoreModule = require('./core');
+log('[模块加载] ✓ core 加载成功')
+
 const ContextMenuModule = require('./core/menu/index.js');
+log('[模块加载] ✓ menu/index 加载成功')
+
 const SiliuController = require('./siliu-controller');
+log('[模块加载] ✓ siliu-controller 加载成功')
+
 const { CopilotManager } = require('./copilot');
+log('[模块加载] ✓ copilot 加载成功')
+
 const AdBlockExtension = require('./adblock');
+log('[模块加载] ✓ adblock 加载成功')
+
 const { COPILOT_EVENTS, AI_EVENTS } = require('./core/events');
+log('[模块加载] ✓ events 加载成功')
+
+log('[模块加载] 所有模块引用完成')
 
 // ========== 全局实例 ==========
 const modules = {
@@ -138,6 +161,7 @@ let lastActiveAgentEditorView = null;
 // ========== 启动流程 ==========
 async function startup() {
   console.log('[Siliu] Starting...');
+  log('[启动流程] startup() 开始执行')
 
   // 注册自定义协议处理程序（阻止系统弹出提示）
   const protocols = ['bytedance', 'snssdk', 'intent', 'market', 'itms-apps'];
@@ -156,19 +180,25 @@ async function startup() {
 
   try {
     // ① 初始化配置管理器
+    log('[启动流程] 开始初始化 ConfigManager...')
     console.log('[Siliu] Loading ConfigManager...');
     modules.config = new ConfigManager();
+    log('[启动流程] ✓ ConfigManager 初始化完成')
     console.log('[Siliu] Config loaded');
 
     // ①b 初始化工作区管理器（必须在其他模块之前）
+    log('[启动流程] 开始初始化 WorkspaceManager...')
     console.log('[Siliu] Initializing WorkspaceManager...');
     const workspaceManager = getWorkspaceManager();
     await workspaceManager.initialize();
+    log('[启动流程] ✓ WorkspaceManager 初始化完成: ' + workspaceManager.workspaceBase)
     console.log('[Siliu] Workspace ready at:', workspaceManager.workspaceBase);
 
     // ② 初始化 AI 服务管理器
+    log('[启动流程] 开始初始化 AIServiceManager...')
     console.log('[Siliu] Initializing AIServiceManager...');
     modules.aiService = new AIServiceManager(modules.config);
+    log('[启动流程] ✓ AIServiceManager 初始化完成')
     
     // 确保启动时状态是断开的
     console.log('[Siliu] Initial connection status:', modules.aiService.isConnected());
@@ -202,24 +232,30 @@ async function startup() {
     });
 
     // ③ 加载 Core
+    log('[启动流程] 开始初始化 Core...')
     console.log('[Siliu] Loading Core...');
     modules.core = new CoreModule();
     await modules.core.initialize();
+    log('[启动流程] ✓ Core 初始化完成')
     console.log('[Siliu] Core ready');
 
     // 设置全局 core 实例（供菜单等模块使用）
     global.coreInstance = modules.core;
 
     // ④ 加载 ContextMenu
+    log('[启动流程] 开始初始化 ContextMenu...')
     console.log('[Siliu] Loading ContextMenu...');
     modules.contextMenu = new ContextMenuModule(modules.core, {
       useCustomMenu: modules.config.get('ui.useCustomMenu') ?? true
     });
+    log('[启动流程] ✓ ContextMenu 初始化完成')
     console.log('[Siliu] ContextMenu ready');
 
     // ⑤ 创建主窗口
+    log('[启动流程] 开始创建主窗口...')
     console.log('[Siliu] Creating main window...');
     await modules.core.createWindow();
+    log('[启动流程] ✓ 主窗口创建完成')
     console.log('[Siliu] Window created');
     
     // 监听页面导航事件，在 Agent Editor 激活的视图导航后重新注入
@@ -369,6 +405,7 @@ async function startup() {
     });
 
     // ⑥ 初始化 SiliuController（在窗口创建后，传递 windowManager 和 tabManager）
+    log('[启动流程] 开始初始化 SiliuController...')
     console.log('[Siliu] Loading SiliuController...');
     modules.controller = new SiliuController({
       core: modules.core,
@@ -379,9 +416,11 @@ async function startup() {
       debugPort: DEBUG_PORT
     });
     await modules.controller.initialize();
+    log('[启动流程] ✓ SiliuController 初始化完成')
     console.log('[Siliu] Controller ready (priority: auto, fallback: enabled)');
 
     // ⑦ 加载 CopilotManager
+    log('[启动流程] 开始初始化 CopilotManager...')
     console.log('[Siliu] Loading CopilotManager...');
     modules.copilot = new CopilotManager({
       aiServiceManager: modules.aiService,
@@ -390,9 +429,11 @@ async function startup() {
       controller: modules.controller
     });
     await modules.copilot.initialize();
+    log('[启动流程] ✓ CopilotManager 初始化完成')
     console.log('[Siliu] CopilotManager ready');
 
     // ⑧ 加载 AdBlock
+    log('[启动流程] 开始初始化 AdBlock...')
     console.log('[Siliu] Loading AdBlock...');
     modules.adblock = new AdBlockExtension({
       core: modules.core,
@@ -401,20 +442,26 @@ async function startup() {
     });
     await modules.adblock.activate();
     global.adblockExtension = modules.adblock;
+    log('[启动流程] ✓ AdBlock 初始化完成')
     console.log('[Siliu] AdBlock ready');
 
     // 【新增】初始化动态 Agent 加载器
+    log('[启动流程] 开始初始化 DynamicAgentLoader...')
     console.log('[Siliu] Initializing DynamicAgentLoader...');
     const { DynamicAgentLoader } = require('./copilot/agents/dynamic-agent-loader');
     modules.agentLoader = new DynamicAgentLoader(workspaceManager);
     await modules.agentLoader.initialize();
+    log('[启动流程] ✓ DynamicAgentLoader 初始化完成')
     console.log('[Siliu] DynamicAgentLoader ready');
 
     // 加载 TabListWindow（注册 tablist:show 等 IPC 处理器）
+    log('[启动流程] 开始加载 TabListWindow...')
     const TabListWindow = require('./core/tab/tab-list-window');
     new TabListWindow(modules.core); // 创建主窗口的 TabListWindow 实例
+    log('[启动流程] ✓ TabListWindow 加载完成')
 
     // ⑨ 设置 IPC 处理器（必须在连接 AI 之前，否则事件无法转发）
+    log('[启动流程] 开始设置 IPC 处理器...')
     modules.core.setupIPC({
       configManager: modules.config,  // 传入 configManager
       getController: () => modules.controller,
@@ -423,10 +470,13 @@ async function startup() {
       getAdblock: () => modules.adblock
     });
     setupIpcHandlers(); // 应用级 IPC 处理器
+    log('[启动流程] ✓ IPC 处理器设置完成')
 
     // ⑩ 激活 AI 服务（有配置则自动连接，无配置则静默等待）
+    log('[启动流程] 开始激活 AI 服务...')
     console.log('[Siliu] Activating AI service...');
     await modules.aiService.activate();
+    log('[启动流程] ✓ AI 服务激活完成')
     
     // 广播初始状态
     setTimeout(() => {
@@ -434,10 +484,13 @@ async function startup() {
       broadcastAIStatus();
     }, 2000);
 
+    log('[启动流程] ========== 启动完成 ==========')
     console.log('[Siliu] Startup complete!');
     globalEventBus.emit('app:ready', { modules });
 
   } catch (err) {
+    log('[启动流程] ✗ 启动失败: ' + err.message)
+    log('[启动流程] 错误堆栈: ' + err.stack)
     console.error('[Siliu] Startup failed:', err);
     app.quit();
   }
@@ -2993,7 +3046,11 @@ function setupIpcHandlers() {
 }
 
 // ========== Electron 生命周期 ==========
-app.whenReady().then(startup);
+log('[生命周期] app.whenReady() 触发，准备调用 startup()')
+app.whenReady().then(() => {
+  log('[生命周期] 开始执行 startup()')
+  startup()
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
