@@ -26,7 +26,7 @@ class TaskbarModule {
   }
 
   setupTray() {
-    if (process.platform !== 'linux') return;
+    if (process.platform === 'darwin') return;  // macOS 使用 Dock 菜单，不创建托盘
 
     const { Tray, Menu, BrowserWindow } = require('electron');
     const iconPath = path.join(__dirname, '../../public/icon.png');
