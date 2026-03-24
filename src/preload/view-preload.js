@@ -8,6 +8,15 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 // 暴露 API 给设置页面等内部页面使用
 contextBridge.exposeInMainWorld('siliuAPI', {
+  // 通用 IPC 调用
+  invoke: (channel, ...args) => ipcRenderer.invoke(channel, ...args),
+
+  // 配置相关
+  configGet: (path) => ipcRenderer.invoke('config:get', path),
+  configSet: (path, value) => ipcRenderer.invoke('config:set', path, value),
+  configUpdate: (updates) => ipcRenderer.invoke('config:update', updates),
+  configGetPath: () => ipcRenderer.invoke('config:getPath'),
+
   // Copilot 配置相关
   copilotGetConfig: () => ipcRenderer.invoke('copilot:getConfig'),
   copilotSaveConfig: (config) => ipcRenderer.invoke('copilot:saveConfig', config),
@@ -25,7 +34,7 @@ contextBridge.exposeInMainWorld('siliuAPI', {
 
   // 事件监听
   on: (channel, callback) => {
-    const validChannels = ['copilot:configSaved', 'copilot:connectionTested'];
+    const validChannels = ['copilot:configSaved', 'copilot:connectionTested', 'config:changed'];
     if (validChannels.includes(channel)) {
       ipcRenderer.on(channel, (event, ...args) => callback(...args));
     }
