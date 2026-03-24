@@ -29,7 +29,7 @@ class TaskbarModule {
     if (process.platform === 'darwin') return;  // macOS 使用 Dock 菜单，不创建托盘
 
     const { Tray, Menu, BrowserWindow } = require('electron');
-    const iconPath = path.join(__dirname, '../../public/icon.png');
+    const iconPath = path.join(__dirname, '../../../assets/icon.png');
     const icon = fs.existsSync(iconPath) ? nativeImage.createFromPath(iconPath) : FALLBACK_ICON;
 
     this.tray = new Tray(icon);
