@@ -15,12 +15,12 @@ const { getWorkspaceManager } = require('./workspace-manager');
 const { resolveHomePath } = require('./path-utils');
 const { v4: uuidv4 } = require('uuid');
 
-// 导入导出器
+// 导入导出器（基础导出器）
 const { ExcelExporter } = require('../exporters/excel-exporter');
 const { CSVExporter } = require('../exporters/csv-exporter');
 const { JSONExporter } = require('../exporters/json-exporter');
-const { PDFExporter } = require('../exporters/pdf-exporter');
-const { PNGExporter } = require('../exporters/png-exporter');
+// PDF/PNG 导出器使用延迟加载，避免启动时加载 Puppeteer
+let PDFExporter, PNGExporter;
 
 // 超时时间：180秒
 const EXPORT_TIMEOUT = 180000;
@@ -392,8 +392,18 @@ class ExportManager {
       case 'excel': return new ExcelExporter();
       case 'csv': return new CSVExporter();
       case 'json': return new JSONExporter();
-      case 'pdf': return new PDFExporter();
-      case 'png': return new PNGExporter();
+      case 'pdf':
+        // 延迟加载 PDF 导出器，避免启动时加载 Puppeteer
+        if (!PDFExporter) {
+          PDFExporter = require('../exporters/pdf-exporter').PDFExporter;
+        }
+        return new PDFExporter();
+      case 'png':
+        // 延迟加载 PNG 导出器，避免启动时加载 Puppeteer
+        if (!PNGExporter) {
+          PNGExporter = require('../exporters/png-exporter').PNGExporter;
+        }
+        return new PNGExporter();
       default: throw new Error(`Unsupported format: ${format}`);
     }
   }
