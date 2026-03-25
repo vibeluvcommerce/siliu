@@ -32,7 +32,8 @@
       "src/**/*",
       "public/**/*",
       "node_modules/**/*",
-      "assets/**/*"
+      "assets/**/*",
+      "widevine/**/*"
     ],
     "win": {
       "target": [

@@ -42,22 +42,22 @@ try {
   console.log('[Siliu] Command line switches not applied:', e.message);
 }
 
-// castLabs Electron 已内置 Widevine (Windows)，Linux 需要手动配置
+// Widevine CDM 手动集成配置
+// 文件位于 widevine/ 目录，会被打包到应用中
 try {
-  const userDataPath = app.getPath('userData');
+  const widevineDir = path.join(__dirname, '../widevine');
   
-  if (process.platform === 'linux') {
-    // Linux: 手动指定 Widevine 路径
-    const widevinePath = path.join(__dirname, '../node_modules/electron/dist/WidevineCdm/_platform_specific/linux_x64/libwidevinecdm.so');
-    app?.commandLine?.appendSwitch('widevine-cdm-path', widevinePath);
-    app?.commandLine?.appendSwitch('widevine-cdm-version', '4.10.2710.0');
-    console.log('[Siliu] Linux Widevine CDM path:', widevinePath);
-  } else if (process.platform === 'win32') {
-    // Windows: castLabs Electron 使用 MediaFoundationWidevineCdm
-    const widevinePath = path.join(userDataPath, 'MediaFoundationWidevineCdm/x64/1.0.2738.0');
-    app?.commandLine?.appendSwitch('widevine-cdm-path', widevinePath);
+  if (process.platform === 'win32') {
+    // Windows: 使用 MediaFoundationWidevineCdm
+    app?.commandLine?.appendSwitch('widevine-cdm-path', widevineDir);
     app?.commandLine?.appendSwitch('widevine-cdm-version', '1.0.2738.0');
-    console.log('[Siliu] Windows Widevine CDM path:', widevinePath);
+    console.log('[Siliu] Windows Widevine CDM path:', widevineDir);
+  } else if (process.platform === 'linux') {
+    // Linux: 使用标准路径
+    const widevineSoPath = path.join(widevineDir, 'libwidevinecdm.so');
+    app?.commandLine?.appendSwitch('widevine-cdm-path', widevineSoPath);
+    app?.commandLine?.appendSwitch('widevine-cdm-version', '4.10.2710.0');
+    console.log('[Siliu] Linux Widevine CDM path:', widevineSoPath);
   }
 } catch (e) {
   console.log('[Siliu] Widevine configuration error:', e.message);
