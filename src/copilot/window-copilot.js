@@ -2656,7 +2656,7 @@ ${text.substring(0, 500)}
    */
   async _smartWait(actionType, options = {}) {
     const baseWait = {
-      navigate: 400,     // 导航后等待页面加载（降低以加速）
+      navigate: 500,     // 导航后等待页面加载
       click: 250,        // 点击后等待响应
       hover: 250,        // hover后等待下拉菜单/Tooltip显示
       select: 150,       // 选择后等待页面响应
