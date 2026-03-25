@@ -42,24 +42,24 @@ try {
   console.log('[Siliu] Command line switches not applied:', e.message);
 }
 
-// castLabs Electron 已内置 Widevine (Windows)，Linux 需要手动配置
-const widevinePath = path.join(__dirname, '../node_modules/electron/dist/WidevineCdm/_platform_specific/linux_x64/libwidevinecdm.so');
-if (process.platform === 'linux') {
-  try {
+// Widevine DRM 支持配置
+try {
+  // 启用 Widevine CDM
+  app?.commandLine?.appendSwitch('enable-widevine-cdm');
+  app?.commandLine?.appendSwitch('enable-features', 'WidevineCdm,WidevineCdmForAppContainer');
+  
+  if (process.platform === 'linux') {
+    // Linux: 手动指定 Widevine 路径
+    const widevinePath = path.join(__dirname, '../node_modules/electron/dist/WidevineCdm/_platform_specific/linux_x64/libwidevinecdm.so');
     app?.commandLine?.appendSwitch('widevine-cdm-path', widevinePath);
     app?.commandLine?.appendSwitch('widevine-cdm-version', '4.10.2710.0');
     console.log('[Siliu] Linux Widevine CDM path:', widevinePath);
-  } catch (e) {
-    console.log('[Siliu] Widevine switches not applied:', e.message);
+  } else {
+    // Windows/macOS: 使用内置 Widevine
+    console.log('[Siliu] Widevine CDM enabled');
   }
-} else {
-  // Windows: castLabs Electron 内置 Widevine，启用相关功能
-  try {
-    app?.commandLine?.appendSwitch('enable-features', 'WidevineCdmForAppContainer');
-    console.log('[Siliu] Using castLabs Electron built-in Widevine (Windows)');
-  } catch (e) {
-    console.log('[Siliu] Widevine feature not enabled:', e.message);
-  }
+} catch (e) {
+  console.log('[Siliu] Widevine configuration error:', e.message);
 }
 
 // 全局错误处理
