@@ -105,8 +105,8 @@ class BaseAgent {
         example: { action: 'upload', target: { type: 'coordinate', x: 0.5, y: 0.8 }, filePath: 'D:/test/video.mp4', description: '点击上传按钮并选择本地文件' }
       },
       select: { 
-        params: ['selector', 'option'], 
-        desc: '选择下拉框选项，option可以是value、text或index',
+        params: ['selector', 'option', 'coordinate'], 
+        desc: '选择下拉框选项。对于原生select使用selector；对于自定义下拉或级联选择器（如B站分区），使用coordinate点击下拉后，再用click选择具体选项',
         example: { action: 'select', selector: 'select[name="country"]', option: 'China', description: '选择国家为中国' }
       },
       selectAll: { 
@@ -237,6 +237,7 @@ ${examples}
 - 【重要】upload 操作：当用户要求"上传文件"、"选择文件上传"或点击上传按钮时，必须使用 upload 操作，不要只用 click。系统会自动打开文件选择对话框并填充文件路径
 - upload 的 filePath 必须使用绝对路径（如 "D:/test/video.mp4"）
 - 【重要】抖音/视频类网站请使用 wheel 而非 scroll 来切换视频
+- 【重要】级联选择器处理：如B站分区选择，不要使用select操作，应该：1) 用click点击下拉框展开，2) 用click点击选项文字
 - 输入错误时可使用 press + Backspace 删除后重新输入
 
 【数据导出指南】
