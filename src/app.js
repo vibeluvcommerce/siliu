@@ -6,7 +6,7 @@
  * → ⑥ SiliuController → ⑦ Copilot → ⑧ AdBlock
  */
 
-const { app, dialog } = require('electron');
+const { app, dialog, components } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const logPath = path.join(process.cwd(), 'log.txt')
@@ -3051,7 +3051,16 @@ function setupIpcHandlers() {
 
 // ========== Electron 生命周期 ==========
 log('[生命周期] app.whenReady() 触发，准备调用 startup()')
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  // 等待 castLabs components 就绪（自动下载 Widevine CDM）
+  try {
+    log('[生命周期] 等待 components 就绪...')
+    await components.whenReady();
+    log('[生命周期] components 就绪: ' + JSON.stringify(components.status()))
+  } catch (err) {
+    log('[生命周期] components 就绪失败: ' + err.message)
+  }
+  
   log('[生命周期] 开始执行 startup()')
   startup()
 });
