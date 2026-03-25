@@ -53,7 +53,13 @@ if (process.platform === 'linux') {
     console.log('[Siliu] Widevine switches not applied:', e.message);
   }
 } else {
-  console.log('[Siliu] Using castLabs Electron built-in Widevine (Windows)');
+  // Windows: castLabs Electron 内置 Widevine，启用相关功能
+  try {
+    app?.commandLine?.appendSwitch('enable-features', 'WidevineCdmForAppContainer');
+    console.log('[Siliu] Using castLabs Electron built-in Widevine (Windows)');
+  } catch (e) {
+    console.log('[Siliu] Widevine feature not enabled:', e.message);
+  }
 }
 
 // 全局错误处理
