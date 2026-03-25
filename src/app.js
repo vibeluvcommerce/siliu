@@ -42,22 +42,19 @@ try {
   console.log('[Siliu] Command line switches not applied:', e.message);
 }
 
-// Widevine CDM 手动集成配置
-// 文件位于 widevine/ 目录，会被打包到应用中
+// Widevine CDM 配置
+// 注意：castLabs Electron 免费版只支持 Widevine L3（软件级DRM）
+// 播放高清内容（Netflix 4K等）需要 L1（硬件级DRM），这需要购买 EVS 签名
 try {
-  const widevineDir = path.join(__dirname, '../widevine');
-  
   if (process.platform === 'win32') {
-    // Windows: 使用 MediaFoundationWidevineCdm
-    app?.commandLine?.appendSwitch('widevine-cdm-path', widevineDir);
-    app?.commandLine?.appendSwitch('widevine-cdm-version', '1.0.2738.0');
-    console.log('[Siliu] Windows Widevine CDM path:', widevineDir);
+    // Windows: 启用 Widevine，castLabs 会自动从用户目录加载
+    console.log('[Siliu] Widevine CDM enabled (L3 software DRM only)');
   } else if (process.platform === 'linux') {
     // Linux: 使用标准路径
-    const widevineSoPath = path.join(widevineDir, 'libwidevinecdm.so');
+    const widevineSoPath = path.join(__dirname, '../widevine/libwidevinecdm.so');
     app?.commandLine?.appendSwitch('widevine-cdm-path', widevineSoPath);
     app?.commandLine?.appendSwitch('widevine-cdm-version', '4.10.2710.0');
-    console.log('[Siliu] Linux Widevine CDM path:', widevineSoPath);
+    console.log('[Siliu] Linux Widevine CDM configured');
   }
 } catch (e) {
   console.log('[Siliu] Widevine configuration error:', e.message);
