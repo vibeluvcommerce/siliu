@@ -1,4 +1,4 @@
-# Siliu Development Log
+# Siliu Browser Development Log
 
 ## 2026-03-15 - Workspace Directory Unification
 
@@ -88,3 +88,4 @@ All tests pass:
 ### Windows Sandbox Fix
 - Added `--no-sandbox` to start.bat for development
 - Context menus now work correctly (ERR_FAILED resolved)
+

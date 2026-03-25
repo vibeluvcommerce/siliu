@@ -104,3 +104,4 @@ app.commandLine.appendSwitch('widevine-cdm-version', '4.10.2710.0'); // 根据�
 ## 参�?
 - castLabs Electron: https://github.com/castlabs/electron-releases
 - Electron Widevine 文档: https://www.electronjs.org/docs/latest/tutorial/widevine-cdm
+

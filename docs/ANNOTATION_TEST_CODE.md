@@ -175,3 +175,4 @@ function handleAnnotationClick(data) {
 
 ## 完整实现备份
 完整的前端实现代码在：`.backup/2026-03-16/shell.html.with-editor`
+
