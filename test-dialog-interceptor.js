@@ -11,7 +11,7 @@ if (DialogInterceptor.isAvailable()) {
   console.log('\nInterceptor is available, testing...');
   
   // 设置测试文件
-  DialogInterceptor.setNextFile('D:\\work\\siliu\\assets\\icon.png');
+  DialogInterceptor.setNextFile('D:\\work\\siliu\\assets\\app.png');
   
   // 启动拦截器
   DialogInterceptor.start();

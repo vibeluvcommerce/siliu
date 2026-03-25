@@ -29,9 +29,9 @@ class TaskbarModule {
     if (process.platform === 'darwin') return;  // macOS 使用 Dock 菜单，不创建托盘
 
     const { Tray, Menu, BrowserWindow } = require('electron');
-    // 托盘使用 win-pallet.png 图标
-    const trayIconPath = path.join(__dirname, '../../../assets/win-pallet.png');
-    const iconPath = fs.existsSync(trayIconPath) ? trayIconPath : path.join(__dirname, '../../../assets/icon.png');
+    // 托盘使用 win-app-pallet.png 图标，回退到 app.png
+    const trayIconPath = path.join(__dirname, '../../../assets/win-app-pallet.png');
+    const iconPath = fs.existsSync(trayIconPath) ? trayIconPath : path.join(__dirname, '../../../assets/app.png');
     const icon = fs.existsSync(iconPath) ? nativeImage.createFromPath(iconPath) : FALLBACK_ICON;
 
     this.tray = new Tray(icon);

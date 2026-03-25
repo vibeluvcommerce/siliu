@@ -88,7 +88,7 @@
         }
       ],
       "category": "public.app-category.productivity",
-      "icon": "assets/icon.icns"
+      "icon": "assets/app.icns"
     },
     "dmg": {
       "title": "${productName} ${version}",
@@ -116,7 +116,7 @@
         }
       ],
       "category": "Network",
-      "icon": "assets/icon.png"
+      "icon": "assets/app.png"
     }
   },
   "dependencies": {
