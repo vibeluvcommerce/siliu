@@ -43,17 +43,21 @@ try {
 }
 
 // castLabs Electron 已内置 Widevine (Windows)，Linux 需要手动配置
-const widevinePath = path.join(__dirname, '../node_modules/electron/dist/WidevineCdm/_platform_specific/linux_x64/libwidevinecdm.so');
-if (process.platform === 'linux') {
-  try {
+try {
+  // 启用 Widevine CDM 自动下载
+  app?.commandLine?.appendSwitch('enable-widevine-cdm');
+  
+  const widevinePath = path.join(__dirname, '../node_modules/electron/dist/WidevineCdm/_platform_specific/linux_x64/libwidevinecdm.so');
+  if (process.platform === 'linux') {
     app?.commandLine?.appendSwitch('widevine-cdm-path', widevinePath);
     app?.commandLine?.appendSwitch('widevine-cdm-version', '4.10.2710.0');
     console.log('[Siliu] Linux Widevine CDM path:', widevinePath);
-  } catch (e) {
-    console.log('[Siliu] Widevine switches not applied:', e.message);
+  } else {
+    // Windows: castLabs Electron 会在首次启动时自动从网络下载 Widevine
+    console.log('[Siliu] Widevine CDM enabled (will auto-download on first launch)');
   }
-} else {
-  console.log('[Siliu] Using castLabs Electron built-in Widevine (Windows)');
+} catch (e) {
+  console.log('[Siliu] Widevine configuration error:', e.message);
 }
 
 // 全局错误处理
