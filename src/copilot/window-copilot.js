@@ -1227,8 +1227,9 @@ class WindowCopilot {
             // 支持 selector 或 target（坐标）方式
             const selector = decision.selector || decision.target;
             const option = decision.option;
+            const selectOptions = decision.options || {}; // 支持 { method: 'hover-wheel' } 等选项
             
-            console.error(`[SELECT_DEBUG] selector=${JSON.stringify(selector)}, option=${option}`);
+            console.error(`[SELECT_DEBUG] selector=${JSON.stringify(selector)}, option=${option}, options=${JSON.stringify(selectOptions)}`);
             
             if (!selector) {
               console.error(`[SELECT_DEBUG] Missing selector/target`);
@@ -1238,7 +1239,7 @@ class WindowCopilot {
             }
             
             try {
-              const selectResult = await this.controller.select(selector, option);
+              const selectResult = await this.controller.select(selector, option, selectOptions);
               console.error(`[SELECT_DEBUG] Result: ${JSON.stringify(selectResult)}`);
               stepResult = selectResult;
               actualMode = selectResult?.mode || 'CDP';
@@ -1500,7 +1501,9 @@ class WindowCopilot {
             break;
           }
           case 'wheel': {
-            const { result, mode } = await this.controller.wheel(decision.direction, decision.amount);
+            // 支持在指定坐标位置滚动（用于下拉框选项区域滚动）
+            const coordinate = decision.target || null;
+            const { result, mode } = await this.controller.wheel(decision.direction, decision.amount, coordinate);
             stepResult = result;
             actualMode = mode;
             // 智能等待视频切换动画

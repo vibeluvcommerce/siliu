@@ -1254,34 +1254,85 @@ class CDPController {
 
   /**
    * 模拟滚轮事件（适用于抖音等需要 wheel 事件的场景）
+   * @param {string} direction - 'down' 或 'up'
+   * @param {number} amount - 滚动量
+   * @param {object} coordinate - 可选，{x, y} 在指定坐标位置滚动（0-1相对坐标）
    */
-  async wheel(direction = 'down', amount = 500) {
+  async wheel(direction = 'down', amount = 500, coordinate = null) {
     const deltaY = direction === 'up' ? -amount : amount;
     
-    // 使用 CDP dispatchMouseEvent 模拟滚轮
-    await this.cdp.send('Input.dispatchMouseEvent', {
-      type: 'mouseWheel',
-      x: 0,
-      y: 0,
-      deltaX: 0,
-      deltaY: deltaY
-    });
-
-    // 同时在页面中触发 WheelEvent
-    await this.cdp.evaluate(`
-      (function() {
-        const event = new WheelEvent('wheel', {
-          deltaY: ${deltaY},
-          deltaMode: 0, // DOM_DELTA_PIXEL
-          bubbles: true,
-          cancelable: true
-        });
-        document.dispatchEvent(event);
-        
-        // 同时也触发 scroll 事件作为备选
-        window.scrollBy({ top: ${deltaY}, behavior: 'smooth' });
-      })()
-    `);
+    // 获取当前视口大小（与 clickAt 一致）
+    const metrics = await this.cdp.send('Page.getLayoutMetrics');
+    const width = metrics.cssVisualViewport?.clientWidth || 1920;
+    const height = metrics.cssVisualViewport?.clientHeight || 1080;
+    
+    if (coordinate) {
+      // 相对坐标转像素坐标
+      const x = Math.round(coordinate.x * width);
+      const y = Math.round(coordinate.y * height);
+      
+      // 使用 CDP dispatchMouseEvent 在指定位置模拟滚轮
+      await this.cdp.send('Input.dispatchMouseEvent', {
+        type: 'mouseWheel',
+        x: x,
+        y: y,
+        deltaX: 0,
+        deltaY: deltaY
+      });
+      
+      // 直接操作元素的 scrollTop（对下拉框有效）
+      await this.cdp.evaluate(`
+        (function() {
+          const x = ${coordinate.x} * window.innerWidth;
+          const y = ${coordinate.y} * window.innerHeight;
+          let el = document.elementFromPoint(x, y);
+          
+          // 向上查找可滚动的父元素
+          while (el && el !== document.body) {
+            const style = window.getComputedStyle(el);
+            const overflow = style.overflow + style.overflowY;
+            if (overflow.includes('auto') || overflow.includes('scroll') || el.scrollHeight > el.clientHeight) {
+              // 找到可滚动容器，直接滚动
+              el.scrollTop += ${deltaY};
+              return { scrolled: true, element: el.tagName, className: el.className };
+            }
+            el = el.parentElement;
+          }
+          
+          // 如果没找到可滚动容器，触发 wheel 事件
+          const event = new WheelEvent('wheel', {
+            deltaY: ${deltaY},
+            deltaMode: 0,
+            bubbles: true,
+            cancelable: true
+          });
+          document.elementFromPoint(x, y)?.dispatchEvent(event);
+          return { scrolled: false, fallback: 'wheelEvent' };
+        })()
+      `);
+    } else {
+      // 全局滚动（抖音等）
+      await this.cdp.send('Input.dispatchMouseEvent', {
+        type: 'mouseWheel',
+        x: 0,
+        y: 0,
+        deltaX: 0,
+        deltaY: deltaY
+      });
+      
+      await this.cdp.evaluate(`
+        (function() {
+          const event = new WheelEvent('wheel', {
+            deltaY: ${deltaY},
+            deltaMode: 0,
+            bubbles: true,
+            cancelable: true
+          });
+          document.dispatchEvent(event);
+          window.scrollBy({ top: ${deltaY}, behavior: 'smooth' });
+        })()
+      `);
+    }
 
     return { success: true, deltaY };
   }

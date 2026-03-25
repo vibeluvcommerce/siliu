@@ -568,11 +568,14 @@ class SiliuController {
 
   /**
    * 滚轮事件（适用于抖音等）
+   * @param {string} direction - 方向 'down' 或 'up'
+   * @param {number} amount - 滚动量
+   * @param {object} coordinate - 可选，坐标 {x, y}，在指定位置滚动
    */
-  async wheel(direction = 'down', amount = 500) {
+  async wheel(direction = 'down', amount = 500, coordinate = null) {
     if (this.cdpController?.isConnected) {
       try {
-        const result = await this.cdpController.wheel(direction, amount);
+        const result = await this.cdpController.wheel(direction, amount, coordinate);
         return { ...result, mode: 'CDP' };
       } catch (err) {
         console.warn('[SiliuController] wheel: CDP failed, using JS scroll');
@@ -647,11 +650,23 @@ class SiliuController {
    * 策略：
    * 1. 传统 <select> 元素 → 使用原生 selectOption
    * 2. 带输入框的自定义下拉（React Select）→ 使用输入+点击模式
+   * 3. 需要滚动查找的下拉框 → 【禁用】请使用 click + wheel + screenshot 手动查找
    * @param {string|object} selector - CSS选择器或坐标对象 {type: 'coordinate', x, y}
    * @param {string} option - 选项值
+   * @param {object} options - 可选配置 { method: 'input' }
    */
-  async select(selector, option) {
-    console.error(`[SELECT_MODE] selector type=${typeof selector}, has x=${selector?.x !== undefined}`);
+  async select(selector, option, options = {}) {
+    console.error(`[SELECT_MODE] selector type=${typeof selector}, has x=${selector?.x !== undefined}, method=${options.method}`);
+    
+    // 【禁用】hover-wheel 模式，因为无法准确定位下拉框选项区域
+    if (options.method === 'hover-wheel') {
+      console.error(`[SELECT_MODE] HOVER+WHEEL mode is disabled. Please use click + wheel + screenshot manually.`);
+      return { 
+        success: false, 
+        error: 'hover-wheel mode disabled. Use click to expand, then wheel + screenshot to find option manually.',
+        mode: 'CDP'
+      };
+    }
     
     // 如果是坐标方式，使用输入+点击模式
     if (selector && typeof selector === 'object' && selector.x !== undefined) {

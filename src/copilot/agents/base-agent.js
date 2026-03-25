@@ -106,7 +106,7 @@ class BaseAgent {
       },
       select: { 
         params: ['selector', 'option'], 
-        desc: '选择下拉框选项，option可以是value、text或index',
+        desc: '选择下拉框选项（仅支持原生<select>或有输入过滤的下拉）。对于需要滚动查找的下拉，请使用 click + wheel + screenshot 手动操作',
         example: { action: 'select', selector: 'select[name="country"]', option: 'China', description: '选择国家为中国' }
       },
       selectAll: { 
@@ -125,9 +125,9 @@ class BaseAgent {
         example: { action: 'scroll', direction: 'down', amount: 500, description: '向下滚动页面' }
       },
       wheel: { 
-        params: ['direction', 'amount'], 
-        desc: '滚轮事件（抖音/视频类网站推荐）',
-        example: { action: 'wheel', direction: 'down', amount: 800, description: '滚轮切换视频' }
+        params: ['direction', 'amount', 'target'], 
+        desc: '滚轮事件。支持在指定坐标滚动：{target: {type: "coordinate", x, y}, direction: "down", amount: 300}',
+        example: { action: 'wheel', target: {type: 'coordinate', x: 0.5, y: 0.8}, direction: 'down', amount: 300, description: '在选项区域向下滚动' }
       },
       screenshot: { 
         params: [], 
@@ -189,7 +189,14 @@ class BaseAgent {
 
 【操作选择指南 - 必须遵守】
 - 【上传文件】看到"上传"按钮时，先 click 点击，再使用 upload 操作选择文件
-- 【下拉选择】看到下拉框时，先 click 点击展开，再使用 select 操作选择选项
+- 【下拉选择】看到下拉框时，必须使用"视觉确认法"：
+  1. 先 click 点击展开下拉框（记录点击坐标如 x:0.5, y:0.7）
+  2. 立即 screenshot 截图查看展开的选项列表
+  3. 分析截图：选项列表通常在点击位置下方（y 比点击位置大 0.05-0.15）
+  4. 如果看到目标选项 -> click 点击该选项
+  5. 如果没看到 -> 在选项列表区域（点击位置下方）wheel 滚动，然后 screenshot 再次确认
+  6. 重复直到找到目标选项
+  7. 【禁止】使用 select 操作的 hover-wheel 模式（已被禁用）
 - 【文本输入】看到输入框时，先 click 点击输入框，再使用 type 操作输入文本
 - 【普通点击】只有普通按钮、链接、卡片才单独使用 click 操作
 - 【思考】执行前先判断交互类型，先点击再执行对应操作
@@ -237,9 +244,15 @@ ${examples}
 
 【操作选择示例】
 1. 上传文件：click 点击"上传视频"按钮 → upload 操作选择文件
-2. 选择分区：click 点击下拉框展开 → select 操作选择"生活经验"
-3. 输入标题：click 点击标题输入框 → type 操作输入文本
-4. 点击提交：click 点击"提交"按钮
+2. 选择分区（普通）：click 点击下拉框展开 (x:0.5,y:0.7) → screenshot 查看选项 → click 点击"生活经验"
+3. 选择分区（需滚动查找，假设点击位置是 x:0.5,y:0.7）：
+   - click 点击下拉框展开 (x:0.5,y:0.7)
+   - screenshot 截图查看选项（选项在点击位置下方，y:0.75-0.9）
+   - 如果看到"生活"→ click 点击；如果没看到→ wheel 在选项区域 (x:0.5,y:0.8) 向下滚动
+   - screenshot 再次确认
+   - 重复直到找到目标选项
+4. 输入标题：click 点击标题输入框 → type 操作输入文本
+5. 点击提交：click 点击"提交"按钮
 
 【注意】
 - type 操作可以使用 target（坐标）或 selector（CSS选择器）
