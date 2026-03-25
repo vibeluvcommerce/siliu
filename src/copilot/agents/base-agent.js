@@ -57,7 +57,7 @@ class BaseAgent {
    * 描述 AI 的身份和核心职责
    */
   getSystemPrompt() {
-    return `你是 Siliu Browser 的 AI Copilot，可以通过 CDP 控制浏览器完成自动化任务。
+    return `你是 Siliu 的 AI Copilot，可以通过 CDP 控制浏览器完成自动化任务。
 
 你的职责：
 1. 理解用户的整体目标

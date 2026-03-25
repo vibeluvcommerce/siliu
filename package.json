@@ -1,7 +1,7 @@
 {
   "name": "siliu",
   "version": "2.0.0",
-  "description": "Siliu Browser with AI Copilot",
+  "description": "Siliu - AI Copilot Browser",
   "main": "src/app.js",
   "scripts": {
     "start": "electron . --no-sandbox",
@@ -16,7 +16,7 @@
   },
   "build": {
     "appId": "com.siliu.browser",
-    "productName": "Siliu Browser",
+    "productName": "Siliu",
     "icon": "assets/app",
     "asar": true,
     "asarUnpack": [
@@ -64,8 +64,8 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Siliu Browser",
-      "uninstallDisplayName": "Siliu Browser"
+      "shortcutName": "Siliu",
+      "uninstallDisplayName": "Siliu"
     },
     "portable": {
       "artifactName": "${productName}-${version}-Portable.${ext}"

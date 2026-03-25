@@ -35,7 +35,7 @@ class TaskbarModule {
     const icon = fs.existsSync(iconPath) ? nativeImage.createFromPath(iconPath) : FALLBACK_ICON;
 
     this.tray = new Tray(icon);
-    this.tray.setToolTip('Siliu Browser');
+    this.tray.setToolTip('Siliu');
     
     // 点击托盘图标打开主窗口
     this.tray.on('click', () => {

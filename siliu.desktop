@@ -1,5 +1,5 @@
 [Desktop Entry]
-Name=Siliu Browser
+Name=Siliu
 Comment=Multi-window Electron browser
 Exec=bash -c "cd /home/ubuntu/.openclaw/workspace/siliu && ELECTRON_DISABLE_SANDBOX=1 npm start"
 Icon=/home/ubuntu/.openclaw/workspace/siliu/assets/icon.png

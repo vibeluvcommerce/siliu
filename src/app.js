@@ -1,5 +1,5 @@
 /**
- * Siliu Browser - Main Entry（解耦优化版）
+ * Siliu - Main Entry（解耦优化版）
  *
  * 模块加载顺序：
  * ① EventBus → ② ConfigManager → ③ AIServiceManager → ④ Core → ⑤ ContextMenu
