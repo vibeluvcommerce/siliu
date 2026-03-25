@@ -1,4 +1,4 @@
-// config.example.json - Siliu Browser 完整配置示例
+// config.example.json - Siliu 完整配置示例
 {
   "ai": {
     // 模式选择: "openclaw" | "kimi"

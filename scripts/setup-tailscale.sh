@@ -7,7 +7,7 @@ echo "========================================"
 echo ""
 echo "此方案适用于:"
 echo "  - OpenClaw 运行在云端服务器"
-echo "  - Siliu Browser 运行在本地机器"
+echo "  - Siliu 运行在本地机器"
 echo "  - 需要安全地传输截图而不使用公共图床"
 echo ""
 

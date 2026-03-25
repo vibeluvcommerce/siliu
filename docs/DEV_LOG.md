@@ -16,8 +16,8 @@ Created unified workspace directory structure under `~/.siliu/workspace/` (non-s
 ├── .gitignore          # Excludes all files from git
 ├── screenshots/        # Visual context screenshots (was: os.tmpdir())
 ├── auto-files/         # AI automated file handling
-│   ├── uploads/
-│   └── downloads/
+�?  ├── uploads/
+�?  └── downloads/
 ├── exports/            # User exports (PDF, etc.)
 ├── tasks/              # Task/session data
 ├── cache/              # Temporary cache data
@@ -40,7 +40,7 @@ Created unified workspace directory structure under `~/.siliu/workspace/` (non-s
 
 3. **src/core/auto-file-manager.js**
    - Changed: `workDir` now uses `workspace.getAutoFilesDir()`
-   - Changed: `_getDefaultWorkDir()` → `_ensureWorkDir()`
+   - Changed: `_getDefaultWorkDir()` �?`_ensureWorkDir()`
 
 4. **src/app.js**
    - Added: Import `getWorkspaceManager`
@@ -63,13 +63,13 @@ node test-workspace.js
 ```
 
 All tests pass:
-- ✓ Workspace initialization
-- ✓ Directory path generation
-- ✓ Screenshot path generation
-- ✓ Task save/load
-- ✓ Workspace stats
-- ✓ Auto-files listing
-- ✓ Screenshots listing
+- �?Workspace initialization
+- �?Directory path generation
+- �?Screenshot path generation
+- �?Task save/load
+- �?Workspace stats
+- �?Auto-files listing
+- �?Screenshots listing
 
 ---
 
