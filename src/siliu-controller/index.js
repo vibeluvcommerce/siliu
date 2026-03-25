@@ -179,45 +179,17 @@ class SiliuController {
     // 解析 ~ 路径
     filePath = resolveHomePath(filePath);
     
-    // 如果设置了 forceDialog: true，跳过 CDP 直接模式，强制使用系统对话框拦截
-    if (options.forceDialog) {
-      console.log('[SiliuController] upload: forceDialog enabled, skipping CDP mode...');
-      if (this.tabManager?.fileManager) {
-        try {
-          console.log('[SiliuController] upload: using system dialog interceptor (forced)...');
-          return await this._uploadWithSystemInterceptor(selectorOrText, filePath);
-        } catch (err) {
-          console.error('[SiliuController] upload: system interceptor failed:', err.message);
-        }
-      }
-      return { success: false, error: 'forceDialog enabled but system interceptor not available' };
-    }
-    
-    // 首先尝试 CDP 模式（标准 file input）
-    if (this.cdpController?.isConnected) {
-      try {
-        console.log('[SiliuController] upload: trying CDP mode...');
-        const result = await this.cdpController.upload(selectorOrText, filePath);
-        if (result.success) {
-          return { ...result, mode: 'CDP' };
-        }
-        console.log('[SiliuController] upload: CDP failed, trying system dialog interceptor...');
-      } catch (err) {
-        console.log('[SiliuController] upload: CDP error, falling back to system dialog:', err.message);
-      }
-    }
-    
-    // 尝试系统级对话框拦截（适用于 B站等自定义上传）
+    // 使用系统级对话框拦截（模拟真实用户操作，绕过反自动化检测）
     if (this.tabManager?.fileManager) {
       try {
-        console.log('[SiliuController] upload: trying system dialog interceptor...');
+        console.log('[SiliuController] upload: using system dialog interceptor...');
         return await this._uploadWithSystemInterceptor(selectorOrText, filePath);
       } catch (err) {
         console.error('[SiliuController] upload: system interceptor failed:', err.message);
       }
     }
     
-    // 最后降级到原生 JS 上传
+    // 降级到原生 JS 上传
     console.log('[SiliuController] upload: falling back to JS...');
     return this._nativeUpload(selectorOrText, filePath);
   }
