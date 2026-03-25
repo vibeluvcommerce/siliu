@@ -17,7 +17,7 @@
   "build": {
     "appId": "com.siliu.browser",
     "productName": "Siliu Browser",
-    "icon": "assets/icon",
+    "icon": "assets/app",
     "asar": true,
     "asarUnpack": [
       "**/node_modules/puppeteer/**/*",
