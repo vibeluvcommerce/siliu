@@ -101,8 +101,8 @@ class BaseAgent {
       },
       upload: { 
         params: ['target', 'filePath'], 
-        desc: '上传本地文件，filePath使用绝对路径',
-        example: { action: 'upload', target: { type: 'coordinate', x: 0.5, y: 0.8 }, filePath: 'D:/images/photo.jpg', description: '上传本地图片' }
+        desc: '【文件上传专用】当需要上传本地文件时必须使用此操作，系统会自动处理文件选择对话框。filePath使用绝对路径（如 D:/test/video.mp4）',
+        example: { action: 'upload', target: { type: 'coordinate', x: 0.5, y: 0.8 }, filePath: 'D:/test/video.mp4', description: '点击上传按钮并选择本地文件' }
       },
       select: { 
         params: ['selector', 'option'], 
@@ -186,6 +186,7 @@ class BaseAgent {
 - 只有整个任务全部完成，才能使用 done
 - 【强制】无论已执行多少步，都不允许自主结束任务
 - 禁止提前使用 done 结束任务
+- 【强制】上传文件时必须使用 upload 操作，系统会自动处理文件选择对话框。禁止只用 click 点击上传按钮
 
 【坐标系统】
 - 使用 0-1 的相对坐标（百分比）
@@ -233,7 +234,8 @@ ${examples}
 - 如果不确定选择器，优先使用坐标点击输入框，然后输入文本
 - press 支持：Enter、Backspace、Delete、Tab、Escape、方向键
 - selectAll 支持：使用 Ctrl+A 全选文本框内容，配合 type 可替换原有内容
-- upload 支持上传本地文件，filePath 使用绝对路径（如 "D:/images/photo.jpg"）
+- 【重要】upload 操作：当用户要求"上传文件"、"选择文件上传"或点击上传按钮时，必须使用 upload 操作，不要只用 click。系统会自动处理文件选择对话框
+- upload 的 filePath 必须使用绝对路径（如 "D:/test/video.mp4"）
 - 【重要】抖音/视频类网站请使用 wheel 而非 scroll 来切换视频
 - 输入错误时可使用 press + Backspace 删除后重新输入
 
