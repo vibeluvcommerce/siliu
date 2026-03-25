@@ -1,7 +1,7 @@
 {
   "name": "siliu",
   "version": "2.0.0",
-  "description": "Siliu Browser with AI Copilot (with Widevine DRM support)",
+  "description": "Siliu Browser with AI Copilot",
   "main": "src/app.js",
   "scripts": {
     "start": "electron . --no-sandbox",
