@@ -1322,7 +1322,8 @@ class WindowCopilot {
                 }
                 
                 // 3. 执行上传
-                const { result, mode } = await this.controller.upload(uploadSelector || null, filePath);
+                const uploadOptions = decision.forceDialog ? { forceDialog: true } : {};
+                const { result, mode } = await this.controller.upload(uploadSelector || null, filePath, uploadOptions);
                 stepResult = { ...stepResult, ...result };
                 actualMode = mode;
               } catch (err) {

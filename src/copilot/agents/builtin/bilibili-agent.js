@@ -61,7 +61,9 @@ class BilibiliAgent extends BaseAgent {
 - 转发动态需要先点击 "转发" 按钮
 
 【投稿相关】
-- 上传视频需要先点击上传区域
+- 上传视频必须使用 upload 操作，并设置 forceDialog: true 强制使用系统对话框拦截
+- 正确示例: {"action": "upload", "target": {"type": "coordinate", "x": 0.5, "y": 0.7}, "filePath": "D:/test/video.mp4", "forceDialog": true}
+- B站有反自动化检测，必须使用 forceDialog 模式才能成功上传
 - 分P视频需要点击 "添加视频"
 - 标签输入需要按 Enter 确认
 

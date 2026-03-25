@@ -175,9 +175,23 @@ class SiliuController {
    * 2. 如果 CDP 失败（无 file input），尝试系统级对话框拦截
    * 3. 系统级拦截：先设置待选文件，再点击上传按钮，自动填充系统对话框
    */
-  async upload(selectorOrText, filePath) {
+  async upload(selectorOrText, filePath, options = {}) {
     // 解析 ~ 路径
     filePath = resolveHomePath(filePath);
+    
+    // 如果设置了 forceDialog: true，跳过 CDP 直接模式，强制使用系统对话框拦截
+    if (options.forceDialog) {
+      console.log('[SiliuController] upload: forceDialog enabled, skipping CDP mode...');
+      if (this.tabManager?.fileManager) {
+        try {
+          console.log('[SiliuController] upload: using system dialog interceptor (forced)...');
+          return await this._uploadWithSystemInterceptor(selectorOrText, filePath);
+        } catch (err) {
+          console.error('[SiliuController] upload: system interceptor failed:', err.message);
+        }
+      }
+      return { success: false, error: 'forceDialog enabled but system interceptor not available' };
+    }
     
     // 首先尝试 CDP 模式（标准 file input）
     if (this.cdpController?.isConnected) {

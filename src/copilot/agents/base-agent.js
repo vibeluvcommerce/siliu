@@ -100,9 +100,9 @@ class BaseAgent {
         example: { action: 'type', target: { type: 'coordinate', x: 0.5, y: 0.3 }, text: 'iPhone', description: '输入搜索关键词' }
       },
       upload: { 
-        params: ['target', 'filePath'], 
-        desc: '【文件上传专用】当需要上传本地文件时必须使用此操作，系统会自动处理文件选择对话框。filePath使用绝对路径（如 D:/test/video.mp4）',
-        example: { action: 'upload', target: { type: 'coordinate', x: 0.5, y: 0.8 }, filePath: 'D:/test/video.mp4', description: '点击上传按钮并选择本地文件' }
+        params: ['target', 'filePath', 'forceDialog'], 
+        desc: '【文件上传专用】当需要上传本地文件时必须使用此操作。对于B站、抖音等有反自动化检测的网站，设置 forceDialog: true 强制使用系统对话框拦截模式。filePath使用绝对路径（如 D:/test/video.mp4）',
+        example: { action: 'upload', target: { type: 'coordinate', x: 0.5, y: 0.8 }, filePath: 'D:/test/video.mp4', forceDialog: true, description: '使用系统对话框拦截上传视频到B站' }
       },
       select: { 
         params: ['selector', 'option'], 
