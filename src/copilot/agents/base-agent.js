@@ -105,8 +105,8 @@ class BaseAgent {
         example: { action: 'upload', target: { type: 'coordinate', x: 0.5, y: 0.8 }, filePath: 'D:/test/video.mp4', description: '点击上传按钮并选择本地文件' }
       },
       select: { 
-        params: ['selector', 'option', 'coordinate'], 
-        desc: '选择下拉框选项。对于原生select使用selector；对于自定义下拉或级联选择器（如B站分区），使用coordinate点击下拉后，再用click选择具体选项',
+        params: ['selector', 'option'], 
+        desc: '选择下拉框选项，option可以是value、text或index',
         example: { action: 'select', selector: 'select[name="country"]', option: 'China', description: '选择国家为中国' }
       },
       selectAll: { 
@@ -186,7 +186,13 @@ class BaseAgent {
 - 只有整个任务全部完成，才能使用 done
 - 【强制】无论已执行多少步，都不允许自主结束任务
 - 禁止提前使用 done 结束任务
-- 【强制】上传文件时必须使用 upload 操作，系统会自动打开文件选择对话框并填充文件路径。禁止只用 click 点击上传按钮
+
+【操作选择指南 - 必须遵守】
+- 【上传文件】看到"上传"按钮时，先 click 点击，再使用 upload 操作选择文件
+- 【下拉选择】看到下拉框时，先 click 点击展开，再使用 select 操作选择选项
+- 【文本输入】看到输入框时，先 click 点击输入框，再使用 type 操作输入文本
+- 【普通点击】只有普通按钮、链接、卡片才单独使用 click 操作
+- 【思考】执行前先判断交互类型，先点击再执行对应操作
 
 【坐标系统】
 - 使用 0-1 的相对坐标（百分比）
@@ -229,6 +235,12 @@ ${examples}
 - description 应该清晰描述正在做什么，例如:"点击搜索按钮"、"输入用户名"、"向下滚动"等
 - 不允许输出空的 description，这是必填字段
 
+【操作选择示例】
+1. 上传文件：click 点击"上传视频"按钮 → upload 操作选择文件
+2. 选择分区：click 点击下拉框展开 → select 操作选择"生活经验"
+3. 输入标题：click 点击标题输入框 → type 操作输入文本
+4. 点击提交：click 点击"提交"按钮
+
 【注意】
 - type 操作可以使用 target（坐标）或 selector（CSS选择器）
 - 如果不确定选择器，优先使用坐标点击输入框，然后输入文本
@@ -236,8 +248,8 @@ ${examples}
 - selectAll 支持：使用 Ctrl+A 全选文本框内容，配合 type 可替换原有内容
 - 【重要】upload 操作：当用户要求"上传文件"、"选择文件上传"或点击上传按钮时，必须使用 upload 操作，不要只用 click。系统会自动打开文件选择对话框并填充文件路径
 - upload 的 filePath 必须使用绝对路径（如 "D:/test/video.mp4"）
+- 【重要】select 操作：当下拉框、选择器、分区选择时，直接使用 select 操作选择选项，不要尝试用 scroll 滚动查找
 - 【重要】抖音/视频类网站请使用 wheel 而非 scroll 来切换视频
-- 【重要】级联选择器处理：如B站分区选择，不要使用select操作，应该：1) 用click点击下拉框展开，2) 用click点击选项文字
 - 输入错误时可使用 press + Backspace 删除后重新输入
 
 【数据导出指南】
