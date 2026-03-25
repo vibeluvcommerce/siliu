@@ -6,7 +6,7 @@
  * → ⑥ SiliuController → ⑦ Copilot → ⑧ AdBlock
  */
 
-const { app, dialog, components } = require('electron');
+const { app, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const logPath = path.join(process.cwd(), 'log.txt')
@@ -40,24 +40,6 @@ try {
   console.log(`[Siliu] Remote debugging enabled on port ${DEBUG_PORT}`);
 } catch (e) {
   console.log('[Siliu] Command line switches not applied:', e.message);
-}
-
-// Widevine CDM 配置
-// 注意：castLabs Electron 免费版只支持 Widevine L3（软件级DRM）
-// 播放高清内容（Netflix 4K等）需要 L1（硬件级DRM），这需要购买 EVS 签名
-try {
-  if (process.platform === 'win32') {
-    // Windows: 启用 Widevine，castLabs 会自动从用户目录加载
-    console.log('[Siliu] Widevine CDM enabled (L3 software DRM only)');
-  } else if (process.platform === 'linux') {
-    // Linux: 使用标准路径
-    const widevineSoPath = path.join(__dirname, '../widevine/libwidevinecdm.so');
-    app?.commandLine?.appendSwitch('widevine-cdm-path', widevineSoPath);
-    app?.commandLine?.appendSwitch('widevine-cdm-version', '4.10.2710.0');
-    console.log('[Siliu] Linux Widevine CDM configured');
-  }
-} catch (e) {
-  console.log('[Siliu] Widevine configuration error:', e.message);
 }
 
 // 全局错误处理
@@ -3052,15 +3034,6 @@ function setupIpcHandlers() {
 // ========== Electron 生命周期 ==========
 log('[生命周期] app.whenReady() 触发，准备调用 startup()')
 app.whenReady().then(async () => {
-  // 等待 castLabs components 就绪（自动下载 Widevine CDM）
-  try {
-    log('[生命周期] 等待 components 就绪...')
-    await components.whenReady();
-    log('[生命周期] components 就绪: ' + JSON.stringify(components.status()))
-  } catch (err) {
-    log('[生命周期] components 就绪失败: ' + err.message)
-  }
-  
   log('[生命周期] 开始执行 startup()')
   startup()
 });
