@@ -1647,7 +1647,10 @@ class WindowCopilot {
                 success: true, 
                 batchIndex: result.batchIndex,
                 hasMore: result.hasMore,
-                message: `已采集批次 ${result.batchIndex}`
+                isDuplicate: result.isDuplicate,  // 告诉AI是否是重复数据
+                message: result.isDuplicate 
+                  ? `已采集批次 ${result.batchIndex}，检测到重复数据，采集自动结束`
+                  : `已采集批次 ${result.batchIndex}`
               };
               actualMode = 'JS';
               

@@ -151,8 +151,8 @@ class BaseAgent {
       },
       collect: {
         params: ['content', 'batchIndex', 'hasMore'],
-        desc: '采集数据批次，用于导出',
-        example: { action: 'collect', content: { type: 'table', data: { headers: ['商品', '价格'], rows: [['iPhone', 5999]] } }, batchIndex: 0, hasMore: true, description: '采集第1页数据' }
+        desc: '采集数据批次。hasMore=true表示当前页还有更多内容需滚动采集；hasMore=false表示当前页已采集完成（系统会自动检测重复数据纠正误判）',
+        example: { action: 'collect', content: { type: 'table', data: { headers: ['商品', '价格'], rows: [['iPhone', 5999]] } }, batchIndex: 0, hasMore: true, description: '采集当前可见数据' }
       },
       export: {
         params: ['format', 'filename'],
@@ -204,6 +204,13 @@ class BaseAgent {
 
 【操作选择指南 - 必须遵守】
 - 【上传文件】看到"上传"按钮时，先 click 点击，再使用 upload 操作选择文件
+- 【采集规则】
+  - 看到什么就采集什么 - 不要追求一次性看到全部内容才开始采集
+  - 禁止反复回滚 - 直接采集当前可见的，绝对不要滚回顶部重新开始
+  - 分批采集 - 采集完当前区域后继续向下滚动，最后统一整理
+  - 【hasMore语义】hasMore=true表示当前区域还有更多内容需滚动采集；hasMore=false表示当前区域已采集完成
+  - 【系统辅助】如果AI误判hasMore（滚动后采集到重复数据），系统会自动纠正为false
+  - 【任务完成】确定所有数据采集完成后，使用done结束任务
 - 【滚动操作 - 分栏布局智能判断】某些网站（如淘宝等电商网站）采用左右分栏布局：
   1. 左侧商品详情区、右侧商品选购区，两区域独立滚动
   2. 当在某一区域滚动后，只有该区域内容变化，其他区域不动
@@ -296,6 +303,16 @@ ${examples}
 【数据导出指南】
 如需导出网页数据（表格、列表等），使用 collect 操作分批采集：
 
+【分批采集原则】
+- 采集当前可见内容 → 向下滚动 → 再采集，**禁止滚回顶部"从头开始"**
+- 示例流程：collect(batchIndex=0,hasMore=true) → 向下滚动 → collect(batchIndex=1,hasMore=true) → ... → collect(batchIndex=N,hasMore=false)
+
+【hasMore 参数】
+- hasMore=true:  当前区域还有更多内容，需要继续向下滚动采集
+- hasMore=false: 当前区域已采集完成（本次滚动采集结束）
+- 【系统辅助纠正】如果AI设置hasMore=true但实际已到底（采集到重复数据），系统会自动纠正为false
+
+【数据格式】
 1. 表格数据格式：
    {"action": "collect", "content": {"type": "table", "data": {"headers": ["商品", "价格"], "rows": [["iPhone", 5999]]}}, "batchIndex": 0, "hasMore": true}
 
@@ -305,21 +322,18 @@ ${examples}
 3. 图片字段格式（自动下载插入）：
    rows 中可以包含 {"type": "image", "url": "https://...", "alt": "描述"}
 
-4. 多页采集：
-   - 每页输出一个 collect，batchIndex 递增
-   - 最后一页设置 hasMore: false
-   - 系统会自动合并所有批次并导出
+4. 分批采集要点：
+   - 每批数据设置递增的 batchIndex
+   - 当前区域还有内容：hasMore=true
+   - 当前区域到底：hasMore=false
+   - 所有数据采集完成后使用 done 结束任务
 
 5. 导出格式：
    - excel: 支持图片嵌入
    - csv: 图片转为 URL 文本
    - json: 原始数据结构
    - pdf: 生成报告文档
-   - png: 生成图表图片
-
-6. 超时处理：
-   - 180秒无新数据自动导出已采集部分
-   - 使用 export action 可手动提前触发导出`;
+   - png: 生成图表图片`;
   }
 
   /**
@@ -576,6 +590,25 @@ ${examples}
   _buildProgressSection(stepCount, history) {
     let section = `【执行进度】\n已完成 ${stepCount} 步`;
     
+    // 统计采集状态
+    const scrollCount = history.filter(h => h.decision?.action === 'scroll' || h.decision?.action === 'wheel').length;
+    const collectCount = history.filter(h => h.decision?.action === 'collect').length;
+    const lastCollect = history.slice().reverse().find(h => h.decision?.action === 'collect');
+    
+    if (collectCount > 0) {
+      section += `\n已采集批次: ${collectCount}`;
+      if (lastCollect?.result?.isDuplicate) {
+        section += '（已到底，当前区域采集完成）';
+      } else if (lastCollect?.result?.hasMore === false) {
+        section += '（当前区域采集完成）';
+      }
+    }
+    
+    // 防滚动循环提醒
+    if (scrollCount > 3 && collectCount === 0) {
+      section += '\n⚠️ 别滚了，先采集当前看到的';
+    }
+    
     if (history && history.length > 0) {
       const recentHistory = history.slice(-this.config.maxHistorySteps);
       const lines = recentHistory.map((h, i) => {
@@ -606,6 +639,11 @@ ${examples}
         if (action === 'navigate' && decision.url) {
           detail += ` (${decision.url})`;
         }
+        if (action === 'collect') {
+          const isDup = h.result?.isDuplicate;
+          const isDone = !h.result?.hasMore;
+          detail += ` (批次${decision.batchIndex || 0}${isDup ? ',到底' : isDone ? ',完成' : ''})`;
+        }
         
         return `${globalIndex}. ${action}${detail} ${status}`;
       });
@@ -623,6 +661,16 @@ ${examples}
     let section = '【上一步结果】';
     if (previousResult.success) {
       section += '\n执行成功 ✓';
+      
+      // 显示采集进度
+      if (previousResult.batchIndex !== undefined) {
+        section += `\n已采集批次: ${previousResult.batchIndex}`;
+        if (previousResult.isDuplicate) {
+          section += '（已到底，系统自动结束当前区域采集）';
+        } else if (previousResult.hasMore !== undefined) {
+          section += previousResult.hasMore ? '（还有更多）' : '（当前区域采集完成）';
+        }
+      }
     } else {
       section += '\n执行失败 ✗';
       if (previousResult.error) {

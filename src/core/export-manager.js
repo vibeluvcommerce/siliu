@@ -92,12 +92,20 @@ class ExportManager {
    * @param {string} taskId
    * @param {Object} data - collect action 的 content.data
    * @param {number} batchIndex
-   * @param {boolean} hasMore
+   * @param {boolean} hasMore - AI判断的当前页是否还有更多内容
    */
   async collectBatch(taskId, content, batchIndex, hasMore) {
     const index = await this._readIndex(taskId);
     if (!index || index.status !== 'collecting') {
       throw new Error(`Export task ${taskId} not found or not collecting`);
+    }
+
+    // 【关键】检测数据是否重复（单页滚动到底检测）
+    // 如果AI误判了hasMore，系统会自动纠正
+    const isDuplicate = await this._checkDuplicateData(taskId, batchIndex, content);
+    if (isDuplicate && hasMore) {
+      console.log(`[ExportManager] Detected duplicate data at batch ${batchIndex}, correcting hasMore to false`);
+      hasMore = false;  // 强制纠正：数据重复说明当前页已到底
     }
 
     // 写入批次文件
@@ -106,12 +114,16 @@ class ExportManager {
       batchIndex,
       content,
       hasMore,
+      isDuplicate,  // 标记是否为重复数据
       timestamp: Date.now()
     }));
 
     // 更新索引
     index.batches = Math.max(index.batches, batchIndex + 1);
     index.lastBatchTime = Date.now();
+    if (isDuplicate) {
+      index.hasDuplicate = true;
+    }
     await this._writeIndex(taskId, index);
 
     // 更新活跃任务
@@ -121,14 +133,79 @@ class ExportManager {
       activeTask.lastBatchTime = index.lastBatchTime;
     }
 
-    console.log(`[ExportManager] Collected batch ${batchIndex} for ${taskId}, hasMore=${hasMore}`);
+    console.log(`[ExportManager] Collected batch ${batchIndex} for ${taskId}, hasMore=${hasMore}, isDuplicate=${isDuplicate}`);
 
-    // 如果是最后一批，立即触发导出
+    // 如果是最后一批，立即触发导出（仅单页采集完成）
     if (!hasMore) {
-      await this._finalizeExport(taskId, 'completed');
+      await this._finalizeExport(taskId, isDuplicate ? 'completed-duplicate' : 'completed');
     }
 
-    return { batchIndex, hasMore };
+    return { batchIndex, hasMore, isDuplicate };
+  }
+
+  /**
+   * 检测数据是否与上一批次重复（用于判断是否滚动到底）
+   */
+  async _checkDuplicateData(taskId, batchIndex, currentContent) {
+    if (batchIndex === 0) return false;
+
+    // 读取上一批次
+    const prevBatchFile = path.join(this.cacheDir, `${taskId}-${batchIndex - 1}.json`);
+    try {
+      const content = await fs.readFile(prevBatchFile, 'utf-8');
+      const prevBatch = JSON.parse(content);
+      
+      // 提取数据内容进行比较
+      const prevData = this._extractDataSignature(prevBatch.content);
+      const currentData = this._extractDataSignature(currentContent);
+      
+      // 计算相似度（简单比较前3条数据）
+      const similarity = this._calculateSimilarity(prevData, currentData);
+      console.log(`[ExportManager] Data similarity check: ${similarity.toFixed(2)}%`);
+      
+      // 相似度超过80%认为是重复
+      return similarity > 80;
+    } catch (err) {
+      console.warn(`[ExportManager] Failed to check duplicate: ${err.message}`);
+      return false;
+    }
+  }
+
+  /**
+   * 提取数据特征用于比较
+   */
+  _extractDataSignature(content) {
+    if (!content || !content.data) return [];
+    
+    const data = content.data;
+    let items = [];
+    
+    if (content.type === 'table' && data.rows) {
+      // 取前3行的第一列作为特征
+      items = data.rows.slice(0, 3).map(row => row[0] || '').filter(Boolean);
+    } else if (content.type === 'list' && data.items) {
+      items = data.items.slice(0, 3).map(item => typeof item === 'string' ? item : JSON.stringify(item));
+    }
+    
+    return items;
+  }
+
+  /**
+   * 计算两组数据的相似度（百分比）
+   */
+  _calculateSimilarity(prev, current) {
+    if (prev.length === 0 || current.length === 0) return 0;
+    if (prev.length !== current.length) return 0;
+    
+    // 简单字符串比较
+    let matches = 0;
+    for (let i = 0; i < Math.min(prev.length, current.length); i++) {
+      if (prev[i] === current[i]) {
+        matches++;
+      }
+    }
+    
+    return (matches / prev.length) * 100;
   }
 
   /**
