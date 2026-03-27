@@ -641,6 +641,17 @@ ${examples}
     parts.push(`URL: ${observation.url || 'N/A'}`);
     parts.push(`标题: ${observation.title || 'N/A'}`);
     
+    // 标签页信息
+    if (observation.tabs && observation.tabs.length > 1) {
+      parts.push('');
+      parts.push('【已打开的标签页】');
+      observation.tabs.forEach(tab => {
+        const activeMarker = tab.isActive ? '【当前】' : '';
+        parts.push(`${tab.index}: ${tab.title} ${activeMarker}`);
+      });
+      parts.push('提示：如需切换标签页，使用 switchTab 操作并指定 index');
+    }
+    
     if (observation.loginStatus?.needsLogin) {
       parts.push('⚠️ 注意: 页面需要登录/扫码/验证码');
     }

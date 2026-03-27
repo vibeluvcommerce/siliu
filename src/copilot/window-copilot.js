@@ -599,6 +599,31 @@ class WindowCopilot {
   }
 
   /**
+   * 获取所有标签页信息
+   */
+  async _getTabsInfo() {
+    try {
+      if (!this.core?.tabManager) {
+        return [];
+      }
+      
+      const allViews = this.core.tabManager.getAllViews();
+      const activeViewId = this.core.tabManager.getActiveViewId();
+      
+      return allViews.map((view, index) => ({
+        index: index,
+        id: view.id,
+        title: view.title || '无标题',
+        url: view.url || '',
+        isActive: view.id === activeViewId
+      }));
+    } catch (err) {
+      console.error(`[WindowCopilot:${this.windowId}] Failed to get tabs info:`, err.message);
+      return [];
+    }
+  }
+
+  /**
    * 观察页面状态（增强版 - 获取详细 DOM 信息）
    */
   async _observePage() {
@@ -920,11 +945,15 @@ class WindowCopilot {
       screenshot.viewport = viewportInfo;
       this.currentScreenshot = screenshot;
 
+      // 【关键】获取所有标签页信息，供 AI 参考
+      const tabsInfo = await this._getTabsInfo();
+      
       return {
         ...domInfo,
         screenshot,
         hasVisual: true,
-        viewport: viewportInfo  // 传递给 AI 作为坐标参考
+        viewport: viewportInfo,  // 传递给 AI 作为坐标参考
+        tabs: tabsInfo  // 标签页信息
       };
     } catch (err) {
       console.error(`[WindowCopilot:${this.windowId}] Visual observation failed:`, err);
