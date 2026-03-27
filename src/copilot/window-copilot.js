@@ -1145,6 +1145,33 @@ class WindowCopilot {
             await this._smartWait('navigate');
             break;
           }
+          case 'goBack': {
+            console.log(`[WindowCopilot:${this.windowId}] Calling controller.goBack...`);
+            const { result, mode } = await this.controller.goBack();
+            console.log(`[WindowCopilot:${this.windowId}] goBack returned mode: ${mode}`);
+            stepResult = result;
+            actualMode = mode;
+            await this._smartWait('navigate');
+            break;
+          }
+          case 'goForward': {
+            console.log(`[WindowCopilot:${this.windowId}] Calling controller.goForward...`);
+            const { result, mode } = await this.controller.goForward();
+            console.log(`[WindowCopilot:${this.windowId}] goForward returned mode: ${mode}`);
+            stepResult = result;
+            actualMode = mode;
+            await this._smartWait('navigate');
+            break;
+          }
+          case 'switchTab': {
+            console.log(`[WindowCopilot:${this.windowId}] Calling controller.switchTab...`);
+            const { result, mode } = await this.controller.switchTab(decision.index);
+            console.log(`[WindowCopilot:${this.windowId}] switchTab returned mode: ${mode}`);
+            stepResult = result;
+            actualMode = mode;
+            await this._smartWait('navigate');
+            break;
+          }
           case 'click': {
             console.log(`[WindowCopilot:${this.windowId}] Calling controller.click...`);
 

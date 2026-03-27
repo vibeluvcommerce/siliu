@@ -556,6 +556,60 @@ class SiliuController {
   }
 
   /**
+   * 浏览器后退
+   */
+  async goBack() {
+    if (this.core?.tabManager) {
+      try {
+        const result = this.core.tabManager.goBack(this.windowId);
+        return { success: result, mode: 'native' };
+      } catch (err) {
+        console.error('[SiliuController] goBack failed:', err.message);
+        return { success: false, error: err.message };
+      }
+    }
+    return { success: false, error: 'TabManager not available' };
+  }
+
+  /**
+   * 浏览器前进
+   */
+  async goForward() {
+    if (this.core?.tabManager) {
+      try {
+        const result = this.core.tabManager.goForward(this.windowId);
+        return { success: result, mode: 'native' };
+      } catch (err) {
+        console.error('[SiliuController] goForward failed:', err.message);
+        return { success: false, error: err.message };
+      }
+    }
+    return { success: false, error: 'TabManager not available' };
+  }
+
+  /**
+   * 切换标签页
+   */
+  async switchTab(index) {
+    if (this.core?.tabManager) {
+      try {
+        // 获取所有视图
+        const views = this.core.tabManager.getAllViews();
+        if (index >= 0 && index < views.length) {
+          const targetViewId = views[index].id;
+          this.core.tabManager.setActiveView(targetViewId);
+          return { success: true, mode: 'native', viewId: targetViewId };
+        }
+        return { success: false, error: `Invalid tab index: ${index}` };
+      } catch (err) {
+        console.error('[SiliuController] switchTab failed:', err.message);
+        return { success: false, error: err.message };
+      }
+    }
+    return { success: false, error: 'TabManager not available' };
+  }
+
+  /**
    * 滚动
    */
   async scroll(direction = 'down', amount = 500) {

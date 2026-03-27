@@ -163,6 +163,21 @@ class BaseAgent {
         params: ['summary'], 
         desc: '【最终完成】整个任务全部完成，输出总结',
         example: { action: 'done', summary: '任务完成总结' }
+      },
+      goBack: {
+        params: [],
+        desc: '浏览器后退，返回上一页',
+        example: { action: 'goBack', description: '返回上一页' }
+      },
+      goForward: {
+        params: [],
+        desc: '浏览器前进，返回下一页',
+        example: { action: 'goForward', description: '前进到下一页' }
+      },
+      switchTab: {
+        params: ['index'],
+        desc: '切换到指定标签页，index为标签页索引（从0开始）',
+        example: { action: 'switchTab', index: 1, description: '切换到第2个标签页' }
       }
     };
   }
