@@ -35,8 +35,22 @@ class ExcelExporter extends BaseExporter {
   }
 
   async _exportTable(worksheet, tableData, options) {
+    // 数据验证
+    if (!tableData) {
+      throw new Error('Table data is null or undefined');
+    }
+    
+    const headers = tableData.headers || [];
+    const rows = tableData.rows || [];
+    
+    if (headers.length === 0) {
+      console.warn('[ExcelExporter] No headers found in table data');
+      worksheet.addRow(['No data available']);
+      return;
+    }
+    
     // 设置列
-    worksheet.columns = tableData.headers.map(h => ({
+    worksheet.columns = headers.map(h => ({
       header: h,
       key: h,
       width: 20
@@ -52,14 +66,14 @@ class ExcelExporter extends BaseExporter {
     };
 
     // 写入数据行
-    for (let rowIndex = 0; rowIndex < tableData.rows.length; rowIndex++) {
-      const row = tableData.rows[rowIndex];
+    for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+      const row = rows[rowIndex];
       const rowData = {};
       const images = []; // 需要插入的图片
 
-      for (let i = 0; i < tableData.headers.length; i++) {
+      for (let i = 0; i < headers.length; i++) {
         const cell = row[i];
-        const header = tableData.headers[i];
+        const header = headers[i];
 
         if (cell && typeof cell === 'object' && cell.type === 'image') {
           // 图片数据
@@ -89,7 +103,7 @@ class ExcelExporter extends BaseExporter {
     }
 
     // 自动调整行高（有图片的行）
-    for (let i = 2; i <= tableData.rows.length + 1; i++) {
+    for (let i = 2; i <= rows.length + 1; i++) {
       worksheet.getRow(i).height = 80; // 图片行高度
     }
   }
@@ -103,7 +117,15 @@ class ExcelExporter extends BaseExporter {
     const headerRow = worksheet.getRow(1);
     headerRow.font = { bold: true };
 
-    listData.items.forEach((item, index) => {
+    const items = (listData && listData.items) || [];
+    
+    if (items.length === 0) {
+      console.warn('[ExcelExporter] No items found in list data');
+      worksheet.addRow(['No data available']);
+      return;
+    }
+
+    items.forEach((item, index) => {
       worksheet.addRow({
         index: index + 1,
         item: typeof item === 'object' ? JSON.stringify(item) : item

@@ -90,22 +90,32 @@ class ExportManager {
   /**
    * 接收一批数据
    * @param {string} taskId
-   * @param {Object} data - collect action 的 content.data
-   * @param {number} batchIndex
-   * @param {boolean} hasMore - AI判断的当前页是否还有更多内容
+   * @param {Object} content - collect action 的 content
    */
-  async collectBatch(taskId, content, batchIndex, hasMore) {
+  async collectBatch(taskId, content) {
     const index = await this._readIndex(taskId);
     if (!index || index.status !== 'collecting') {
       throw new Error(`Export task ${taskId} not found or not collecting`);
     }
 
-    // 【关键】检测数据是否重复（单页滚动到底检测）
-    // 如果AI误判了hasMore，系统会自动纠正
-    const isDuplicate = await this._checkDuplicateData(taskId, batchIndex, content);
-    if (isDuplicate && hasMore) {
-      console.log(`[ExportManager] Detected duplicate data at batch ${batchIndex}, correcting hasMore to false`);
-      hasMore = false;  // 强制纠正：数据重复说明当前页已到底
+    const batchIndex = index.batches; // 自动递增
+
+    // 【数据验证】检查 content 格式
+    if (!content) {
+      throw new Error('Content is required for collect operation');
+    }
+    
+    console.log(`[ExportManager] Collecting batch ${batchIndex}, content type: ${content.type}, has data: ${!!content.data}`);
+    
+    if (content.data) {
+      if (content.type === 'table') {
+        const headers = content.data.headers || [];
+        const rows = content.data.rows || [];
+        console.log(`[ExportManager] Table data: ${headers.length} headers, ${rows.length} rows`);
+      } else if (content.type === 'list') {
+        const items = content.data.items || [];
+        console.log(`[ExportManager] List data: ${items.length} items`);
+      }
     }
 
     // 写入批次文件
@@ -113,17 +123,12 @@ class ExportManager {
     await fs.writeFile(batchFile, JSON.stringify({
       batchIndex,
       content,
-      hasMore,
-      isDuplicate,  // 标记是否为重复数据
       timestamp: Date.now()
     }));
 
     // 更新索引
-    index.batches = Math.max(index.batches, batchIndex + 1);
+    index.batches = batchIndex + 1;
     index.lastBatchTime = Date.now();
-    if (isDuplicate) {
-      index.hasDuplicate = true;
-    }
     await this._writeIndex(taskId, index);
 
     // 更新活跃任务
@@ -133,79 +138,9 @@ class ExportManager {
       activeTask.lastBatchTime = index.lastBatchTime;
     }
 
-    console.log(`[ExportManager] Collected batch ${batchIndex} for ${taskId}, hasMore=${hasMore}, isDuplicate=${isDuplicate}`);
+    console.log(`[ExportManager] Collected batch ${batchIndex} for ${taskId}`);
 
-    // 如果是最后一批，立即触发导出（仅单页采集完成）
-    if (!hasMore) {
-      await this._finalizeExport(taskId, isDuplicate ? 'completed-duplicate' : 'completed');
-    }
-
-    return { batchIndex, hasMore, isDuplicate };
-  }
-
-  /**
-   * 检测数据是否与上一批次重复（用于判断是否滚动到底）
-   */
-  async _checkDuplicateData(taskId, batchIndex, currentContent) {
-    if (batchIndex === 0) return false;
-
-    // 读取上一批次
-    const prevBatchFile = path.join(this.cacheDir, `${taskId}-${batchIndex - 1}.json`);
-    try {
-      const content = await fs.readFile(prevBatchFile, 'utf-8');
-      const prevBatch = JSON.parse(content);
-      
-      // 提取数据内容进行比较
-      const prevData = this._extractDataSignature(prevBatch.content);
-      const currentData = this._extractDataSignature(currentContent);
-      
-      // 计算相似度（简单比较前3条数据）
-      const similarity = this._calculateSimilarity(prevData, currentData);
-      console.log(`[ExportManager] Data similarity check: ${similarity.toFixed(2)}%`);
-      
-      // 相似度超过80%认为是重复
-      return similarity > 80;
-    } catch (err) {
-      console.warn(`[ExportManager] Failed to check duplicate: ${err.message}`);
-      return false;
-    }
-  }
-
-  /**
-   * 提取数据特征用于比较
-   */
-  _extractDataSignature(content) {
-    if (!content || !content.data) return [];
-    
-    const data = content.data;
-    let items = [];
-    
-    if (content.type === 'table' && data.rows) {
-      // 取前3行的第一列作为特征
-      items = data.rows.slice(0, 3).map(row => row[0] || '').filter(Boolean);
-    } else if (content.type === 'list' && data.items) {
-      items = data.items.slice(0, 3).map(item => typeof item === 'string' ? item : JSON.stringify(item));
-    }
-    
-    return items;
-  }
-
-  /**
-   * 计算两组数据的相似度（百分比）
-   */
-  _calculateSimilarity(prev, current) {
-    if (prev.length === 0 || current.length === 0) return 0;
-    if (prev.length !== current.length) return 0;
-    
-    // 简单字符串比较
-    let matches = 0;
-    for (let i = 0; i < Math.min(prev.length, current.length); i++) {
-      if (prev[i] === current[i]) {
-        matches++;
-      }
-    }
-    
-    return (matches / prev.length) * 100;
+    return { batchIndex };
   }
 
   /**
@@ -295,9 +230,13 @@ class ExportManager {
    */
   async _mergeBatches(batches, dataType) {
     const firstContent = batches[0].content;
-    const firstData = firstContent.data;
+    
+    console.log(`[ExportManager] Merging ${batches.length} batches, expected type: ${dataType}, actual type: ${firstContent?.type}`);
+    
+    // 优先使用实际数据的 type，而非 expectedType
+    const actualType = firstContent?.type || dataType;
 
-    switch (dataType) {
+    switch (actualType) {
       case 'table':
         return this._mergeTables(batches);
       case 'list':
@@ -306,27 +245,32 @@ class ExportManager {
         return this._mergeDocuments(batches);
       default:
         // 默认取最后一批
+        console.warn(`[ExportManager] Unknown data type: ${actualType}, using last batch`);
         return batches[batches.length - 1].content;
     }
   }
 
   _mergeTables(batches) {
-    const first = batches[0].content.data;
+    const first = batches[0].content.data || {};
+    const headers = first.headers || [];
+    const rows = batches.flatMap(b => b.content?.data?.rows || []);
+    
+    console.log(`[ExportManager] Merging ${batches.length} table batches, ${rows.length} total rows`);
+    
     return {
       type: 'table',
-      data: {
-        headers: first.headers,
-        rows: batches.flatMap(b => b.content.data.rows || [])
-      }
+      data: { headers, rows }
     };
   }
 
   _mergeLists(batches) {
+    const items = batches.flatMap(b => b.content?.data?.items || []);
+    
+    console.log(`[ExportManager] Merging ${batches.length} list batches, ${items.length} total items`);
+    
     return {
       type: 'list',
-      data: {
-        items: batches.flatMap(b => b.content.data.items || [])
-      }
+      data: { items }
     };
   }
 
@@ -456,10 +400,17 @@ class ExportManager {
     const filepath = path.join(exportsDir, filename);
 
     console.log(`[ExportManager] Exporting to ${filepath}...`);
+    console.log(`[ExportManager] Data type: ${data?.type}, has data: ${!!data?.data}`);
     
-    await exporter.export(data, filepath, {
-      batchCount: index.batches
-    });
+    try {
+      await exporter.export(data, filepath, {
+        batchCount: index.batches
+      });
+      console.log(`[ExportManager] Export successful: ${filepath}`);
+    } catch (err) {
+      console.error(`[ExportManager] Export failed:`, err);
+      throw err;
+    }
 
     return filepath;
   }
@@ -534,15 +485,22 @@ class ExportManager {
   }
 
   /**
-   * 手动触发导出（用于 AI 明确调用 export action）
+   * 完成导出任务（用于 AI 明确调用 export action 或任务结束时）
    */
-  async manualExport(taskId) {
+  async finalizeExport(taskId) {
     const index = await this._readIndex(taskId);
     if (!index) {
       throw new Error(`Export task ${taskId} not found`);
     }
+    
+    // 如果已经导出过了，直接返回已导出的路径
+    if (index.status === 'completed' && index.exportPath) {
+      console.log(`[ExportManager] Task ${taskId} already exported to ${index.exportPath}`);
+      return { path: index.exportPath, status: 'completed' };
+    }
+    
     if (index.status !== 'collecting') {
-      throw new Error(`Export task ${taskId} is not in collecting state`);
+      throw new Error(`Export task ${taskId} is not in collecting state (current: ${index.status})`);
     }
     
     return this._finalizeExport(taskId, 'completed');

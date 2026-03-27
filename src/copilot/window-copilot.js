@@ -1690,7 +1690,7 @@ class WindowCopilot {
             break;
           }
           case 'collect': {
-            // 数据采集：将数据批次写入缓存
+            // 数据采集：将当前页面数据写入缓存
             const exportManager = getExportManager();
             
             // 如果没有活跃任务，自动创建一个新任务
@@ -1705,25 +1705,14 @@ class WindowCopilot {
             try {
               const result = await exportManager.collectBatch(
                 this._currentExportTaskId,
-                decision.content,
-                decision.batchIndex || 0,
-                decision.hasMore !== false  // 默认为 true
+                decision.content
               );
               stepResult = { 
                 success: true, 
                 batchIndex: result.batchIndex,
-                hasMore: result.hasMore,
-                isDuplicate: result.isDuplicate,  // 告诉AI是否是重复数据
-                message: result.isDuplicate 
-                  ? `已采集批次 ${result.batchIndex}，检测到重复数据，采集自动结束`
-                  : `已采集批次 ${result.batchIndex}`
+                message: `已采集第 ${result.batchIndex + 1} 页数据`
               };
               actualMode = 'JS';
-              
-              // 如果是最后一批，清理任务ID
-              if (!result.hasMore) {
-                this._currentExportTaskId = null;
-              }
             } catch (err) {
               console.error(`[WindowCopilot:${this.windowId}] collect failed:`, err.message);
               stepResult = { success: false, error: err.message };
@@ -1732,28 +1721,36 @@ class WindowCopilot {
             break;
           }
           case 'export': {
-            // 手动触发导出
+            // 【可选】手动触发导出（通常不需要，done 时会自动导出）
             const exportManager = getExportManager();
             
             if (this._currentExportTaskId) {
               try {
-                const result = await exportManager.manualExport(this._currentExportTaskId);
+                const result = await exportManager.finalizeExport(this._currentExportTaskId);
                 stepResult = { 
                   success: true, 
                   path: result.path,
                   status: result.status,
                   message: `已导出到: ${result.path}`
                 };
-                this._currentExportTaskId = null;
+                // 注意：不清理 _currentExportTaskId，因为可能还需要继续采集
               } catch (err) {
                 console.error(`[WindowCopilot:${this.windowId}] export failed:`, err.message);
-                stepResult = { success: false, error: err.message };
+                // 如果已经导出过了，提示成功
+                if (err.message.includes('already exported')) {
+                  stepResult = { 
+                    success: true, 
+                    message: '数据已导出'
+                  };
+                } else {
+                  stepResult = { success: false, error: err.message };
+                }
               }
             } else {
-              // 没有活跃任务，提示错误
+              // 没有活跃任务，可能是已经导出过了
               stepResult = { 
-                success: false, 
-                error: '没有正在采集的数据，请先使用 collect 操作采集数据'
+                success: true, 
+                message: '没有待导出的数据（可能已自动导出）'
               };
             }
             actualMode = 'JS';
@@ -2316,6 +2313,28 @@ ${text.substring(0, 500)}
    */
   async _finishAction(summary) {
     if (!this.isExecuting) return;
+
+    // 【自动导出】如果还有未导出的采集数据，先完成导出
+    if (this._currentExportTaskId) {
+      try {
+        const exportManager = getExportManager();
+        const result = await exportManager.finalizeExport(this._currentExportTaskId);
+        summary += `\n\n📊 数据已导出到: ${result.path}`;
+      } catch (err) {
+        console.error(`[WindowCopilot:${this.windowId}] Auto-export failed:`, err.message);
+        // 如果已经导出过了，不报错
+        if (err.message.includes('already exported')) {
+          const exportManager = getExportManager();
+          const status = await exportManager.getStatus(this._currentExportTaskId);
+          if (status?.exportPath) {
+            summary += `\n\n📊 数据已导出到: ${status.exportPath}`;
+          }
+        } else {
+          summary += `\n\n⚠️ 导出失败: ${err.message}`;
+        }
+      }
+      this._currentExportTaskId = null;
+    }
 
     this.isExecuting = false;
     this.mode = 'chat';
