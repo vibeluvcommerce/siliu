@@ -597,7 +597,9 @@ class SiliuController {
         const views = this.core.tabManager.getAllViews();
         if (index >= 0 && index < views.length) {
           const targetViewId = views[index].id;
-          this.core.tabManager.setActiveView(targetViewId);
+          // 【关键】传递 sidebarOpen 状态，确保 Copilot 侧边栏空间被保留
+          const sidebarOpen = this.core.tabManager.sidebarOpen;
+          this.core.tabManager.setActiveView(targetViewId, sidebarOpen);
           return { success: true, mode: 'native', viewId: targetViewId };
         }
         return { success: false, error: `Invalid tab index: ${index}` };
