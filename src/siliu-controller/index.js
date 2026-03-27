@@ -429,10 +429,10 @@ class SiliuController {
    * 点击元素
    * 返回 { result, mode, attempts: [{mode, success, error}] }
    */
-  async click(selectorOrText) {
+  async click(selectorOrText, options = {}) {
     return this._executeWithFallback(
       'click',
-      async (ctrl) => ctrl.click(selectorOrText),
+      async (ctrl) => ctrl.click(selectorOrText, options),
       async () => this._nativeClick(selectorOrText)
     );
   }
@@ -523,11 +523,11 @@ class SiliuController {
    * 输入文本到当前活动元素（无需 selector）
    * 返回 { result, mode }
    */
-  async typeActive(text) {
+  async typeActive(text, options = {}) {
     if (this.cdpController?.isConnected) {
       try {
-        const result = await this.cdpController.typeActive(text);
-        return { ...result, mode: 'CDP' };
+        const result = await this.cdpController.typeActive(text, options);
+        return { ...result, mode: result.mode || 'CDP' };
       } catch (err) {
         console.warn('[SiliuController] typeActive: CDP failed, using JS');
       }

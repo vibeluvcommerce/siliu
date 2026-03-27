@@ -1182,7 +1182,14 @@ class WindowCopilot {
             } else {
               // 传统 selector 点击
               const selector = decision.target?.selector || decision.selector;
-              const { result, mode } = await this.controller.click(selector);
+              
+              // 【关键】如果处于 hover 面板上下文中，使用 JS 点击保持 hover 状态
+              const preserveHover = this._hoverPanelActive;
+              if (preserveHover) {
+                console.log(`[WindowCopilot:${this.windowId}] Preserving hover state for selector click`);
+              }
+              
+              const { result, mode } = await this.controller.click(selector, { preserveHover });
               console.log(`[WindowCopilot:${this.windowId}] click returned mode: ${mode}`);
               stepResult = result;
               actualMode = mode;
@@ -1468,7 +1475,10 @@ class WindowCopilot {
               }
               
               // 使用 activeElement 输入（不依赖 selector）
-              const { result: typeResult, mode: typeMode } = await this.controller.typeActive(decision.text);
+              // 【关键】如果处于 hover 面板上下文中，使用 JS 输入
+              const { result: typeResult, mode: typeMode } = await this.controller.typeActive(decision.text, { 
+                preserveHover: this._hoverPanelActive 
+              });
               stepResult = typeResult;
               actualMode = typeMode;
               

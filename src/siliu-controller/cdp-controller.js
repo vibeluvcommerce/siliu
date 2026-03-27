@@ -451,6 +451,12 @@ class CDPController {
       throw new Error(`Invalid selector for click: ${selectorOrText}`);
     }
     
+    // 【关键】如果处于 hover 面板上下文中，使用 JS 点击不移动鼠标
+    if (options.preserveHover) {
+      console.log(`[CDPController] Using JS click for selector due to preserveHover`);
+      return this._jsClick(selectorOrText, options);
+    }
+    
     // 【快速模式】如果关闭拟人化，使用简单点击
     if (!this.humanize.enabled) {
       return this._fastClick(selectorOrText, options);
@@ -596,6 +602,72 @@ class CDPController {
     });
 
     return { success: true, position: { x: targetX, y: targetY } };
+  }
+
+  /**
+   * 【私有】使用 JS 直接点击元素（用于 preserveHover 模式）
+   * 不移动鼠标，保持 hover 状态
+   */
+  async _jsClick(selectorOrText, options = {}) {
+    console.log(`[CDPController] _jsClick: selector="${selectorOrText}"`);
+    
+    // 查找元素
+    let nodeId = await this.smartFind(selectorOrText);
+    if (!nodeId) {
+      await this.sleep(500);
+      nodeId = await this.smartFind(selectorOrText);
+      if (!nodeId) {
+        throw new Error(`Element not found for JS click: ${selectorOrText}`);
+      }
+    }
+    
+    // 滚动到元素可见
+    try {
+      await this.cdp.send('DOM.scrollIntoViewIfNeeded', { nodeId });
+      await this.sleep(200);
+    } catch (e) {
+      // 忽略
+    }
+    
+    // 使用 JS 直接点击
+    const { object } = await this.cdp.send('DOM.resolveNode', { nodeId });
+    if (!object || !object.objectId) {
+      throw new Error('Failed to resolve node for JS click');
+    }
+    
+    const result = await this.cdp.evaluate(`
+      (function() {
+        const el = document.querySelector('${selectorOrText.replace(/'/g, "\\'")}');
+        if (!el) return { success: false, error: 'Element not found' };
+        
+        // 对于输入框，先聚焦
+        const isInput = el.tagName === 'INPUT' || el.tagName === 'TEXTAREA';
+        if (isInput) {
+          el.focus();
+          el.dispatchEvent(new FocusEvent('focus', { bubbles: true }));
+        }
+        
+        // 触发点击
+        el.click();
+        el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        
+        // 如果是链接，处理跳转
+        const link = el.tagName === 'A' ? el : el.closest('a');
+        if (link && link.href) {
+          window.location.assign(link.href);
+        }
+        
+        return { 
+          success: true, 
+          element: el.tagName,
+          className: el.className,
+          isInput: isInput
+        };
+      })()
+    `, { returnByValue: true });
+    
+    console.log(`[CDPController] _jsClick result:`, result);
+    return { success: result?.success ?? false, jsClick: true, ...result };
   }
 
   /**
@@ -1272,8 +1344,40 @@ class CDPController {
    * 输入文本到当前活动元素（无需先查找元素）
    * 直接使用 CDP dispatchKeyEvent 向当前焦点元素输入
    * 【增强】如果 CDP 输入失败，使用 JS 直接设置值
+   * 【增强】支持 preserveHover 模式，强制使用 JS 输入
    */
-  async typeActive(text) {
+  async typeActive(text, options = {}) {
+    // 【关键】如果处于 hover 面板上下文中，直接使用 JS 输入
+    if (options.preserveHover) {
+      console.log(`[CDPController] Using JS typeActive due to preserveHover`);
+      const result = await this.cdp.evaluate(`
+        (function() {
+          const active = document.activeElement;
+          if (!active) return { success: false, error: 'No active element' };
+          
+          const isInput = active.tagName === 'INPUT' || active.tagName === 'TEXTAREA';
+          const isEditable = active.isContentEditable;
+          
+          if (isInput) {
+            // 对于 input/textarea，直接设置 value
+            active.value = '${text.replace(/'/g, "\\'")}';
+            active.dispatchEvent(new Event('input', { bubbles: true }));
+            active.dispatchEvent(new Event('change', { bubbles: true }));
+            return { success: true, value: active.value, mode: 'JS-input' };
+          } else if (isEditable) {
+            // 对于 contentEditable 元素
+            active.textContent = '${text.replace(/'/g, "\\'")}';
+            active.dispatchEvent(new Event('input', { bubbles: true }));
+            return { success: true, textContent: active.textContent, mode: 'JS-editable' };
+          } else {
+            return { success: false, error: 'Active element is not an input', tagName: active.tagName };
+          }
+        })()
+      `, { returnByValue: true });
+      
+      return { success: result?.success ?? false, text, ...result };
+    }
+    
     // 首先尝试 CDP 键盘事件输入
     try {
       const chars = text.split('');
