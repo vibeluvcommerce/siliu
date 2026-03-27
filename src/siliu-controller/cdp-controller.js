@@ -749,6 +749,16 @@ class CDPController {
             }
           }
           
+          // 【关键】对于输入框元素，需要显式聚焦
+          const isInput = clickTarget.tagName === 'INPUT' || 
+                          clickTarget.tagName === 'TEXTAREA' || 
+                          clickTarget.isContentEditable;
+          
+          if (isInput) {
+            clickTarget.focus();
+            clickTarget.dispatchEvent(new FocusEvent('focus', { bubbles: true }));
+          }
+          
           clickTarget.click();
           clickTarget.dispatchEvent(new MouseEvent('click', { bubbles: true }));
           
@@ -761,7 +771,8 @@ class CDPController {
             element: clickTarget.tagName,
             className: clickTarget.className,
             text: clickTarget.textContent?.substring(0, 50),
-            href: link?.href || null
+            href: link?.href || null,
+            isInput: isInput
           };
         })()
       `, { returnByValue: true });
@@ -1060,6 +1071,12 @@ class CDPController {
       throw new Error(`Invalid selector for type: ${selectorOrText}`);
     }
     
+    // 【关键】如果处于 hover 面板上下文中，使用 JS 直接设置值
+    if (options.preserveHover) {
+      console.log(`[CDPController] Using JS type due to preserveHover`);
+      return this._jsType(selectorOrText, text, options);
+    }
+    
     // 随机停顿
     await this.humanPause('normal');
 
@@ -1182,22 +1199,138 @@ class CDPController {
   }
 
   /**
+   * 【私有】使用 JS 直接设置输入框值（用于 preserveHover 模式）
+   * 不移动鼠标，不依赖 CDP 键盘事件
+   */
+  async _jsType(selectorOrText, text, options = {}) {
+    console.log(`[CDPController] _jsType: selector="${selectorOrText}", text="${text}"`);
+    
+    // 等待元素出现
+    let nodeId = await this.smartFind(selectorOrText);
+    if (!nodeId) {
+      await this.sleep(500);
+      nodeId = await this.smartFind(selectorOrText);
+      if (!nodeId) {
+        throw new Error(`Element not found for JS type: ${selectorOrText}`);
+      }
+    }
+    
+    // 滚动到元素可见
+    try {
+      await this.cdp.send('DOM.scrollIntoViewIfNeeded', { nodeId });
+      await this.sleep(200);
+    } catch (e) {
+      // 忽略
+    }
+    
+    // 获取元素 objectId 用于 JS 操作
+    const { object } = await this.cdp.send('DOM.resolveNode', { nodeId });
+    if (!object || !object.objectId) {
+      throw new Error('Failed to resolve node for JS type');
+    }
+    
+    // 使用 JS 直接设置值
+    const result = await this.cdp.evaluate(`
+      (function() {
+        const el = document.querySelector('${selectorOrText.replace(/'/g, "\\'")}');
+        if (!el) return { success: false, error: 'Element not found' };
+        
+        const isInput = el.tagName === 'INPUT' || el.tagName === 'TEXTAREA';
+        const isEditable = el.isContentEditable;
+        
+        // 聚焦元素
+        el.focus();
+        el.dispatchEvent(new FocusEvent('focus', { bubbles: true }));
+        
+        // 清空现有内容（如果需要）
+        if (${options.clear !== false} && isInput) {
+          el.select();
+          el.dispatchEvent(new Event('select', { bubbles: true }));
+        }
+        
+        // 设置值
+        if (isInput) {
+          el.value = '${text.replace(/'/g, "\\'")}';
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+          el.dispatchEvent(new Event('change', { bubbles: true }));
+          return { success: true, value: el.value, mode: 'JS-input' };
+        } else if (isEditable) {
+          el.textContent = '${text.replace(/'/g, "\\'")}';
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+          return { success: true, textContent: el.textContent, mode: 'JS-editable' };
+        } else {
+          return { success: false, error: 'Element is not an input', tagName: el.tagName };
+        }
+      })()
+    `, { returnByValue: true });
+    
+    console.log(`[CDPController] _jsType result:`, result);
+    return { success: result?.success ?? false, text, ...result };
+  }
+
+  /**
    * 输入文本到当前活动元素（无需先查找元素）
    * 直接使用 CDP dispatchKeyEvent 向当前焦点元素输入
+   * 【增强】如果 CDP 输入失败，使用 JS 直接设置值
    */
   async typeActive(text) {
-    const chars = text.split('');
-    for (const char of chars) {
-      await this.cdp.send('Input.dispatchKeyEvent', {
-        type: 'keyDown',
-        text: char
-      });
-      await this.cdp.send('Input.dispatchKeyEvent', {
-        type: 'keyUp',
-        text: char
-      });
+    // 首先尝试 CDP 键盘事件输入
+    try {
+      const chars = text.split('');
+      for (const char of chars) {
+        await this.cdp.send('Input.dispatchKeyEvent', {
+          type: 'keyDown',
+          text: char
+        });
+        await this.cdp.send('Input.dispatchKeyEvent', {
+          type: 'keyUp',
+          text: char
+        });
+      }
+      
+      // 验证输入是否成功
+      const hasValue = await this.cdp.evaluate(`
+        (function() {
+          const active = document.activeElement;
+          return active && (active.value || active.textContent);
+        })()
+      `, { returnByValue: true });
+      
+      if (hasValue) {
+        return { success: true, text, mode: 'CDP' };
+      }
+    } catch (err) {
+      console.log(`[CDPController] CDP typeActive failed, falling back to JS: ${err.message}`);
     }
-    return { success: true, text };
+    
+    // 【降级】使用 JS 直接设置 activeElement 的值
+    console.log(`[CDPController] Using JS typeActive fallback`);
+    const result = await this.cdp.evaluate(`
+      (function() {
+        const active = document.activeElement;
+        if (!active) return { success: false, error: 'No active element' };
+        
+        const isInput = active.tagName === 'INPUT' || active.tagName === 'TEXTAREA';
+        const isEditable = active.isContentEditable;
+        
+        if (isInput) {
+          // 对于 input/textarea，直接设置 value
+          active.value = '${text.replace(/'/g, "\\'")}';
+          active.dispatchEvent(new Event('input', { bubbles: true }));
+          active.dispatchEvent(new Event('change', { bubbles: true }));
+          return { success: true, value: active.value, mode: 'JS-input' };
+        } else if (isEditable) {
+          // 对于 contentEditable 元素
+          active.textContent = '${text.replace(/'/g, "\\'")}';
+          active.dispatchEvent(new Event('input', { bubbles: true }));
+          return { success: true, textContent: active.textContent, mode: 'JS-editable' };
+        } else {
+          return { success: false, error: 'Active element is not an input', tagName: active.tagName };
+        }
+      })()
+    `, { returnByValue: true });
+    
+    return { success: result?.success ?? false, text, ...result };
   }
 
   /**

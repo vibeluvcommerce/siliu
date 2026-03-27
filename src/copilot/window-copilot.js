@@ -59,8 +59,8 @@ class WindowCopilot {
     // 登录等待计数
     this.loginWaitCount = 0;
 
-    // 跟踪上一步是否是 hover（用于 hover 后的点击保持 hover 状态）
-    this._lastActionWasHover = false;
+    // 跟踪当前是否处于 hover 面板上下文中（用于 hover 后的连续点击保持 hover 状态）
+    this._hoverPanelActive = false;
     
     // 跟踪上一步动作名称（用于优化连续操作）
     this._lastAction = null;
@@ -1168,18 +1168,17 @@ class WindowCopilot {
               
               console.log(`[WindowCopilot:${this.windowId}] Clicking at coordinate: (${x}, ${y})`);
               
-              // 【关键】如果上一步是 hover，这一步点击要保持 hover 状态（使用 JS 点击）
-              const preserveHover = this._lastActionWasHover;
+              // 【关键】如果当前处于 hover 面板上下文中，点击要保持 hover 状态（使用 JS 点击）
+              const preserveHover = this._hoverPanelActive;
               if (preserveHover) {
-                console.log(`[WindowCopilot:${this.windowId}] Preserving hover state for dropdown click`);
+                console.log(`[WindowCopilot:${this.windowId}] Preserving hover state for panel click`);
               }
               
               const { result, mode } = await this.controller.clickAt(x, y, preserveHover);
               stepResult = result;
               actualMode = mode;
               
-              // 重置 hover 标志
-              this._lastActionWasHover = false;
+              // 【关键】连续点击时保持 hover 面板状态，直到执行其他类型操作
             } else {
               // 传统 selector 点击
               const selector = decision.target?.selector || decision.selector;
@@ -1214,8 +1213,8 @@ class WindowCopilot {
             }
             await this._smartWait('hover');
             
-            // 【关键】标记上一步是 hover，这样下一步点击会保持 hover 状态
-            this._lastActionWasHover = true;
+            // 【关键】进入 hover 面板上下文，后续连续点击都会保持 hover 状态
+            this._hoverPanelActive = true;
             
             // 【关键】hover 后给 AI 提示下拉菜单的位置
             if (stepResult.success) {
@@ -1450,7 +1449,14 @@ class WindowCopilot {
                 await this._blurShellInput();
 
                 const { x, y } = decision.target;
-                const { result: clickResult, mode: clickMode } = await this.controller.clickAt(x, y);
+                
+                // 【关键】如果处于 hover 面板上下文中，使用 JS 点击保持 hover 状态
+                const preserveHover = this._hoverPanelActive;
+                if (preserveHover) {
+                  console.log(`[WindowCopilot:${this.windowId}] Preserving hover state for type operation`);
+                }
+                
+                const { result: clickResult, mode: clickMode } = await this.controller.clickAt(x, y, preserveHover);
                 if (!clickResult.success) {
                   stepResult = { success: false, error: '坐标点击失败' };
                   actualMode = 'JS';
@@ -1477,9 +1483,16 @@ class WindowCopilot {
               const skipClick = this._lastAction === 'selectAll';
               console.log(`[WindowCopilot:${this.windowId}] Type with selector, skipClick=${skipClick}`);
               
+              // 【关键】如果处于 hover 面板上下文中，使用 JS 输入方式
+              const preserveHover = this._hoverPanelActive;
+              if (preserveHover) {
+                console.log(`[WindowCopilot:${this.windowId}] Using JS type with preserveHover`);
+              }
+              
               const { result, mode } = await this.controller.type(decision.selector, decision.text, { 
                 skipClick, 
-                clear: !skipClick // 如果跳过了全选，则不清空（因为已经全选了）
+                clear: !skipClick, // 如果跳过了全选，则不清空（因为已经全选了）
+                preserveHover // 传递 hover 保持标志
               });
               console.log(`[WindowCopilot:${this.windowId}] type returned mode: ${mode}`);
               stepResult = result;
@@ -1613,6 +1626,15 @@ class WindowCopilot {
           }
           default:
             stepResult = { success: false, error: `未知操作: ${decision.action}` };
+        }
+
+        // 【关键】非 click/hover/type 操作会退出 hover 面板上下文
+        // 允许在 hover 面板内连续点击或输入文本
+        if (decision.action !== 'click' && decision.action !== 'hover' && decision.action !== 'type') {
+          if (this._hoverPanelActive) {
+            console.log(`[WindowCopilot:${this.windowId}] Exiting hover panel context after ${decision.action}`);
+            this._hoverPanelActive = false;
+          }
         }
 
         // 如果实际模式和预期不同，发送更新事件
