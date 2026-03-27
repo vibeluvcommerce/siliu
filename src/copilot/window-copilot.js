@@ -661,7 +661,12 @@ class WindowCopilot {
           // 通用可点击元素
           '[class*="btn"]', '[class*="button"]', '[class*="link"]',
           // 小红书等
-          '[class*="note"]', '[class*="post"]'
+          '[class*="note"]', '[class*="post"]',
+          // 豆瓣/电影类网站
+          '[class*="movie"]', '[class*="film"]', '[class*="list"]',
+          '[class*="rank"]', '[class*="top"]',
+          // 通用列表项
+          'li', '[class*="list-item"]', '[class*="entry"]'
         ];
         const elements = [];
         const seen = new Set();
