@@ -652,21 +652,82 @@ class WindowCopilot {
     const interactiveElements = await withTimeout(
       webContents.executeJavaScript(`(function() {
         const selectors = [
-          'button', 'a[href]', 'input', 'textarea', 'select',
-          '[role="button"]', '[role="link"]', '[onclick]',
+          // 基础交互元素
+          'button', 'a[href]', 'input', 'textarea', 'select', 'label',
+          '[role="button"]', '[role="link"]', '[role="menuitem"]', 
+          '[onclick]', '[tabindex]:not([tabindex="-1"])',
+          
           // 抖音/视频类网站
           '[data-e2e]', '[class*="card"]', '[class*="video"]', '[class*="item"]',
           '[class*="like"]', '[class*="heart"]', '[class*="thumb"]',
-          'video', '[class*="player"]',
+          'video', '[class*="player"]', '[class*="shorts"]', '[class*="reels"]',
+          
           // 通用可点击元素
           '[class*="btn"]', '[class*="button"]', '[class*="link"]',
-          // 小红书等
-          '[class*="note"]', '[class*="post"]',
+          '[class*="clickable"]', '[class*="action"]', '[class*="oper"]',
+          
+          // 小红书/Instagram等
+          '[class*="note"]', '[class*="post"]', '[class*="feed"]', 
+          '[class*="content"]', '[class*="article"]',
+          
           // 豆瓣/电影类网站
-          '[class*="movie"]', '[class*="film"]', '[class*="list"]',
-          '[class*="rank"]', '[class*="top"]',
-          // 通用列表项
-          'li', '[class*="list-item"]', '[class*="entry"]'
+          '[class*="movie"]', '[class*="film"]', '[class*="book"]',
+          '[class*="rank"]', '[class*="top"]', '[class*="chart"]',
+          
+          // 电商类（淘宝/京东/亚马逊等）
+          '[class*="product"]', '[class*="goods"]', '[class*="sku"]', 
+          '[class*="shop"]', '[class*="store"]', '[class*="price"]',
+          '[class*="buy"]', '[class*="cart"]', '[class*="order"]',
+          '[class*="search-result"]', '[class*="recommend"]',
+          
+          // 新闻/博客类
+          '[class*="news"]', '[class*="blog"]', '[class*="story"]',
+          '[class*="headline"]', '[class*="title"]', '[class*="summary"]',
+          '[class*="excerpt"]', 'article', '[class*="media"]',
+          
+          // 列表/网格类
+          'li', '[class*="list-item"]', '[class*="entry"]',
+          '[class*="grid-item"]', '[class*="cell"]', '[class*="row"]',
+          '[class*="col"]', '[class*="tile"]', '[class*="box"]',
+          
+          // 导航/菜单
+          'nav a', '[class*="nav"]', '[class*="menu"]', '[class*="tab"]',
+          '[class*="breadcrumb"]', '[class*="pagination"]', '[class*="pager"]',
+          '[class*="dropdown"]', '[class*="sidebar"]', '[class*="header"]',
+          
+          // 表格数据
+          'table', 'tr', 'td', 'th', '[class*="table"]', '[class*="data"]',
+          '[class*="cell"]', '[class*="row"]', '[class*="column"]',
+          
+          // 图片/媒体容器
+          'img', 'figure', '[class*="image"]', '[class*="pic"]', 
+          '[class*="photo"]', '[class*="gallery"]', '[class*="album"]',
+          '[class*="cover"]', '[class*="thumbnail"]', '[class*="avatar"]',
+          
+          // 评论/互动
+          '[class*="comment"]', '[class*="reply"]', '[class*="review"]',
+          '[class*="rating"]', '[class*="score"]', '[class*="star"]',
+          '[class*="vote"]', '[class*="favorite"]', '[class*="collect"]',
+          '[class*="share"]', '[class*="download"]', '[class*="print"]',
+          
+          // 用户信息
+          '[class*="user"]', '[class*="author"]', '[class*="profile"]',
+          '[class*="member"]', '[class*="account"]', '[class*="login"]',
+          '[class*="register"]', '[class*="signup"]',
+          
+          // 标签/分类
+          '[class*="tag"]', '[class*="category"]', '[class*="label"]',
+          '[class*="badge"]', '[class*="chip"]', '[class*="pill"]',
+          
+          // 时间/日期
+          '[class*="time"]', '[class*="date"]', '[class*="datetime"]',
+          '[class*="timestamp"]', '[class*="published"]', '[class*="updated"]',
+          
+          // 加载更多/分页
+          '[class*="load-more"]', '[class*="loadmore"]', '[class*="show-more"]',
+          '[class*="expand"]', '[class*="collapse"]', '[class*="toggle"]',
+          '[class*="next"]', '[class*="prev"]', '[class*="previous"]',
+          '[class*="first"]', '[class*="last"]'
         ];
         const elements = [];
         const seen = new Set();
