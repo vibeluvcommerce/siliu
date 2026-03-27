@@ -629,6 +629,23 @@ class CDPController {
       // 忽略
     }
     
+    // 获取元素位置用于显示视觉标记
+    let targetX = 0, targetY = 0;
+    try {
+      const boxModel = await this.cdp.send('DOM.getBoxModel', { nodeId });
+      const { content } = boxModel.model;
+      // 计算元素中心点
+      targetX = (content[0] + content[4]) / 2;
+      targetY = (content[1] + content[5]) / 2;
+    } catch (e) {
+      // 忽略，不显示标记
+    }
+    
+    // 【调试】显示视觉标记
+    if (targetX && targetY) {
+      await this.showClickMarker(targetX, targetY, 1920, 1080);
+    }
+    
     // 使用 JS 直接点击
     const { object } = await this.cdp.send('DOM.resolveNode', { nodeId });
     if (!object || !object.objectId) {
