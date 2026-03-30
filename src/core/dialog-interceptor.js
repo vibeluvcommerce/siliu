@@ -344,24 +344,7 @@ class DialogInterceptor extends EventEmitter {
         }
       }
       
-      // 方法2: 对于 Chrome 保存对话框，尝试键盘模拟输入
-      console.log('[DialogInterceptor] Trying keyboard simulation for Chrome dialog...');
-      const keyboardSuccess = await this._fillByKeyboard(hwnd, this.pendingFile);
-      
-      if (keyboardSuccess) {
-        console.log('[DialogInterceptor] Keyboard simulation successful');
-        // 触发事件
-        this.emit('file:selected', {
-          filePath: this.pendingFile,
-          hwnd: hwnd,
-          title: this._getWindowTitle(hwnd)
-        });
-        // 清除待选文件
-        this.pendingFile = null;
-        return;
-      }
-      
-      // 如果键盘模拟也失败，发出手动干预事件
+      // 如果找不到输入框，发出手动干预事件
       console.warn('[DialogInterceptor] Could not find filename input, manual intervention needed');
       this.emit('dialog:manual-required', {
         hwnd: hwnd,
@@ -375,72 +358,39 @@ class DialogInterceptor extends EventEmitter {
   }
 
   /**
-   * 查找文件名输入框
+   * 查找文件名输入框（简化版，参考上传的实现）
    */
   _findFilenameEdit(parentHwnd) {
     try {
-      // 常见的文件名输入框类名
+      // 标准 Windows 文件对话框的文件名输入框类名
       const editClasses = ['Edit', 'ComboBoxEx32', 'ComboBox'];
       
       for (const className of editClasses) {
         const classNameUtf16 = Buffer.from(className + '\0', 'utf16le');
         
-        // 尝试直接查找
+        // 尝试直接查找第一级子窗口
         let edit = this.user32.FindWindowExW(parentHwnd, null, classNameUtf16, null);
         
-        // koffi returns a pointer - check if it's not null
         if (edit) {
-          console.log(`[DialogInterceptor] Found ${className} control`);
+          console.log(`[DialogInterceptor] Found ${className} control directly`);
           return edit;
         }
       }
       
-      // 如果直接找不到，尝试遍历所有子窗口
-      console.log('[DialogInterceptor] Trying to enumerate child windows...');
-      const found = this._enumerateAllChildWindows(parentHwnd);
-      if (found) {
-        return found;
-      }
-      
-      return null;
-    } catch (err) {
-      console.error('[DialogInterceptor] Error finding edit box:', err.message);
-      return null;
-    }
-  }
-
-  /**
-   * 枚举所有子窗口（深度遍历）
-   */
-  _enumerateAllChildWindows(parentHwnd) {
-    try {
-      // 获取所有子窗口，不限于 Edit 类
+      // 如果直接找不到，遍历所有子窗口查找 Edit 类
+      console.log('[DialogInterceptor] Enumerating child windows to find Edit control...');
       let child = null;
-      const nullClass = Buffer.from('\0', 'utf16le');
-      
-      console.log('[DialogInterceptor] Enumerating all child windows of dialog...');
       
       do {
         child = this.user32.FindWindowExW(parentHwnd, child, null, null);
         if (child) {
-          const classBuffer = Buffer.alloc(512);
-          const classLen = this.user32.GetClassNameW(child, classBuffer, 256);
-          const className = classBuffer.toString('utf16le', 0, classLen * 2).replace(/\0/g, '');
-          
-          const titleBuffer = Buffer.alloc(1024);
-          const titleLen = this.user32.GetWindowTextW(child, titleBuffer, 512);
-          const title = titleBuffer.toString('utf16le', 0, titleLen * 2).replace(/\0/g, '');
-          
-          console.log('[DialogInterceptor] Child window:', { className, title });
-          
-          // 检查是否是可编辑的控件
-          if (['Edit', 'ComboBoxEx32', 'ComboBox', 'Chrome_WidgetWin_0', 'Chrome_WidgetWin_1'].includes(className)) {
-            // 对于 Chrome 控件，尝试更深层的查找
-            if (className.startsWith('Chrome_WidgetWin_')) {
-              const deepChild = this._findEditInChromeWidget(child);
-              if (deepChild) return deepChild;
-            } else {
-              console.log(`[DialogInterceptor] Found editable control: ${className}`);
+          const classBuffer = Buffer.alloc(256);
+          const classLen = this.user32.GetClassNameW(child, classBuffer, 128);
+          if (classLen > 0) {
+            const className = classBuffer.toString('utf16le', 0, classLen * 2).replace(/\0/g, '');
+            
+            if (className === 'Edit' || className === 'ComboBoxEx32' || className === 'ComboBox') {
+              console.log(`[DialogInterceptor] Found ${className} control via enumeration`);
               return child;
             }
           }
@@ -449,44 +399,7 @@ class DialogInterceptor extends EventEmitter {
       
       return null;
     } catch (err) {
-      console.error('[DialogInterceptor] Error enumerating children:', err.message);
-      return null;
-    }
-  }
-
-  /**
-   * 在 Chrome Widget 中查找编辑框
-   */
-  _findEditInChromeWidget(parentHwnd) {
-    try {
-      let child = null;
-      const nullClass = Buffer.from('\0', 'utf16le');
-      
-      do {
-        child = this.user32.FindWindowExW(parentHwnd, child, null, null);
-        if (child) {
-          const classBuffer = Buffer.alloc(512);
-          const classLen = this.user32.GetClassNameW(child, classBuffer, 256);
-          const className = classBuffer.toString('utf16le', 0, classLen * 2).replace(/\0/g, '');
-          
-          console.log('[DialogInterceptor] Chrome widget child:', { className });
-          
-          if (['Edit', 'ComboBoxEx32', 'ComboBox'].includes(className)) {
-            console.log(`[DialogInterceptor] Found edit in Chrome widget: ${className}`);
-            return child;
-          }
-          
-          // 递归查找更深层的控件
-          if (className.startsWith('Chrome_WidgetWin_')) {
-            const deep = this._findEditInChromeWidget(child);
-            if (deep) return deep;
-          }
-        }
-      } while (child);
-      
-      return null;
-    } catch (err) {
-      console.error('[DialogInterceptor] Error finding edit in Chrome widget:', err.message);
+      console.error('[DialogInterceptor] Error finding edit box:', err.message);
       return null;
     }
   }
@@ -517,200 +430,6 @@ class DialogInterceptor extends EventEmitter {
     } catch (err) {
       console.error('[DialogInterceptor] Error enumerating children:', err.message);
     }
-  }
-
-  /**
-   * 使用键盘模拟填充文件路径（用于 Chrome 保存对话框）
-   */
-  async _fillByKeyboard(hwnd, filePath) {
-    try {
-      console.log('[DialogInterceptor] Using keyboard simulation to fill path:', filePath);
-      
-      // 确保窗口在前台
-      this.user32.SetForegroundWindow(hwnd);
-      await this._sleep(200);
-      
-      // 方法1: 尝试 Alt+N 快捷键直接定位到文件名输入框（Windows 标准保存对话框）
-      console.log('[DialogInterceptor] Sending Alt+N to focus filename field');
-      this._sendKeyCombo(hwnd, 0x12, 0x4E); // Alt+N
-      await this._sleep(100);
-      
-      // 方法2: 如果 Alt+N 不行，尝试多次 Tab 切换到文件名输入框
-      // 先按 Home 确保在第一个控件
-      this._sendKey(hwnd, 0x24); // Home
-      await this._sleep(50);
-      
-      // 按多次 Tab 尝试到达文件名输入框（通常是第3-4个控件）
-      for (let i = 0; i < 6; i++) {
-        this._sendKey(hwnd, 0x09); // Tab
-        await this._sleep(30);
-      }
-      
-      // 现在应该聚焦在文件名输入框，全选现有内容
-      this._sendKeyCombo(hwnd, 0x11, 0x41); // Ctrl+A
-      await this._sleep(50);
-      
-      // 输入文件路径
-      console.log('[DialogInterceptor] Typing file path...');
-      for (const char of filePath) {
-        const vk = this._charToVk(char);
-        if (vk) {
-          // 对于字母，需要处理大小写
-          const isUpper = char === char.toUpperCase() && char !== char.toLowerCase();
-          if (isUpper) {
-            // 大写字母需要按住 Shift
-            this._sendKeyWithShift(hwnd, vk);
-          } else {
-            this._sendKey(hwnd, vk);
-          }
-          await this._sleep(10);
-        } else {
-          // 特殊字符处理
-          this._sendSpecialChar(hwnd, char);
-          await this._sleep(10);
-        }
-      }
-      
-      await this._sleep(200);
-      
-      // 按回车确认
-      console.log('[DialogInterceptor] Pressing Enter to confirm');
-      this._sendKey(hwnd, 0x0D); // Enter
-      
-      console.log('[DialogInterceptor] Keyboard input completed');
-      return true;
-    } catch (err) {
-      console.error('[DialogInterceptor] Keyboard simulation failed:', err.message);
-      return false;
-    }
-  }
-
-  /**
-   * 发送带 Shift 的按键（用于大写字母）
-   */
-  _sendKeyWithShift(hwnd, vkCode) {
-    const WM_KEYDOWN = 0x0100;
-    const WM_KEYUP = 0x0101;
-    const VK_SHIFT = 0x10;
-    
-    // 按下 Shift
-    this.user32.PostMessageW(hwnd, WM_KEYDOWN, VK_SHIFT, 0);
-    // 按下按键
-    this.user32.PostMessageW(hwnd, WM_KEYDOWN, vkCode, 0);
-    // 释放按键
-    this.user32.PostMessageW(hwnd, WM_KEYUP, vkCode, 0);
-    // 释放 Shift
-    this.user32.PostMessageW(hwnd, WM_KEYUP, VK_SHIFT, 0);
-  }
-
-  /**
-   * 发送特殊字符
-   */
-  _sendSpecialChar(hwnd, char) {
-    const VK_OEM_1 = 0xBA;      // ;:
-    const VK_OEM_2 = 0xBF;      // /?
-    const VK_OEM_3 = 0xC0;      // `~
-    const VK_OEM_4 = 0xDB;      // [{
-    const VK_OEM_5 = 0xDC;      // \|
-    const VK_OEM_6 = 0xDD;      // ]}
-    const VK_OEM_7 = 0xDE;      // '"
-    const VK_OEM_MINUS = 0xBD;  // -_
-    const VK_OEM_PLUS = 0xBB;   // =+
-    const VK_OEM_PERIOD = 0xBE; // .>
-    const VK_OEM_COMMA = 0xBC;  // ,<
-    
-    const map = {
-      ':': { vk: VK_OEM_1, shift: true },
-      ';': { vk: VK_OEM_1, shift: false },
-      '/': { vk: VK_OEM_2, shift: false },
-      '?': { vk: VK_OEM_2, shift: true },
-      '`': { vk: VK_OEM_3, shift: false },
-      '~': { vk: VK_OEM_3, shift: true },
-      '[': { vk: VK_OEM_4, shift: false },
-      '{': { vk: VK_OEM_4, shift: true },
-      '\\': { vk: VK_OEM_5, shift: false },
-      '|': { vk: VK_OEM_5, shift: true },
-      ']': { vk: VK_OEM_6, shift: false },
-      '}': { vk: VK_OEM_6, shift: true },
-      "'": { vk: VK_OEM_7, shift: false },
-      '"': { vk: VK_OEM_7, shift: true },
-      '-': { vk: VK_OEM_MINUS, shift: false },
-      '_': { vk: VK_OEM_MINUS, shift: true },
-      '=': { vk: VK_OEM_PLUS, shift: false },
-      '+': { vk: VK_OEM_PLUS, shift: true },
-      '.': { vk: VK_OEM_PERIOD, shift: false },
-      '>': { vk: VK_OEM_PERIOD, shift: true },
-      ',': { vk: VK_OEM_COMMA, shift: false },
-      '<': { vk: VK_OEM_COMMA, shift: true },
-    };
-    
-    if (map[char]) {
-      if (map[char].shift) {
-        this._sendKeyWithShift(hwnd, map[char].vk);
-      } else {
-        this._sendKey(hwnd, map[char].vk);
-      }
-    } else if (char === ' ') {
-      this._sendKey(hwnd, 0x20); // Space
-    }
-  }
-
-  /**
-   * 发送单个按键
-   */
-  _sendKey(hwnd, vkCode) {
-    const WM_KEYDOWN = 0x0100;
-    const WM_KEYUP = 0x0101;
-    
-    // 发送按键按下
-    this.user32.PostMessageW(hwnd, WM_KEYDOWN, vkCode, 0);
-    // 发送按键释放
-    this.user32.PostMessageW(hwnd, WM_KEYUP, vkCode, 0);
-  }
-
-  /**
-   * 发送组合键
-   */
-  _sendKeyCombo(hwnd, vkModifier, vkKey) {
-    const WM_KEYDOWN = 0x0100;
-    const WM_KEYUP = 0x0101;
-    
-    // 按下修饰键
-    this.user32.PostMessageW(hwnd, WM_KEYDOWN, vkModifier, 0);
-    // 按下主键
-    this.user32.PostMessageW(hwnd, WM_KEYDOWN, vkKey, 0);
-    // 释放主键
-    this.user32.PostMessageW(hwnd, WM_KEYUP, vkKey, 0);
-    // 释放修饰键
-    this.user32.PostMessageW(hwnd, WM_KEYUP, vkModifier, 0);
-  }
-
-  /**
-   * 字符转虚拟键码
-   */
-  _charToVk(char) {
-    // 简单映射常用字符
-    const map = {
-      'a': 0x41, 'b': 0x42, 'c': 0x43, 'd': 0x44, 'e': 0x45, 'f': 0x46,
-      'g': 0x47, 'h': 0x48, 'i': 0x49, 'j': 0x4A, 'k': 0x4B, 'l': 0x4C,
-      'm': 0x4D, 'n': 0x4E, 'o': 0x4F, 'p': 0x50, 'q': 0x51, 'r': 0x52,
-      's': 0x53, 't': 0x54, 'u': 0x55, 'v': 0x56, 'w': 0x57, 'x': 0x58,
-      'y': 0x59, 'z': 0x5A,
-      '0': 0x30, '1': 0x31, '2': 0x32, '3': 0x33, '4': 0x34,
-      '5': 0x35, '6': 0x36, '7': 0x37, '8': 0x38, '9': 0x39,
-      ':': 0xBA, '\\': 0xDC, '/': 0xBF, '.': 0xBE, '-': 0xBD, '_': 0xBD,
-      ' ': 0x20
-    };
-    
-    const upper = char.toUpperCase();
-    return map[upper] || map[char.toLowerCase()] || null;
-  }
-
-  /**
-   * 睡眠辅助
-   */
-  _sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   /**
