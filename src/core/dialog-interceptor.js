@@ -493,41 +493,41 @@ class DialogInterceptor extends EventEmitter {
       // 等待窗口激活
       setTimeout(() => {
         try {
-          // 按 Home 键确保在第一个控件
-          this._sendKey(hwnd, VK_HOME);
+          // 方法1: 尝试 Alt+N 快捷键直接定位文件名输入框（Windows 标准）
+          console.log('[DialogInterceptor] Sending Alt+N to focus filename field');
+          this._sendKeyCombo(hwnd, 0x12, 0x4E); // Alt+N
           
-          // 按多次 Tab 切换到文件名输入框（通常是第3-5个控件）
-          for (let i = 0; i < 5; i++) {
-            this._sendKey(hwnd, VK_TAB);
-          }
-          
-          // Ctrl+A 全选
-          this._sendKeyCombo(hwnd, VK_CONTROL, VK_A);
-          
-          // 输入文件路径
-          for (const char of filePath) {
-            this._sendChar(hwnd, char);
-          }
-          
-          // 按回车确认
           setTimeout(() => {
-            this._sendKey(hwnd, VK_RETURN);
+            // Ctrl+A 全选现有内容
+            this._sendKeyCombo(hwnd, VK_CONTROL, VK_A);
             
-            // 触发成功事件
-            this.emit('file:selected', {
-              filePath: filePath,
-              hwnd: hwnd,
-              title: this._getWindowTitle(hwnd)
-            });
+            // 输入文件路径
+            console.log('[DialogInterceptor] Typing file path:', filePath);
+            for (const char of filePath) {
+              this._sendChar(hwnd, char);
+            }
             
-            // 清除待选文件
-            this.pendingFile = null;
+            // 按回车确认
+            setTimeout(() => {
+              console.log('[DialogInterceptor] Pressing Enter to confirm');
+              this._sendKey(hwnd, VK_RETURN);
+              
+              // 触发成功事件
+              this.emit('file:selected', {
+                filePath: filePath,
+                hwnd: hwnd,
+                title: this._getWindowTitle(hwnd)
+              });
+              
+              // 清除待选文件
+              this.pendingFile = null;
+            }, 200);
           }, 100);
           
         } catch (err) {
           console.error('[DialogInterceptor] Keyboard simulation error:', err.message);
         }
-      }, 200);
+      }, 300);
       
     } catch (err) {
       console.error('[DialogInterceptor] _simulateKeyboardInput error:', err.message);
