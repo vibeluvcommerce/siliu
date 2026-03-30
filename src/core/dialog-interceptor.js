@@ -219,25 +219,27 @@ class DialogInterceptor extends EventEmitter {
         'Chrome_WidgetWin_3', 'Chrome_WidgetWin_4', 'Chrome_WidgetWin_5'
       ];
       
-      // 检查是否是支持的对话框类
-      if (!dialogClasses.includes(className)) return false;
-      
-      console.log('[DialogInterceptor] Checking window:', { className, title });
-      
       // 检查是否是文件选择对话框（通过标题关键词）
       const isFileDialog = this._isFileDialog(title);
       
       // 调试：打印所有潜在对话框窗口
       if (className === '#32770' || className.includes('Chrome_WidgetWin')) {
-        console.log('[DialogInterceptor] Checking dialog:', { className, title: title.substring(0, 50) });
+        console.log('[DialogInterceptor] Checking dialog:', { className, title: title.substring(0, 100), isFileDialog });
       }
       
-      if (isFileDialog === 'confirm') {
-        // 确认覆盖弹窗，点击"是"
-        console.log('[DialogInterceptor] Confirm dialog detected, clicking Yes...');
-        this._clickYesButton(hwnd);
+      // 确认弹窗检测：检查是否为覆盖确认弹窗（放宽类名限制）
+      const isConfirmDialog = isFileDialog === 'confirm';
+      if (isConfirmDialog) {
+        console.log('[DialogInterceptor] Confirm dialog detected:', { className, title: title.substring(0, 100) });
+        // 确认弹窗也处理
+        await this._clickYesButton(hwnd);
         return true;
       }
+      
+      // 检查是否是支持的对话框类
+      if (!dialogClasses.includes(className)) return false;
+      
+      console.log('[DialogInterceptor] Checking window:', { className, title: title.substring(0, 100) });
       
       if (isFileDialog) {
         console.log('[DialogInterceptor] File dialog confirmed, auto-filling...');
