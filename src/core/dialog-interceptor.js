@@ -528,17 +528,45 @@ class DialogInterceptor extends EventEmitter {
       
       // 确保窗口在前台
       this.user32.SetForegroundWindow(hwnd);
+      await this._sleep(200);
+      
+      // 方法1: 尝试 Alt+N 快捷键直接定位到文件名输入框（Windows 标准保存对话框）
+      console.log('[DialogInterceptor] Sending Alt+N to focus filename field');
+      this._sendKeyCombo(hwnd, 0x12, 0x4E); // Alt+N
       await this._sleep(100);
       
-      // Ctrl+A 全选当前内容（如果有）
+      // 方法2: 如果 Alt+N 不行，尝试多次 Tab 切换到文件名输入框
+      // 先按 Home 确保在第一个控件
+      this._sendKey(hwnd, 0x24); // Home
+      await this._sleep(50);
+      
+      // 按多次 Tab 尝试到达文件名输入框（通常是第3-4个控件）
+      for (let i = 0; i < 6; i++) {
+        this._sendKey(hwnd, 0x09); // Tab
+        await this._sleep(30);
+      }
+      
+      // 现在应该聚焦在文件名输入框，全选现有内容
       this._sendKeyCombo(hwnd, 0x11, 0x41); // Ctrl+A
       await this._sleep(50);
       
-      // 直接输入文件路径
+      // 输入文件路径
+      console.log('[DialogInterceptor] Typing file path...');
       for (const char of filePath) {
         const vk = this._charToVk(char);
         if (vk) {
-          this._sendKey(hwnd, vk);
+          // 对于字母，需要处理大小写
+          const isUpper = char === char.toUpperCase() && char !== char.toLowerCase();
+          if (isUpper) {
+            // 大写字母需要按住 Shift
+            this._sendKeyWithShift(hwnd, vk);
+          } else {
+            this._sendKey(hwnd, vk);
+          }
+          await this._sleep(10);
+        } else {
+          // 特殊字符处理
+          this._sendSpecialChar(hwnd, char);
           await this._sleep(10);
         }
       }
@@ -546,6 +574,7 @@ class DialogInterceptor extends EventEmitter {
       await this._sleep(200);
       
       // 按回车确认
+      console.log('[DialogInterceptor] Pressing Enter to confirm');
       this._sendKey(hwnd, 0x0D); // Enter
       
       console.log('[DialogInterceptor] Keyboard input completed');
@@ -553,6 +582,76 @@ class DialogInterceptor extends EventEmitter {
     } catch (err) {
       console.error('[DialogInterceptor] Keyboard simulation failed:', err.message);
       return false;
+    }
+  }
+
+  /**
+   * 发送带 Shift 的按键（用于大写字母）
+   */
+  _sendKeyWithShift(hwnd, vkCode) {
+    const WM_KEYDOWN = 0x0100;
+    const WM_KEYUP = 0x0101;
+    const VK_SHIFT = 0x10;
+    
+    // 按下 Shift
+    this.user32.PostMessageW(hwnd, WM_KEYDOWN, VK_SHIFT, 0);
+    // 按下按键
+    this.user32.PostMessageW(hwnd, WM_KEYDOWN, vkCode, 0);
+    // 释放按键
+    this.user32.PostMessageW(hwnd, WM_KEYUP, vkCode, 0);
+    // 释放 Shift
+    this.user32.PostMessageW(hwnd, WM_KEYUP, VK_SHIFT, 0);
+  }
+
+  /**
+   * 发送特殊字符
+   */
+  _sendSpecialChar(hwnd, char) {
+    const VK_OEM_1 = 0xBA;      // ;:
+    const VK_OEM_2 = 0xBF;      // /?
+    const VK_OEM_3 = 0xC0;      // `~
+    const VK_OEM_4 = 0xDB;      // [{
+    const VK_OEM_5 = 0xDC;      // \|
+    const VK_OEM_6 = 0xDD;      // ]}
+    const VK_OEM_7 = 0xDE;      // '"
+    const VK_OEM_MINUS = 0xBD;  // -_
+    const VK_OEM_PLUS = 0xBB;   // =+
+    const VK_OEM_PERIOD = 0xBE; // .>
+    const VK_OEM_COMMA = 0xBC;  // ,<
+    
+    const map = {
+      ':': { vk: VK_OEM_1, shift: true },
+      ';': { vk: VK_OEM_1, shift: false },
+      '/': { vk: VK_OEM_2, shift: false },
+      '?': { vk: VK_OEM_2, shift: true },
+      '`': { vk: VK_OEM_3, shift: false },
+      '~': { vk: VK_OEM_3, shift: true },
+      '[': { vk: VK_OEM_4, shift: false },
+      '{': { vk: VK_OEM_4, shift: true },
+      '\\': { vk: VK_OEM_5, shift: false },
+      '|': { vk: VK_OEM_5, shift: true },
+      ']': { vk: VK_OEM_6, shift: false },
+      '}': { vk: VK_OEM_6, shift: true },
+      "'": { vk: VK_OEM_7, shift: false },
+      '"': { vk: VK_OEM_7, shift: true },
+      '-': { vk: VK_OEM_MINUS, shift: false },
+      '_': { vk: VK_OEM_MINUS, shift: true },
+      '=': { vk: VK_OEM_PLUS, shift: false },
+      '+': { vk: VK_OEM_PLUS, shift: true },
+      '.': { vk: VK_OEM_PERIOD, shift: false },
+      '>': { vk: VK_OEM_PERIOD, shift: true },
+      ',': { vk: VK_OEM_COMMA, shift: false },
+      '<': { vk: VK_OEM_COMMA, shift: true },
+    };
+    
+    if (map[char]) {
+      if (map[char].shift) {
+        this._sendKeyWithShift(hwnd, map[char].vk);
+      } else {
+        this._sendKey(hwnd, map[char].vk);
+      }
+    } else if (char === ' ') {
+      this._sendKey(hwnd, 0x20); // Space
     }
   }
 
