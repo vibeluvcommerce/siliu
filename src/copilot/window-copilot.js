@@ -1523,11 +1523,12 @@ class WindowCopilot {
             // 1. AI 先 click 点击下载链接触发保存对话框
             // 2. download 操作准备保存路径，拦截器自动填充并确认
             const downloadPath = decision.downloadPath || decision.filePath || decision.path;
+            const sourceUrl = decision.sourceUrl || decision.url || decision.href;
             
-            console.log(`[WindowCopilot:${this.windowId}] download: preparing download path=${downloadPath || '(default)'}`);
+            console.log(`[WindowCopilot:${this.windowId}] download: preparing download path=${downloadPath || '(default)'}, sourceUrl=${sourceUrl || '(none)'}`);
             
             try {
-              const result = await this.controller.download(downloadPath || null);
+              const result = await this.controller.download(downloadPath || null, sourceUrl || null);
               stepResult = result;
               actualMode = result.mode || 'SYSTEM';
             } catch (err) {

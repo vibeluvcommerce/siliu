@@ -1412,6 +1412,38 @@ class SiliuController {
   // ========== 下载功能 ==========
 
   /**
+   * 从 URL 提取文件名
+   * @param {string} url - 下载链接 URL
+   * @returns {string|null} - 文件名或 null
+   */
+  _extractFilenameFromUrl(url) {
+    try {
+      if (!url) return null;
+      
+      const urlObj = new URL(url);
+      const pathname = urlObj.pathname;
+      
+      // 从 pathname 提取文件名
+      // 例如: /path/to/file.pdf → file.pdf
+      // 例如: /download.php?id=123 → null (没有有效文件名)
+      const filename = pathname.split('/').pop();
+      
+      // 检查是否是有效的文件名（有扩展名）
+      if (filename && filename.includes('.') && !filename.endsWith('.')) {
+        // 清理文件名中的非法字符
+        const cleanFilename = filename.replace(/[<>:"/\\|?*]/g, '_');
+        console.log('[SiliuController] Extracted filename from URL:', cleanFilename);
+        return cleanFilename;
+      }
+      
+      return null;
+    } catch (err) {
+      console.error('[SiliuController] Error extracting filename from URL:', err.message);
+      return null;
+    }
+  }
+
+  /**
    * 触发下载
    * 使用系统对话框拦截，像上传一样处理 Chrome 保存对话框
    * 
@@ -1420,32 +1452,44 @@ class SiliuController {
    * 2. download 操作准备保存路径，拦截器自动填充并确认
    * 
    * @param {string} downloadPath - 下载保存路径（可选，默认使用工作区downloads目录）
+   * @param {string} sourceUrl - 可选，下载来源URL，用于自动提取文件名
    * @returns {Promise<Object>}
    */
-  async download(downloadPath = null) {
-    console.log('[SiliuController] download:', { downloadPath });
+  async download(downloadPath = null, sourceUrl = null) {
+    console.log('[SiliuController] download:', { downloadPath, sourceUrl });
 
     if (!this.tabManager?.fileManager) {
       throw new Error('Download failed: file manager not available');
     }
 
-    // 如果没有指定路径，使用默认下载目录 + 默认文件名
+    const path = require('path');
+    const { getWorkspaceManager } = require('../core/workspace-manager');
+    const workspace = getWorkspaceManager();
+    const downloadsDir = workspace.getDownloadsDir();
+
+    // 如果没有指定路径，尝试从 URL 提取文件名或生成默认文件名
     if (!downloadPath) {
-      const { getWorkspaceManager } = require('../core/workspace-manager');
-      const workspace = getWorkspaceManager();
-      const path = require('path');
-      const downloadsDir = workspace.getDownloadsDir();
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      downloadPath = path.join(downloadsDir, `download-${timestamp}.txt`);
+      // 1. 尝试从 sourceUrl 提取文件名
+      let filename = null;
+      if (sourceUrl) {
+        filename = this._extractFilenameFromUrl(sourceUrl);
+      }
+      
+      // 2. 如果无法提取，使用默认命名
+      if (!filename) {
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        filename = `download-${timestamp}.txt`;
+      }
+      
+      downloadPath = path.join(downloadsDir, filename);
     }
 
     // 解析 ~ 路径
     downloadPath = resolveHomePath(downloadPath);
     
     // 确保路径有文件名（不是目录）
-    const path = require('path');
     if (!path.extname(downloadPath)) {
-      // 如果没有扩展名，添加默认文件名
+      // 如果没有扩展名，添加时间戳避免覆盖
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       downloadPath = path.join(downloadPath, `download-${timestamp}.txt`);
     }

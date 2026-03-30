@@ -105,9 +105,9 @@ class BaseAgent {
         example: { action: 'upload', target: { type: 'coordinate', x: 0.5, y: 0.8 }, filePath: 'D:/test/video.mp4', description: '点击上传按钮并选择本地文件' }
       },
       download: {
-        params: ['downloadPath'],
-        desc: '【文件下载专用】系统自动打开保存文件对话框并填充保存路径。如果不指定downloadPath，文件将保存到默认下载目录(~/.siliu/workspace/downloads/)。注意：AI需要先click点击下载链接/按钮触发保存对话框，再用download操作指定保存路径',
-        example: { action: 'download', downloadPath: 'D:/downloads/myfile.txt', description: '触发保存对话框并指定保存路径' }
+        params: ['downloadPath', 'sourceUrl'],
+        desc: '【文件下载专用】系统自动打开保存文件对话框并填充保存路径。如果不指定downloadPath，文件将保存到默认下载目录。如果提供sourceUrl（下载链接URL），系统会自动从URL提取原始文件名。注意：AI需要先click点击下载链接/按钮触发保存对话框，再用download操作指定保存路径',
+        example: { action: 'download', sourceUrl: 'https://example.com/file.pdf', description: '触发保存对话框并自动使用原始文件名' }
       },
       select: { 
         params: ['selector', 'option'], 
@@ -285,7 +285,9 @@ ${examples}
 
 【操作选择示例】
 1. 上传文件：click 点击"上传视频"按钮触发系统对话框 → upload 操作选择文件
-2. 下载文件：click 点击"下载"链接/按钮触发保存对话框 → download 操作指定保存路径（可选，不指定则使用默认路径）
+2. 下载文件：click 点击"下载"链接/按钮触发保存对话框 → download 操作指定保存路径
+   - 【保留原始文件名】提供 sourceUrl 参数，例如: {"action":"download","sourceUrl":"https://example.com/file.pdf","description":"下载文件保留原始文件名"}
+   - 【自定义文件名】提供 downloadPath 完整路径，例如: {"action":"download","downloadPath":"C:/downloads/myname.pdf","description":"下载文件使用自定义文件名"}
 3. 选择分区（普通）：click 点击下拉框展开 (x:0.5,y:0.7) → screenshot 查看选项 → click 点击"生活经验"
 3. 选择分区（需滚动查找，假设点击位置是 x:0.5,y:0.7）：
    - click 点击下拉框展开 (x:0.5,y:0.7)
