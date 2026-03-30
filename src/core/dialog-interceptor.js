@@ -227,6 +227,13 @@ class DialogInterceptor extends EventEmitter {
       // 检查是否是文件选择对话框（通过标题关键词）
       const isFileDialog = this._isFileDialog(title);
       
+      if (isFileDialog === 'confirm') {
+        // 确认覆盖弹窗，点击"是"
+        console.log('[DialogInterceptor] Confirm dialog detected, clicking Yes...');
+        this._clickYesButton(hwnd);
+        return true;
+      }
+      
       if (isFileDialog) {
         console.log('[DialogInterceptor] File dialog confirmed, auto-filling...');
         await this._autoFillDialog(hwnd);
@@ -261,9 +268,10 @@ class DialogInterceptor extends EventEmitter {
   }
 
   /**
-   * 判断是否是文件选择对话框
+   * 判断是否是文件选择对话框或相关确认弹窗
    */
   _isFileDialog(title) {
+    // 主对话框关键词
     const keywords = [
       '打开', '保存', '另存为',       // 中文
       'Open', 'Save', 'Save As',     // 英文
@@ -276,9 +284,19 @@ class DialogInterceptor extends EventEmitter {
       return true;
     }
     
+    // 文件覆盖确认弹窗
+    const confirmKeywords = [
+      '确认另存为', '确认保存', '替换', '覆盖',  // 中文
+      'Confirm', 'Replace', 'Overwrite',        // 英文
+      'already exists', 'already exist',        // 英文提示
+    ];
+    
+    if (confirmKeywords.some(kw => title.includes(kw))) {
+      console.log('[DialogInterceptor] Detected confirm dialog:', title);
+      return 'confirm';
+    }
+    
     // 对于 Chrome 下载对话框，标题可能是文件名或 URL
-    // 例如："some-file.txt" 或 "https://example.com/file.txt"
-    // 我们通过检查是否包含常见的文件扩展名来判断
     const fileExtensions = [
       '.txt', '.pdf', '.doc', '.docx', '.xls', '.xlsx', 
       '.ppt', '.pptx', '.zip', '.rar', '.7z', '.tar', '.gz',
@@ -472,6 +490,63 @@ class DialogInterceptor extends EventEmitter {
       } while (child);
     } catch (err) {
       console.error('[DialogInterceptor] Error enumerating children:', err.message);
+    }
+  }
+
+  /**
+   * 点击"是"按钮（用于确认覆盖弹窗）
+   */
+  _clickYesButton(hwnd) {
+    try {
+      console.log('[DialogInterceptor] Looking for Yes button...');
+      
+      // 尝试找到"是"按钮
+      const buttonClasses = ['Button'];
+      const yesTexts = ['是', '是(Y)', 'Yes', 'Yes(&Y)', '覆盖', '替换', 'Replace'];
+      
+      for (const btnClass of buttonClasses) {
+        let child = null;
+        const classNameUtf16 = Buffer.from(btnClass + '\0', 'utf16le');
+        
+        do {
+          child = this.user32.FindWindowExW(hwnd, child, classNameUtf16, null);
+          
+          if (child) {
+            // 获取按钮文字
+            const textBuffer = Buffer.alloc(256);
+            const textLen = this.user32.GetWindowTextW(child, textBuffer, 128);
+            const text = textBuffer.toString('utf16le', 0, textLen * 2).replace(/\0/g, '');
+            
+            console.log('[DialogInterceptor] Found button:', text);
+            
+            // 检查是否是"是"按钮
+            const isYes = yesTexts.some(yt => text.includes(yt) || text === yt);
+            
+            if (isYes) {
+              console.log('[DialogInterceptor] Clicking Yes button:', text);
+              
+              // 发送点击消息
+              const WM_COMMAND = 0x0111;
+              const BN_CLICKED = 0;
+              
+              const childAddr = this.koffi.address(child);
+              this.user32.PostMessageW(hwnd, WM_COMMAND, (BN_CLICKED << 16) | 1, childAddr);
+              
+              console.log('[DialogInterceptor] Yes button clicked');
+              return;
+            }
+          }
+        } while (child);
+      }
+      
+      // 如果没找到特定按钮，尝试发送 IDYES
+      console.log('[DialogInterceptor] Sending IDYES command');
+      const WM_COMMAND = 0x0111;
+      const IDYES = 6;
+      this.user32.PostMessageW(hwnd, WM_COMMAND, IDYES, 0);
+      
+    } catch (err) {
+      console.error('[DialogInterceptor] Error clicking Yes button:', err.message);
     }
   }
 
