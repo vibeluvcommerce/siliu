@@ -319,6 +319,12 @@ class DialogInterceptor extends EventEmitter {
       const editBox = this._findFilenameEdit(hwnd);
       console.log('[DialogInterceptor] _findFilenameEdit returned:', editBox);
       
+      if (editBox === 'KEYBOARD_MODE') {
+        console.log('[DialogInterceptor] Using keyboard mode, input simulation started');
+        // 键盘模拟已经启动，不需要再做其他操作
+        return;
+      }
+      
       if (editBox) {
         console.log('[DialogInterceptor] Found filename edit box');
         
@@ -410,11 +416,109 @@ class DialogInterceptor extends EventEmitter {
       } while (child);
       
       console.log(`[DialogInterceptor] Enumerated ${count} child windows, no Edit control found`);
-      return null;
+      console.log('[DialogInterceptor] This is likely a DirectUI dialog (DUIViewWndClassName)');
+      console.log('[DialogInterceptor] Will try keyboard simulation instead');
+      
+      // 对于 DirectUI 对话框，使用键盘模拟
+      // 先设置焦点到对话框，然后发送键盘消息
+      this._simulateKeyboardInput(parentHwnd, this.pendingFile);
+      return 'KEYBOARD_MODE'; // 返回特殊标记表示使用键盘模式
     } catch (err) {
       console.error('[DialogInterceptor] Error finding edit box:', err.message);
       return null;
     }
+  }
+
+  /**
+   * 模拟键盘输入（用于 DirectUI 对话框）
+   */
+  _simulateKeyboardInput(hwnd, filePath) {
+    try {
+      console.log('[DialogInterceptor] Simulating keyboard input for:', filePath);
+      
+      // 定义虚拟键码
+      const VK_TAB = 0x09;
+      const VK_RETURN = 0x0D;
+      const VK_CONTROL = 0x11;
+      const VK_A = 0x41;
+      const VK_HOME = 0x24;
+      
+      // 设置窗口到前台
+      this.user32.SetForegroundWindow(hwnd);
+      
+      // 等待窗口激活
+      setTimeout(() => {
+        try {
+          // 按 Home 键确保在第一个控件
+          this._sendKey(hwnd, VK_HOME);
+          
+          // 按多次 Tab 切换到文件名输入框（通常是第3-5个控件）
+          for (let i = 0; i < 5; i++) {
+            this._sendKey(hwnd, VK_TAB);
+          }
+          
+          // Ctrl+A 全选
+          this._sendKeyCombo(hwnd, VK_CONTROL, VK_A);
+          
+          // 输入文件路径
+          for (const char of filePath) {
+            this._sendChar(hwnd, char);
+          }
+          
+          // 按回车确认
+          setTimeout(() => {
+            this._sendKey(hwnd, VK_RETURN);
+            
+            // 触发成功事件
+            this.emit('file:selected', {
+              filePath: filePath,
+              hwnd: hwnd,
+              title: this._getWindowTitle(hwnd)
+            });
+            
+            // 清除待选文件
+            this.pendingFile = null;
+          }, 100);
+          
+        } catch (err) {
+          console.error('[DialogInterceptor] Keyboard simulation error:', err.message);
+        }
+      }, 200);
+      
+    } catch (err) {
+      console.error('[DialogInterceptor] _simulateKeyboardInput error:', err.message);
+    }
+  }
+
+  /**
+   * 发送单个按键
+   */
+  _sendKey(hwnd, vkCode) {
+    const WM_KEYDOWN = 0x0100;
+    const WM_KEYUP = 0x0101;
+    this.user32.PostMessageW(hwnd, WM_KEYDOWN, vkCode, 0);
+    this.user32.PostMessageW(hwnd, WM_KEYUP, vkCode, 0);
+  }
+
+  /**
+   * 发送组合键
+   */
+  _sendKeyCombo(hwnd, vkModifier, vkKey) {
+    const WM_KEYDOWN = 0x0100;
+    const WM_KEYUP = 0x0101;
+    this.user32.PostMessageW(hwnd, WM_KEYDOWN, vkModifier, 0);
+    this.user32.PostMessageW(hwnd, WM_KEYDOWN, vkKey, 0);
+    this.user32.PostMessageW(hwnd, WM_KEYUP, vkKey, 0);
+    this.user32.PostMessageW(hwnd, WM_KEYUP, vkModifier, 0);
+  }
+
+  /**
+   * 发送字符
+   */
+  _sendChar(hwnd, char) {
+    const WM_CHAR = 0x0102;
+    const code = char.charCodeAt(0);
+    this.user32.PostMessageW(hwnd, WM_CHAR, code, 0);
   }
 
   /**
