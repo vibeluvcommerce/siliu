@@ -402,25 +402,10 @@ class SiliuController {
       throw new Error('Failed to prepare upload');
     }
     
-    // 4. 点击上传按钮（如果提供了选择器）
-    if (selectorOrText) {
-      console.log('[SiliuController] Clicking upload button to trigger dialog...');
-      
-      if (typeof selectorOrText === 'object' && selectorOrText.x !== undefined) {
-        await this.clickAt(selectorOrText.x, selectorOrText.y);
-        console.log('[SiliuController] Upload button clicked at coordinates:', selectorOrText);
-      } else if (typeof selectorOrText === 'string') {
-        await this.click(selectorOrText);
-        console.log('[SiliuController] Upload button clicked with selector:', selectorOrText);
-      }
-      
-      // 等待对话框弹出
-      await new Promise(r => setTimeout(r, 500));
-    } else {
-      console.log('[SiliuController] No selector provided, assuming dialog already triggered');
-    }
+    // 【注意】upload 方法不再负责点击按钮
+    // 应由 AI 先执行 click 操作触发系统对话框，然后调用 upload 只负责填充文件路径
     
-    // 5. 等待拦截器完成或超时
+    // 4. 等待拦截器完成或超时
     console.log('[SiliuController] Waiting for dialog interception...');
     return uploadPromise;
   }

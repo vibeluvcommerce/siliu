@@ -298,7 +298,7 @@ ${examples}
 - 如果不确定选择器，优先使用坐标点击输入框，然后输入文本
 - press 支持：Enter、Backspace、Delete、Tab、Escape、方向键
 - selectAll 支持：使用 Ctrl+A 全选文本框内容，配合 type 可替换原有内容
-- 【重要】upload 操作：当用户要求"上传文件"、"选择文件上传"或点击上传按钮时，必须使用 upload 操作，不要只用 click。系统会自动打开文件选择对话框并填充文件路径
+- 【重要】upload 操作：分两步完成上传：1) 先用 click 点击上传按钮触发系统对话框 2) 再用 upload 操作填充文件路径。upload 只负责选择文件，不负责点击按钮
 - upload 的 filePath 必须使用绝对路径（如 "D:/test/video.mp4"）
 - 【重要】select 操作：当下拉框、选择器、分区选择时，直接使用 select 操作选择选项，不要尝试用 scroll 滚动查找
 - 【重要】抖音/视频类网站请使用 wheel 而非 scroll 来切换视频
