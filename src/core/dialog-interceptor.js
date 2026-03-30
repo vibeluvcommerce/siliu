@@ -391,11 +391,13 @@ class DialogInterceptor extends EventEmitter {
       console.log('[DialogInterceptor] Enumerating child windows to find Edit control...');
       let child = null;
       let count = 0;
+      const childList = [];
       
       do {
         child = this.user32.FindWindowExW(parentHwnd, child, null, null);
         if (child) {
           count++;
+          childList.push(child);
           const classBuffer = Buffer.alloc(256);
           const classLen = this.user32.GetClassNameW(child, classBuffer, 128);
           if (classLen > 0) {
@@ -415,14 +417,39 @@ class DialogInterceptor extends EventEmitter {
         }
       } while (child);
       
-      console.log(`[DialogInterceptor] Enumerated ${count} child windows, no Edit control found`);
-      console.log('[DialogInterceptor] This is likely a DirectUI dialog (DUIViewWndClassName)');
-      console.log('[DialogInterceptor] Will try keyboard simulation instead');
+      console.log(`[DialogInterceptor] Enumerated ${count} child windows, no Edit control found at first level`);
       
-      // 对于 DirectUI 对话框，使用键盘模拟
-      // 先设置焦点到对话框，然后发送键盘消息
-      this._simulateKeyboardInput(parentHwnd, this.pendingFile);
-      return 'KEYBOARD_MODE'; // 返回特殊标记表示使用键盘模式
+      // 尝试在 DUIViewWndClassName 中查找 Edit 控件
+      console.log('[DialogInterceptor] Trying to find Edit in DUIViewWndClassName...');
+      for (const childHwnd of childList) {
+        const classBuffer = Buffer.alloc(256);
+        const classLen = this.user32.GetClassNameW(childHwnd, classBuffer, 128);
+        if (classLen > 0) {
+          const className = classBuffer.toString('utf16le', 0, classLen * 2).replace(/\0/g, '');
+          
+          if (className === 'DUIViewWndClassName') {
+            console.log('[DialogInterceptor] Found DUIViewWndClassName, searching inside...');
+            // 在 DUIViewWndClassName 内部查找 Edit
+            let innerChild = null;
+            do {
+              innerChild = this.user32.FindWindowExW(childHwnd, innerChild, null, null);
+              if (innerChild) {
+                const innerClassBuffer = Buffer.alloc(256);
+                const innerClassLen = this.user32.GetClassNameW(innerChild, innerClassBuffer, 128);
+                if (innerClassLen > 0) {
+                  const innerClassName = innerClassBuffer.toString('utf16le', 0, innerClassLen * 2).replace(/\0/g, '');
+                  console.log(`[DialogInterceptor] Inner child: ${innerClassName}`);
+                  
+                  if (innerClassName === 'Edit') {
+                    console.log('[DialogInterceptor] Found Edit inside DUIViewWndClassName!');
+                    return innerChild;
+                  }
+                }
+              }
+            } while (innerChild);
+          }
+        }
+      }
     } catch (err) {
       console.error('[DialogInterceptor] Error finding edit box:', err.message);
       return null;
