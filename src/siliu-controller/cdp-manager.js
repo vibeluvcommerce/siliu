@@ -110,6 +110,9 @@ class CDPManager extends EventEmitter {
         console.log('[CDPManager] Input domain not available, skipping');
       }
 
+      // 设置 JavaScript 弹窗自动处理
+      this._setupJavaScriptDialogHandler();
+
       this.emit('connected', { target });
       return { success: true, target };
 
@@ -219,6 +222,63 @@ class CDPManager extends EventEmitter {
     await this.send(`${domain}.disable`);
     this.domains.delete(domain);
     console.log(`[CDPManager] Domain disabled: ${domain}`);
+  }
+
+  /**
+   * 设置 JavaScript 弹窗处理器
+   * 自动处理 alert/confirm/prompt 弹窗
+   */
+  _setupJavaScriptDialogHandler() {
+    // 监听 JavaScript 弹窗事件
+    this.on('Page.javascriptDialogOpening', async (params) => {
+      const { type, message, defaultPrompt } = params;
+      console.log(`[CDPManager] JavaScript dialog opened: ${type}`, { message });
+
+      try {
+        // 根据弹窗类型决定如何处理
+        let accept = true;
+        let promptText = defaultPrompt || '';
+
+        switch (type) {
+          case 'alert':
+            // alert 弹窗：自动点击确定
+            console.log('[CDPManager] Auto-accepting alert dialog');
+            accept = true;
+            break;
+          case 'confirm':
+            // confirm 弹窗：自动点击确定（是）
+            console.log('[CDPManager] Auto-accepting confirm dialog');
+            accept = true;
+            break;
+          case 'prompt':
+            // prompt 弹窗：使用默认值自动确认
+            console.log('[CDPManager] Auto-accepting prompt dialog with default value');
+            accept = true;
+            promptText = defaultPrompt || '';
+            break;
+          case 'beforeunload':
+            // 离开页面确认弹窗：自动确认
+            console.log('[CDPManager] Auto-accepting beforeunload dialog');
+            accept = true;
+            break;
+          default:
+            console.log(`[CDPManager] Unknown dialog type: ${type}, auto-accepting`);
+            accept = true;
+        }
+
+        // 处理弹窗
+        await this.send('Page.handleJavaScriptDialog', {
+          accept,
+          promptText
+        });
+
+        console.log('[CDPManager] JavaScript dialog handled');
+      } catch (err) {
+        console.error('[CDPManager] Failed to handle JavaScript dialog:', err.message);
+      }
+    });
+
+    console.log('[CDPManager] JavaScript dialog handler set up');
   }
 
   /**
