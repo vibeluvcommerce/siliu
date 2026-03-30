@@ -1710,7 +1710,7 @@ class WindowCopilot {
               stepResult = { 
                 success: true, 
                 batchIndex: result.batchIndex,
-                message: `已采集第 ${result.batchIndex + 1} 页数据`
+                message: `已采集第 ${result.batchIndex + 1} 批数据（累计 ${result.batchIndex + 1} 次采集）`
               };
               actualMode = 'JS';
             } catch (err) {

@@ -151,7 +151,7 @@ class BaseAgent {
       },
       collect: {
         params: ['content'],
-        desc: '采集当前页面的所有数据。AI只需滚动/翻页将数据加载到页面，然后调用collect，系统会自动提取页面上的全部数据',
+        desc: '【必须提供content参数】采集当前页面的数据。AI需要先从页面提取数据，然后将数据放入content参数中',
         example: { action: 'collect', content: { type: 'table', data: { headers: ['商品', '价格'], rows: [['iPhone', 5999]] } }, description: '采集当前页面全部数据' }
       },
       export: {
@@ -204,12 +204,12 @@ class BaseAgent {
 
 【操作选择指南 - 必须遵守】
 - 【上传文件】看到"上传"按钮时，先 click 点击，再使用 upload 操作选择文件
-- 【采集规则】
-  - AI 职责：滚动/翻页加载数据，确保目标数据都已加载到页面上
-  - 采集职责：调用 collect 操作，系统会自动提取当前页面的全部数据
-  - 分页网站：翻页到下一页 → collect → 继续翻页
-  - 无限滚动：滚动到底部加载全部 → collect 一次性采集
-  - 【任务完成】所有页面数据采集完成后，使用done结束任务，系统会自动导出
+- 【采集规则 - 重要】
+  - AI 职责：滚动/翻页加载数据，从页面提取数据，调用 collect 时【必须提供 content 参数】
+  - 【强制】collect 操作必须包含 content 参数，格式：{"action":"collect","content":{"type":"table","data":{"headers":["名称"],"rows":[["值"]]}},"description":"采集当前数据"}
+  - 分页网站：翻页 → 提取数据 → collect(带content) → 继续翻页
+  - 无限滚动：滚动 → 提取数据 → collect(带content) → 继续滚动
+  - 【任务完成】采集够5页后，使用done结束任务，系统会自动导出
 - 【重要】不要手动调用 export 操作，系统会在 done 时自动导出
 - 【滚动操作 - 分栏布局智能判断】某些网站（如淘宝等电商网站）采用左右分栏布局：
   1. 左侧商品详情区、右侧商品选购区，两区域独立滚动
@@ -288,6 +288,10 @@ ${examples}
    - 重复直到找到目标选项
 4. 输入标题：click 点击标题输入框 → type 操作输入文本
 5. 点击提交：click 点击"提交"按钮
+6. 【重要】数据采集：
+   - 查看页面数据（表格/列表）
+   - collect 操作【必须】包含 content 参数，从页面提取数据填入
+   - 示例: {"action":"collect","content":{"type":"table","data":{"headers":["电影","评分"],"rows":[["肖申克","9.7"]]}},"description":"采集电影数据"}
 
 【注意】
 - type 操作可以使用 target（坐标）或 selector（CSS选择器）
@@ -304,10 +308,25 @@ ${examples}
 如需导出网页数据（表格、列表等）：
 
 【采集原则】
-- AI 负责：滚动/翻页，将数据加载到页面上
-- 系统负责：调用 collect 时自动提取页面上的全部数据
-- 分页网站：翻页 → collect → 翻页 → collect ...
-- 无限滚动：滚动到底 → collect 一次性采集全部
+- AI 负责：
+  1. 滚动/翻页，将数据加载到页面上
+  2. 【重要】从页面提取数据，构造content参数
+  3. 调用collect时传入提取的数据
+- 【禁止滚回顶部】系统已记录已采集数据，不要滚回顶部！继续向下滚动采集新数据
+- 【查看进度】执行进度显示"已采集批次"，AI根据此判断是否需要继续
+- 【完成条件】采集够5页后调用done，系统自动导出所有数据
+- 分页网站：翻页 → 提取数据 → collect(带content) → 继续翻页
+- 无限滚动：滚动 → 提取数据 → collect(带content) → 继续滚动（不要滚回顶部）
+
+【采集原则 - 重要概念区分】
+- 【采集批次 vs 网站页码】
+  * 采集批次：每次调用collect算一批，系统显示"已采集第 X 批"
+  * 网站页码：页面上的分页导航（如"第1页、第2页"）
+  * 一批数据可能只包含部分网页内容（如滚动后采集）
+- 分页网站采集流程：
+  1. 在网站第1页：向下滚动加载数据 → collect(带content) → 继续向下滚动 → collect新数据
+  2. 当网站第1页数据全部采集完成后，点击"下一页"翻页
+  3. 重复上述过程采集网站第2页、第3页...
 
 【数据格式】
 1. 表格数据格式：
@@ -585,7 +604,7 @@ ${examples}
     const collectCount = history.filter(h => h.decision?.action === 'collect').length;
     
     if (collectCount > 0) {
-      section += `\n已采集页面数: ${collectCount}`;
+      section += `\n已采集批次: ${collectCount}（每次collect算一批，不是网站页码）`;
     }
     
     if (history && history.length > 0) {
@@ -619,7 +638,7 @@ ${examples}
           detail += ` (${decision.url})`;
         }
         if (action === 'collect') {
-          detail += ' (已采集当前页)';
+          detail += ' (已采集当前批次)';
         }
         
         return `${globalIndex}. ${action}${detail} ${status}`;
@@ -641,7 +660,7 @@ ${examples}
       
       // 显示采集进度
       if (previousResult.batchIndex !== undefined) {
-        section += `\n已采集页面: 第 ${previousResult.batchIndex + 1} 页`;
+        section += `\n已采集批次: 第 ${previousResult.batchIndex + 1} 批（本次collect成功）`;
       }
     } else {
       section += '\n执行失败 ✗';
