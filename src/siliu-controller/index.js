@@ -1408,6 +1408,30 @@ class SiliuController {
 
     return result;
   }
+
+  // ========== 下载功能 ==========
+
+  /**
+   * 触发下载
+   * @param {string} selectorOrText - 下载按钮选择器或文本
+   * @param {object} coordinate - 可选，坐标 {x, y}
+   * @returns {Promise<Object>}
+   */
+  async download(selectorOrText, coordinate = null) {
+    console.log('[SiliuController] download:', { selectorOrText, coordinate });
+
+    // 使用 CDP 直接下载（如果有 CDP 连接）
+    if (this.cdpController?.isConnected) {
+      try {
+        return await this.cdpController.download(selectorOrText, coordinate);
+      } catch (err) {
+        console.error('[SiliuController] CDP download failed:', err.message);
+        throw err;
+      }
+    }
+
+    throw new Error('Download requires CDP connection');
+  }
 }
 
 module.exports = SiliuController;

@@ -1518,6 +1518,25 @@ class WindowCopilot {
             }
             break;
           }
+          case 'download': {
+            const downloadSelector = decision.selector || decision.target;
+            const coordinate = decision.coordinate;
+            
+            console.log(`[WindowCopilot:${this.windowId}] download: selector=${JSON.stringify(downloadSelector)}, coordinate=${JSON.stringify(coordinate)}`);
+            
+            try {
+              const result = await this.controller.download(downloadSelector || null, coordinate || null);
+              stepResult = result;
+              actualMode = 'CDP';
+            } catch (err) {
+              console.error(`[WindowCopilot:${this.windowId}] download failed:`, err.message);
+              stepResult = { success: false, error: err.message };
+              actualMode = 'CDP';
+            }
+            
+            await this._smartWait('click');
+            break;
+          }
           case 'type': {
             console.log(`[WindowCopilot:${this.windowId}] Calling controller.type...`);
 

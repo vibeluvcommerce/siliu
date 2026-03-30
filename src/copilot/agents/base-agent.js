@@ -104,6 +104,11 @@ class BaseAgent {
         desc: '【文件上传专用】当需要上传本地文件时必须使用此操作。系统会自动打开文件选择对话框并填充文件路径。filePath使用绝对路径（如 D:/test/video.mp4）',
         example: { action: 'upload', target: { type: 'coordinate', x: 0.5, y: 0.8 }, filePath: 'D:/test/video.mp4', description: '点击上传按钮并选择本地文件' }
       },
+      download: {
+        params: ['target'],
+        desc: '触发文件下载。通过点击下载链接或按钮触发浏览器下载，文件将保存到默认下载目录',
+        example: { action: 'download', target: { type: 'coordinate', x: 0.5, y: 0.3 }, description: '点击下载按钮' }
+      },
       select: { 
         params: ['selector', 'option'], 
         desc: '选择下拉框选项（仅支持原生<select>或有输入过滤的下拉）。对于需要滚动查找的下拉，请使用 click + wheel + screenshot 手动操作',
@@ -279,7 +284,8 @@ ${examples}
 
 【操作选择示例】
 1. 上传文件：click 点击"上传视频"按钮 → upload 操作选择文件
-2. 选择分区（普通）：click 点击下拉框展开 (x:0.5,y:0.7) → screenshot 查看选项 → click 点击"生活经验"
+2. 下载文件：download 操作点击下载按钮或链接（文件自动保存到下载目录）
+3. 选择分区（普通）：click 点击下拉框展开 (x:0.5,y:0.7) → screenshot 查看选项 → click 点击"生活经验"
 3. 选择分区（需滚动查找，假设点击位置是 x:0.5,y:0.7）：
    - click 点击下拉框展开 (x:0.5,y:0.7)
    - screenshot 截图查看选项（选项在点击位置下方，y:0.75-0.9）
@@ -300,6 +306,7 @@ ${examples}
 - selectAll 支持：使用 Ctrl+A 全选文本框内容，配合 type 可替换原有内容
 - 【重要】upload 操作：分两步完成上传：1) 先用 click 点击上传按钮触发系统对话框 2) 再用 upload 操作填充文件路径。upload 只负责选择文件，不负责点击按钮
 - upload 的 filePath 必须使用绝对路径（如 "D:/test/video.mp4"）
+- 【重要】download 操作：触发文件下载。使用 download 操作点击下载按钮或链接，文件将自动保存到下载目录
 - 【重要】select 操作：当下拉框、选择器、分区选择时，直接使用 select 操作选择选项，不要尝试用 scroll 滚动查找
 - 【重要】抖音/视频类网站请使用 wheel 而非 scroll 来切换视频
 - 输入错误时可使用 press + Backspace 删除后重新输入

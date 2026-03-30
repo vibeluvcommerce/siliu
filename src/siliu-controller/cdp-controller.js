@@ -2069,6 +2069,66 @@ class CDPController {
     return { success: result?.success ?? false, selector, option, ...result };
   }
 
+  // ========== 下载功能 ==========
+
+  /**
+   * 设置下载目录
+   * @param {string} downloadPath - 下载目录路径
+   */
+  async setDownloadPath(downloadPath) {
+    try {
+      await this.cdp.send('Page.setDownloadBehavior', {
+        behavior: 'allow',
+        downloadPath: downloadPath
+      });
+      console.log('[CDPController] Download path set:', downloadPath);
+      return { success: true, downloadPath };
+    } catch (err) {
+      console.error('[CDPController] Failed to set download path:', err.message);
+      throw err;
+    }
+  }
+
+  /**
+   * 触发下载（点击下载链接或按钮）
+   * @param {string} selectorOrText - 下载按钮选择器或文本
+   * @param {object} coordinate - 可选，坐标 {x, y}
+   */
+  async download(selectorOrText, coordinate = null) {
+    console.log('[CDPController] Download triggered:', { selectorOrText, coordinate });
+
+    // 设置下载目录（使用默认下载目录）
+    const path = require('path');
+    const os = require('os');
+    const defaultDownloadDir = path.join(os.homedir(), '.siliu', 'workspace', 'downloads');
+    
+    try {
+      await this.setDownloadPath(defaultDownloadDir);
+    } catch (err) {
+      console.warn('[CDPController] Failed to set download path, using browser default');
+    }
+
+    // 触发下载
+    if (coordinate && coordinate.x !== undefined && coordinate.y !== undefined) {
+      // 使用坐标点击
+      await this.clickAt(coordinate.x, coordinate.y);
+    } else if (selectorOrText) {
+      // 使用选择器或文本点击
+      await this.click(selectorOrText);
+    } else {
+      throw new Error('Download requires selector, text, or coordinate');
+    }
+
+    // 等待下载开始（给浏览器一点时间）
+    await this.sleep(1000);
+
+    return { 
+      success: true, 
+      message: 'Download triggered',
+      downloadDir: defaultDownloadDir
+    };
+  }
+
   // ========== 辅助方法 ==========
 
   _isCSSSelector(str) {
