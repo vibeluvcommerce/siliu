@@ -377,11 +377,96 @@ class DialogInterceptor extends EventEmitter {
       
       // 如果直接找不到，尝试遍历所有子窗口
       console.log('[DialogInterceptor] Trying to enumerate child windows...');
-      this._enumerateChildWindows(parentHwnd);
+      const found = this._enumerateAllChildWindows(parentHwnd);
+      if (found) {
+        return found;
+      }
       
       return null;
     } catch (err) {
       console.error('[DialogInterceptor] Error finding edit box:', err.message);
+      return null;
+    }
+  }
+
+  /**
+   * 枚举所有子窗口（深度遍历）
+   */
+  _enumerateAllChildWindows(parentHwnd) {
+    try {
+      // 获取所有子窗口，不限于 Edit 类
+      let child = null;
+      const nullClass = Buffer.from('\0', 'utf16le');
+      
+      console.log('[DialogInterceptor] Enumerating all child windows of dialog...');
+      
+      do {
+        child = this.user32.FindWindowExW(parentHwnd, child, null, null);
+        if (child) {
+          const classBuffer = Buffer.alloc(512);
+          const classLen = this.user32.GetClassNameW(child, classBuffer, 256);
+          const className = classBuffer.toString('utf16le', 0, classLen * 2).replace(/\0/g, '');
+          
+          const titleBuffer = Buffer.alloc(1024);
+          const titleLen = this.user32.GetWindowTextW(child, titleBuffer, 512);
+          const title = titleBuffer.toString('utf16le', 0, titleLen * 2).replace(/\0/g, '');
+          
+          console.log('[DialogInterceptor] Child window:', { className, title });
+          
+          // 检查是否是可编辑的控件
+          if (['Edit', 'ComboBoxEx32', 'ComboBox', 'Chrome_WidgetWin_0', 'Chrome_WidgetWin_1'].includes(className)) {
+            // 对于 Chrome 控件，尝试更深层的查找
+            if (className.startsWith('Chrome_WidgetWin_')) {
+              const deepChild = this._findEditInChromeWidget(child);
+              if (deepChild) return deepChild;
+            } else {
+              console.log(`[DialogInterceptor] Found editable control: ${className}`);
+              return child;
+            }
+          }
+        }
+      } while (child);
+      
+      return null;
+    } catch (err) {
+      console.error('[DialogInterceptor] Error enumerating children:', err.message);
+      return null;
+    }
+  }
+
+  /**
+   * 在 Chrome Widget 中查找编辑框
+   */
+  _findEditInChromeWidget(parentHwnd) {
+    try {
+      let child = null;
+      const nullClass = Buffer.from('\0', 'utf16le');
+      
+      do {
+        child = this.user32.FindWindowExW(parentHwnd, child, null, null);
+        if (child) {
+          const classBuffer = Buffer.alloc(512);
+          const classLen = this.user32.GetClassNameW(child, classBuffer, 256);
+          const className = classBuffer.toString('utf16le', 0, classLen * 2).replace(/\0/g, '');
+          
+          console.log('[DialogInterceptor] Chrome widget child:', { className });
+          
+          if (['Edit', 'ComboBoxEx32', 'ComboBox'].includes(className)) {
+            console.log(`[DialogInterceptor] Found edit in Chrome widget: ${className}`);
+            return child;
+          }
+          
+          // 递归查找更深层的控件
+          if (className.startsWith('Chrome_WidgetWin_')) {
+            const deep = this._findEditInChromeWidget(child);
+            if (deep) return deep;
+          }
+        }
+      } while (child);
+      
+      return null;
+    } catch (err) {
+      console.error('[DialogInterceptor] Error finding edit in Chrome widget:', err.message);
       return null;
     }
   }
