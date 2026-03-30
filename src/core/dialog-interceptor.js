@@ -380,14 +380,22 @@ class DialogInterceptor extends EventEmitter {
       // 如果直接找不到，遍历所有子窗口查找 Edit 类
       console.log('[DialogInterceptor] Enumerating child windows to find Edit control...');
       let child = null;
+      let count = 0;
       
       do {
         child = this.user32.FindWindowExW(parentHwnd, child, null, null);
         if (child) {
+          count++;
           const classBuffer = Buffer.alloc(256);
           const classLen = this.user32.GetClassNameW(child, classBuffer, 128);
           if (classLen > 0) {
             const className = classBuffer.toString('utf16le', 0, classLen * 2).replace(/\0/g, '');
+            
+            const titleBuffer = Buffer.alloc(512);
+            const titleLen = this.user32.GetWindowTextW(child, titleBuffer, 256);
+            const title = titleBuffer.toString('utf16le', 0, titleLen * 2).replace(/\0/g, '');
+            
+            console.log(`[DialogInterceptor] Child #${count}: class="${className}", title="${title}"`);
             
             if (className === 'Edit' || className === 'ComboBoxEx32' || className === 'ComboBox') {
               console.log(`[DialogInterceptor] Found ${className} control via enumeration`);
@@ -397,6 +405,7 @@ class DialogInterceptor extends EventEmitter {
         }
       } while (child);
       
+      console.log(`[DialogInterceptor] Enumerated ${count} child windows, no Edit control found`);
       return null;
     } catch (err) {
       console.error('[DialogInterceptor] Error finding edit box:', err.message);
