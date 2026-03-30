@@ -305,7 +305,7 @@ class DialogInterceptor extends EventEmitter {
 
   /**
    * 自动填充对话框
-   * 优先使用 SetWindowTextW，对于 DirectUI 对话框使用键盘模拟
+   * 上传和下载都使用 SetWindowTextW 设置文件路径
    */
   async _autoFillDialog(hwnd) {
     if (!this.pendingFile) return;
@@ -313,17 +313,9 @@ class DialogInterceptor extends EventEmitter {
     try {
       console.log('[DialogInterceptor] Auto-filling dialog with:', this.pendingFile);
       
-      // 尝试找到文件名输入框
+      // 查找文件名输入框
       const editBox = this._findFilenameEdit(hwnd);
       
-      // DirectUI 对话框使用键盘模拟
-      if (editBox === 'KEYBOARD_MODE') {
-        console.log('[DialogInterceptor] Using keyboard simulation for DirectUI dialog');
-        this._simulateKeyboardInput(hwnd, this.pendingFile);
-        return;
-      }
-      
-      // 标准对话框使用 SetWindowTextW
       if (editBox) {
         const filePathUtf16 = Buffer.from(this.pendingFile + '\0', 'utf16le');
         const result = this.user32.SetWindowTextW(editBox, filePathUtf16);
@@ -347,8 +339,8 @@ class DialogInterceptor extends EventEmitter {
         }
       }
       
-      // 所有方法都失败，发出手动干预事件
-      console.warn('[DialogInterceptor] Could not fill dialog, manual intervention needed');
+      // 找不到输入框，发出手动干预事件
+      console.warn('[DialogInterceptor] Could not find filename input, manual intervention needed');
       this.emit('dialog:manual-required', {
         hwnd: hwnd,
         filePath: this.pendingFile,
@@ -361,8 +353,8 @@ class DialogInterceptor extends EventEmitter {
   }
 
   /**
-   * 查找文件名输入框（参考上传实现）
-   * 对于标准对话框返回 Edit 控件句柄，对于 DirectUI 对话框返回 'KEYBOARD_MODE'
+   * 查找文件名输入框
+   * 标准系统对话框（上传/下载）都使用 Edit 控件
    */
   _findFilenameEdit(parentHwnd) {
     try {
@@ -381,14 +373,11 @@ class DialogInterceptor extends EventEmitter {
         }
       }
       
-      // 遍历子窗口查找 Edit 类或 DirectUI 容器
+      // 遍历子窗口查找 Edit 类
       let child = null;
-      const childList = [];
-      
       do {
         child = this.user32.FindWindowExW(parentHwnd, child, null, null);
         if (child) {
-          childList.push(child);
           const classBuffer = Buffer.alloc(256);
           const classLen = this.user32.GetClassNameW(child, classBuffer, 128);
           if (classLen > 0) {
@@ -398,182 +387,15 @@ class DialogInterceptor extends EventEmitter {
               console.log(`[DialogInterceptor] Found ${className} control via enumeration`);
               return child;
             }
-            
-            // Chrome 现代对话框使用 DirectUI，无法通过常规方式访问 Edit 控件
-            if (className === 'DUIViewWndClassName' || className === 'DirectUIHWND') {
-              console.log(`[DialogInterceptor] Detected ${className}, using keyboard simulation`);
-              return 'KEYBOARD_MODE';
-            }
           }
         }
       } while (child);
-      
-      // 对于 DUIViewWndClassName 容器，尝试递归查找 Edit 控件
-      for (const childHwnd of childList) {
-        const classBuffer = Buffer.alloc(256);
-        const classLen = this.user32.GetClassNameW(childHwnd, classBuffer, 128);
-        if (classLen > 0) {
-          const className = classBuffer.toString('utf16le', 0, classLen * 2).replace(/\0/g, '');
-          
-          if (className === 'DUIViewWndClassName' || className === 'DirectUIHWND') {
-            const foundEdit = this._findEditRecursively(childHwnd);
-            if (foundEdit) {
-              return foundEdit;
-            }
-            // 递归查找失败，使用键盘模拟
-            return 'KEYBOARD_MODE';
-          }
-        }
-      }
       
       return null;
     } catch (err) {
       console.error('[DialogInterceptor] Error finding edit box:', err.message);
       return null;
     }
-  }
-
-  /**
-   * 递归查找 Edit 控件
-   */
-  _findEditRecursively(parentHwnd, depth = 0) {
-    if (depth > 5) return null; // 限制递归深度
-    
-    let child = null;
-    do {
-      child = this.user32.FindWindowExW(parentHwnd, child, null, null);
-      if (child) {
-        const classBuffer = Buffer.alloc(256);
-        const classLen = this.user32.GetClassNameW(child, classBuffer, 128);
-        if (classLen > 0) {
-          const className = classBuffer.toString('utf16le', 0, classLen * 2).replace(/\0/g, '');
-          console.log(`[DialogInterceptor] Depth ${depth}: ${className}`);
-          
-          if (className === 'Edit') {
-            console.log('[DialogInterceptor] Found Edit at depth', depth);
-            return child;
-          }
-          
-          // 递归查找
-          const found = this._findEditRecursively(child, depth + 1);
-          if (found) return found;
-        }
-      }
-    } while (child);
-    
-    return null;
-  }
-
-  /**
-   * 模拟键盘输入（用于 DirectUI 对话框）
-   * 使用 Alt+N 快捷键聚焦文件名输入框，然后输入路径
-   */
-  _simulateKeyboardInput(hwnd, filePath) {
-    try {
-      console.log('[DialogInterceptor] Keyboard simulation for:', filePath);
-      
-      const VK_MENU = 0x12;   // Alt key
-      const VK_N = 0x4E;      // N key
-      const VK_RETURN = 0x0D;
-      const VK_CONTROL = 0x11;
-      const VK_A = 0x41;
-      
-      // 设置窗口到前台（关键步骤）
-      this.user32.SetForegroundWindow(hwnd);
-      
-      // 等待窗口激活
-      setTimeout(() => {
-        try {
-          // 发送 Alt+N 聚焦文件名输入框（使用系统键消息）
-          this._sendAltN(hwnd);
-          
-          // 等待焦点切换
-          setTimeout(() => {
-            // 全选现有内容
-            this._sendKeyCombo(hwnd, VK_CONTROL, VK_A);
-            
-            // 等待后输入文件路径
-            setTimeout(() => {
-              for (const char of filePath) {
-                this._sendChar(hwnd, char);
-              }
-              
-              // 按回车确认
-              setTimeout(() => {
-                this._sendKey(hwnd, VK_RETURN);
-                
-                // 触发成功事件
-                this.emit('file:selected', {
-                  filePath: filePath,
-                  hwnd: hwnd,
-                  title: this._getWindowTitle(hwnd)
-                });
-                
-                // 清除待选文件
-                this.pendingFile = null;
-              }, 300);
-            }, 100);
-          }, 300);
-          
-        } catch (err) {
-          console.error('[DialogInterceptor] Keyboard simulation error:', err.message);
-        }
-      }, 500);
-      
-    } catch (err) {
-      console.error('[DialogInterceptor] _simulateKeyboardInput error:', err.message);
-    }
-  }
-  
-  /**
-   * 发送 Alt+N 组合键（使用系统键消息）
-   * Alt 是系统键，需要使用 WM_SYSKEYDOWN/UP
-   */
-  _sendAltN(hwnd) {
-    const WM_SYSKEYDOWN = 0x0104;
-    const WM_SYSKEYUP = 0x0105;
-    const VK_MENU = 0x12;
-    const VK_N = 0x4E;
-    
-    // Alt 按下（系统键）
-    this.user32.PostMessageW(hwnd, WM_SYSKEYDOWN, VK_MENU, 0x20000000);
-    // N 按下
-    this.user32.PostMessageW(hwnd, WM_SYSKEYDOWN, VK_N, 0x20000000);
-    // N 释放
-    this.user32.PostMessageW(hwnd, WM_SYSKEYUP, VK_N, 0xE0000000);
-    // Alt 释放
-    this.user32.PostMessageW(hwnd, WM_SYSKEYUP, VK_MENU, 0xE0000000);
-  }
-
-  /**
-   * 发送单个按键
-   */
-  _sendKey(hwnd, vkCode) {
-    const WM_KEYDOWN = 0x0100;
-    const WM_KEYUP = 0x0101;
-    this.user32.PostMessageW(hwnd, WM_KEYDOWN, vkCode, 0);
-    this.user32.PostMessageW(hwnd, WM_KEYUP, vkCode, 0);
-  }
-
-  /**
-   * 发送组合键
-   */
-  _sendKeyCombo(hwnd, vkModifier, vkKey) {
-    const WM_KEYDOWN = 0x0100;
-    const WM_KEYUP = 0x0101;
-    this.user32.PostMessageW(hwnd, WM_KEYDOWN, vkModifier, 0);
-    this.user32.PostMessageW(hwnd, WM_KEYDOWN, vkKey, 0);
-    this.user32.PostMessageW(hwnd, WM_KEYUP, vkKey, 0);
-    this.user32.PostMessageW(hwnd, WM_KEYUP, vkModifier, 0);
-  }
-
-  /**
-   * 发送字符
-   */
-  _sendChar(hwnd, char) {
-    const WM_CHAR = 0x0102;
-    const code = char.charCodeAt(0);
-    this.user32.PostMessageW(hwnd, WM_CHAR, code, 0);
   }
 
   /**
