@@ -16272,3 +16272,139 @@ Chrome 版本: 116.0.5845.228
 [启动流程] 开始激活 AI 服务...
 [启动流程] ✓ AI 服务激活完成
 [启动流程] ========== 启动完成 ==========
+===== 启动 =====
+环境变量: {
+  "ALLUSERSPROFILE": "C:\\ProgramData",
+  "APPDATA": "C:\\Users\\Admin\\AppData\\Roaming",
+  "ChocolateyInstall": "C:\\ProgramData\\chocolatey",
+  "ChocolateyLastPathUpdate": "134085127626468476",
+  "CHROME_CRASHPAD_PIPE_NAME": "\\\\.\\pipe\\crashpad_14048_BVMFEOJNOZGPRMLT",
+  "COLORTERM": "truecolor",
+  "CommonProgramFiles": "C:\\Program Files\\Common Files",
+  "CommonProgramFiles(x86)": "C:\\Program Files (x86)\\Common Files",
+  "CommonProgramW6432": "C:\\Program Files\\Common Files",
+  "COMPUTERNAME": "PS2022NKXVXHVB",
+  "ComSpec": "C:\\WINDOWS\\system32\\cmd.exe",
+  "CYGWIN": "mintty",
+  "DriverData": "C:\\Windows\\System32\\Drivers\\DriverData",
+  "FPS_BROWSER_APP_PROFILE_STRING": "Internet Explorer",
+  "FPS_BROWSER_USER_PROFILE_STRING": "Default",
+  "GENICAM_GENTL32_PATH": "C:\\Program Files (x86)\\Common Files\\MVS\\Runtime\\Win32_i86",
+  "GENICAM_GENTL64_PATH": "C:\\Program Files (x86)\\Common Files\\MVS\\Runtime\\Win64_x64",
+  "GIT_ASKPASS": "c:\\Softwares\\Microsoft VS Code\\resources\\app\\extensions\\git\\dist\\askpass.sh",
+  "HOMEDRIVE": "C:",
+  "HOMEPATH": "\\Users\\Admin",
+  "IGCCSVC_DB": "AQAAANCMnd8BFdERjHoAwE/Cl+sBAAAAHte3yDlXq0eZXhjJq8NApgQAAAACAAAAAAAQZgAAAAEAACAAAABUAI1l7fxDSNl2zMt49CR7tbVQAKBmh4Sk9AvM5B27kwAAAAAOgAAAAAIAACAAAADxpX5i3+2VzMdP6F3fsqmyeZNY2BHJ8HhP+QZNmhWZVmAAAABTtPQZHrwsc+8lQqpI6sFzFQxIIC7lQNj+ZyB7OmxhyKQnE7OlgOtpy23qqTD4zDWlW/anwu21UgTIJFicayZHg5et+3UyLJdEr07vEKsCqSlh8dqwpwYq3SYkdMRvCRtAAAAApm4ZXFqaabrO+7axRymg2NQ/EcYB5U2j2Zw2awvA+h6AY63h9/OR65qzVGbCviMzEIY0ZtexEiWdL2xa/ySQQw==",
+  "IOJS_ORG_MIRROR": "https://npm.taobao.org/mirrors/iojs",
+  "JAVA_HOME": "C:\\Softwares\\java",
+  "LANG": "en_US.UTF-8",
+  "LOCALAPPDATA": "C:\\Users\\Admin\\AppData\\Local",
+  "LOGONSERVER": "\\\\PS2022NKXVXHVB",
+  "MVCAM_COMMON_RUNENV": "C:\\Program Files (x86)\\MVS\\Development",
+  "MVCAM_GENICAM_CLPROTOCOL": "C:\\Program Files (x86)\\Common Files\\MVS\\Runtime\\CLProtocol",
+  "MVCAM_GIGE_DEBUG_HEARTBEAT": "60000",
+  "NODEJS_ORG_MIRROR": "https://npm.taobao.org/mirrors/node",
+  "NODIST_IOJS_MIRROR": "https://npm.taobao.org/mirrors/iojs",
+  "NODIST_NODE_MIRROR": "https://npm.taobao.org/mirrors/node",
+  "NUMBER_OF_PROCESSORS": "12",
+  "NVMW_IOJS_ORG_MIRROR": "https://npm.taobao.org/mirrors/iojs",
+  "NVMW_NODEJS_ORG_MIRROR": "https://npm.taobao.org/mirrors/node",
+  "NVMW_NPM_MIRROR": "https://npm.taobao.org/mirrors/npm",
+  "NVM_HOME": "C:\\Users\\Admin\\AppData\\Roaming\\nvm",
+  "NVM_IOJS_ORG_MIRROR": "https://npm.taobao.org/mirrors/iojs",
+  "NVM_NODEJS_ORG_MIRROR": "https://npm.taobao.org/mirrors/node",
+  "NVM_SYMLINK": "C:\\Program Files\\nodejs",
+  "OneDrive": "C:\\Users\\Admin\\OneDrive",
+  "ORIGINAL_XDG_CURRENT_DESKTOP": "undefined",
+  "OS": "Windows_NT",
+  "Path": "c:\\Users\\Admin\\AppData\\Roaming\\Code\\User\\globalStorage\\github.copilot-chat\\debugCommand;c:\\Users\\Admin\\AppData\\Roaming\\Code\\User\\globalStorage\\github.copilot-chat\\copilotCli;C:\\Program Files (x86)\\Common Files\\MVS\\Runtime\\Win32_i86;C:\\Program Files (x86)\\Common Files\\MVS\\Runtime\\Win64_x64;c:\\Users\\Admin\\AppData\\Local\\Programs\\cursor\\resources\\app\\bin;C:\\Program Files (x86)\\ShadowBot;C:\\Python312\\Scripts\\;C:\\Python312\\;C:\\Program Files\\Common Files\\Oracle\\Java\\javapath;C:\\Softwares\\Python\\Python37\\Scripts\\;C:\\Softwares\\Python\\Python37\\;C:\\Softwares\\Python\\Python38\\Scripts\\;C:\\Softwares\\Python\\Python38\\;C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\;C:\\WINDOWS\\System32\\OpenSSH\\;C:\\Program Files\\OpenSSH\\bin;C:\\Program Files\\Git\\cmd;C:\\Program Files\\ArangoDB3 3.9.1\\usr\\bin;C:\\Softwares\\ffmpeg\\bin;C:\\Softwares\\java\\bin;C:\\Softwares\\微信web开发者工具\\dll;C:\\Program Files\\Pandoc\\;C:\\ProgramData\\chocolatey\\bin;C:\\Users\\Admin\\AppData\\Roaming\\nvm;C:\\Program Files\\nodejs;D:\\work\\trans\\ffmpeg-7.1-full_build\\bin\\ffmpeg.exe;C:\\Program Files (x86)\\ShadowBot;C:\\Users\\Admin\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Softwares\\PyCharm 2021.1\\bin;C:\\Softwares\\ffmpeg\\bin;C:\\Users\\Admin\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Users\\Admin\\AppData\\Loc;C:\\Program Files\\nodejs\\;C:\\Users\\Admin\\.local\\bin;C:\\Users\\Admin\\.local\\bin;C:\\Program Files\\MySQL\\MySQL Shell 8.0\\bin\\;C:\\Program Files (x86)\\ShadowBot;C:\\Users\\Admin\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Softwares\\PyCharm 2021.1\\bin;C:\\Softwares\\Microsoft VS Code\\bin;C:\\Softwares\\ffmpeg\\bin;C:\\Users\\Admin\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Users\\Admin\\AppData\\Local\\Programs\\Ollama;C:\\Users\\Admin\\AppData\\Roaming\\nvm;C:\\Program Files\\nodejs;C:\\Program Files\\Tesseract-OCR;C:\\Users\\Admin\\AppData\\Roaming\\npm",
+  "PATHEXT": ".COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC;.PY;.PYW;.CPL",
+  "PROCESSOR_ARCHITECTURE": "AMD64",
+  "PROCESSOR_IDENTIFIER": "Intel64 Family 6 Model 151 Stepping 2, GenuineIntel",
+  "PROCESSOR_LEVEL": "6",
+  "PROCESSOR_REVISION": "9702",
+  "ProgramData": "C:\\ProgramData",
+  "ProgramFiles": "C:\\Program Files",
+  "ProgramFiles(x86)": "C:\\Program Files (x86)",
+  "ProgramW6432": "C:\\Program Files",
+  "PROMPT": "$P$G",
+  "PSModulePath": "C:\\Users\\Admin\\Documents\\WindowsPowerShell\\Modules;C:\\Program Files\\WindowsPowerShell\\Modules;C:\\WINDOWS\\system32\\WindowsPowerShell\\v1.0\\Modules",
+  "PUBLIC": "C:\\Users\\Public",
+  "PyCharm": "C:\\Softwares\\PyCharm 2021.1\\bin;",
+  "PYTHONIOENCODING": "utf-8",
+  "SESSIONNAME": "Console",
+  "SHADOWBOT_CULTURE": "Zh_CN",
+  "SystemDrive": "C:",
+  "SystemRoot": "C:\\WINDOWS",
+  "TEMP": "C:\\Users\\Admin\\AppData\\Local\\Temp",
+  "TERM_PROGRAM": "vscode",
+  "TERM_PROGRAM_VERSION": "1.106.2",
+  "TMP": "C:\\Users\\Admin\\AppData\\Local\\Temp",
+  "USERDOMAIN": "PS2022NKXVXHVB",
+  "USERDOMAIN_ROAMINGPROFILE": "PS2022NKXVXHVB",
+  "USERNAME": "Admin",
+  "USERPROFILE": "C:\\Users\\Admin",
+  "VSCODE_GIT_ASKPASS_EXTRA_ARGS": "",
+  "VSCODE_GIT_ASKPASS_MAIN": "c:\\Softwares\\Microsoft VS Code\\resources\\app\\extensions\\git\\dist\\askpass-main.js",
+  "VSCODE_GIT_ASKPASS_NODE": "C:\\Softwares\\Microsoft VS Code\\Code.exe",
+  "VSCODE_GIT_IPC_HANDLE": "\\\\.\\pipe\\vscode-git-6232da29a4-sock",
+  "VSCODE_INJECTION": "1",
+  "VSCODE_PYTHON_AUTOACTIVATE_GUARD": "1",
+  "windir": "C:\\WINDOWS",
+  "ZES_ENABLE_SYSMAN": "1"
+}
+命令行参数: [
+  "D:\\work\\siliu\\node_modules\\electron\\dist\\electron.exe",
+  ".",
+  "--no-sandbox"
+]
+Electron 版本: 26.6.10
+Node 版本: 18.16.1
+Chrome 版本: 116.0.5845.228
+平台: win32 x64
+当前目录: D:\work\siliu\src
+用户数据目录: C:\Users\Admin\AppData\Roaming\siliu
+日志目录: D:\work\siliu
+日志文件: D:\work\siliu\log.txt
+[模块加载] 开始加载模块...
+[模块加载] ✓ event-bus 加载成功
+[模块加载] ✓ config-manager 加载成功
+[模块加载] ✓ ai-service 加载成功
+[模块加载] ✓ workspace-manager 加载成功
+[模块加载] ✓ core 加载成功
+[模块加载] ✓ menu/index 加载成功
+[模块加载] ✓ siliu-controller 加载成功
+[模块加载] ✓ copilot 加载成功
+[模块加载] ✓ adblock 加载成功
+[模块加载] ✓ events 加载成功
+[模块加载] 所有模块引用完成
+[生命周期] app.whenReady() 触发，准备调用 startup()
+[生命周期] 开始执行 startup()
+[启动流程] startup() 开始执行
+[启动流程] 开始初始化 ConfigManager...
+[启动流程] ✓ ConfigManager 初始化完成
+[启动流程] 开始初始化 WorkspaceManager...
+[启动流程] ✓ WorkspaceManager 初始化完成: C:\Users\Admin\.siliu\workspace
+[启动流程] 开始初始化 AIServiceManager...
+[启动流程] ✓ AIServiceManager 初始化完成
+[启动流程] 开始初始化 Core...
+[启动流程] ✓ Core 初始化完成
+[启动流程] 开始初始化 ContextMenu...
+[启动流程] ✓ ContextMenu 初始化完成
+[启动流程] 开始创建主窗口...
+[启动流程] ✓ 主窗口创建完成
+[启动流程] 开始初始化 SiliuController...
+[启动流程] ✓ SiliuController 初始化完成
+[启动流程] 开始初始化 CopilotManager...
+[启动流程] ✓ CopilotManager 初始化完成
+[启动流程] 开始初始化 AdBlock...
+[启动流程] ✓ AdBlock 初始化完成
+[启动流程] 开始初始化 DynamicAgentLoader...
+[启动流程] ✓ DynamicAgentLoader 初始化完成
+[启动流程] 开始加载 TabListWindow...
+[启动流程] ✓ TabListWindow 加载完成
+[启动流程] 开始设置 IPC 处理器...
+[启动流程] ✓ IPC 处理器设置完成
+[启动流程] 开始激活 AI 服务...
+[启动流程] ✓ AI 服务激活完成
+[启动流程] ========== 启动完成 ==========

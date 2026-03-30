@@ -127,6 +127,86 @@ class DialogInterceptor extends EventEmitter {
   clearNextFile() {
     this.pendingFile = null;
     console.log('[DialogInterceptor] Next file cleared');
+    
+    // 继续监听确认弹窗（文件已存在时的覆盖确认）
+    this._startConfirmDialogWatcher();
+  }
+  
+  /**
+   * 启动确认弹窗监听器（处理文件覆盖确认）
+   */
+  _startConfirmDialogWatcher() {
+    if (this._confirmWatcher) return;
+    
+    console.log('[DialogInterceptor] Starting confirm dialog watcher for 10 seconds');
+    let checkCount = 0;
+    const maxChecks = 100; // 10 seconds / 100ms
+    
+    this._confirmWatcher = setInterval(async () => {
+      checkCount++;
+      
+      if (checkCount > maxChecks) {
+        console.log('[DialogInterceptor] Confirm dialog watcher timeout');
+        this._stopConfirmDialogWatcher();
+        return;
+      }
+      
+      try {
+        // 扫描所有可能的确认弹窗
+        const confirmKeywords = ['确认', '覆盖', '替换', '已存在', 'Confirm', 'Replace', 'Overwrite', 'exists'];
+        
+        // 检查前台窗口
+        const fgWindow = this.user32.GetForegroundWindow();
+        if (fgWindow) {
+          const titleBuffer = Buffer.alloc(1024);
+          const titleLen = this.user32.GetWindowTextW(fgWindow, titleBuffer, 512);
+          const title = titleBuffer.toString('utf16le', 0, titleLen * 2).replace(/\0/g, '');
+          
+          const isConfirm = confirmKeywords.some(kw => title.includes(kw));
+          if (isConfirm) {
+            console.log('[DialogInterceptor] Confirm dialog detected (watcher):', title);
+            await this._clickYesButton(fgWindow);
+            this._stopConfirmDialogWatcher();
+            return;
+          }
+        }
+        
+        // 扫描所有 #32770 窗口
+        const classNameUtf16 = Buffer.from('#32770\0', 'utf16le');
+        let hwnd = null;
+        
+        do {
+          hwnd = this.user32.FindWindowExW(null, hwnd, classNameUtf16, null);
+          if (hwnd) {
+            const titleBuffer = Buffer.alloc(1024);
+            const titleLen = this.user32.GetWindowTextW(hwnd, titleBuffer, 512);
+            const title = titleBuffer.toString('utf16le', 0, titleLen * 2).replace(/\0/g, '');
+            
+            const isConfirm = confirmKeywords.some(kw => title.includes(kw));
+            if (isConfirm) {
+              console.log('[DialogInterceptor] Confirm dialog found via enumeration:', title);
+              await this._clickYesButton(hwnd);
+              this._stopConfirmDialogWatcher();
+              return;
+            }
+          }
+        } while (hwnd);
+        
+      } catch (err) {
+        console.error('[DialogInterceptor] Error in confirm watcher:', err.message);
+      }
+    }, 100);
+  }
+  
+  /**
+   * 停止确认弹窗监听器
+   */
+  _stopConfirmDialogWatcher() {
+    if (this._confirmWatcher) {
+      clearInterval(this._confirmWatcher);
+      this._confirmWatcher = null;
+      console.log('[DialogInterceptor] Confirm dialog watcher stopped');
+    }
   }
 
   /**
