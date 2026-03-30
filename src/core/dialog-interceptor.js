@@ -227,6 +227,11 @@ class DialogInterceptor extends EventEmitter {
       // 检查是否是文件选择对话框（通过标题关键词）
       const isFileDialog = this._isFileDialog(title);
       
+      // 调试：打印所有潜在对话框窗口
+      if (className === '#32770' || className.includes('Chrome_WidgetWin')) {
+        console.log('[DialogInterceptor] Checking dialog:', { className, title: title.substring(0, 50) });
+      }
+      
       if (isFileDialog === 'confirm') {
         // 确认覆盖弹窗，点击"是"
         console.log('[DialogInterceptor] Confirm dialog detected, clicking Yes...');
