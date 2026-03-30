@@ -286,9 +286,9 @@ class DialogInterceptor extends EventEmitter {
     
     // 文件覆盖确认弹窗
     const confirmKeywords = [
-      '确认另存为', '确认保存', '替换', '覆盖',  // 中文
-      'Confirm', 'Replace', 'Overwrite',        // 英文
-      'already exists', 'already exist',        // 英文提示
+      '确认另存为', '确认保存', '替换', '覆盖', '文件已存在', '已存在',  // 中文
+      'Confirm', 'Replace', 'Overwrite', 'exists',                      // 英文
+      'already exists', 'already exist', 'file exists',                 // 英文提示
     ];
     
     if (confirmKeywords.some(kw => title.includes(kw))) {
@@ -502,7 +502,12 @@ class DialogInterceptor extends EventEmitter {
       
       // 尝试找到"是"按钮
       const buttonClasses = ['Button'];
-      const yesTexts = ['是', '是(Y)', 'Yes', 'Yes(&Y)', '覆盖', '替换', 'Replace'];
+      const yesTexts = [
+        '是', '是(Y)', '是(&Y)',           // 中文
+        'Yes', 'Yes(&Y)', '&Yes',          // 英文
+        '覆盖', '替换', 'Overwrite', 'Replace',
+        '确定', 'OK', 'Save', '保存'       // 后备选项
+      ];
       
       for (const btnClass of buttonClasses) {
         let child = null;
