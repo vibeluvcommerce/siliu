@@ -169,26 +169,67 @@ class DialogInterceptor extends EventEmitter {
         } while (hwnd);
       }
       
-      // 调试日志：每5秒打印一次前台窗口信息
+      // 调试日志：每3秒扫描所有可见窗口
       if (this.pendingFile) {
         const now = Date.now();
-        if (!this._lastDebugLog || now - this._lastDebugLog > 5000) {
+        if (!this._lastDebugLog || now - this._lastDebugLog > 3000) {
           this._lastDebugLog = now;
-          if (fgWindow) {
-            const classBuffer = Buffer.alloc(512);
-            const classLen = this.user32.GetClassNameW(fgWindow, classBuffer, 256);
-            if (classLen > 0) {
-              const className = classBuffer.toString('utf16le', 0, classLen * 2).replace(/\0/g, '');
-              const titleBuffer = Buffer.alloc(1024);
-              const titleLen = this.user32.GetWindowTextW(fgWindow, titleBuffer, 512);
-              const title = titleBuffer.toString('utf16le', 0, titleLen * 2).replace(/\0/g, '');
-              console.log('[DialogInterceptor] Poll - Foreground window:', { className, title });
-            }
-          }
+          this._scanAllVisibleWindows();
         }
       }
     } catch (err) {
       console.error('[DialogInterceptor] Error in poll:', err.message);
+    }
+  }
+
+  /**
+   * 扫描所有可见窗口（调试用途）
+   */
+  _scanAllVisibleWindows() {
+    try {
+      const windows = [];
+      
+      // 定义回调函数类型
+      const enumProc = this.koffi.callback(this.koffi.pointer(this.koffi.types.void), ['pointer', 'int64'], (hwnd, lParam) => {
+        // 只收集可见窗口
+        if (!this.user32.IsWindowVisible(hwnd)) return true;
+        
+        const classBuffer = Buffer.alloc(512);
+        const classLen = this.user32.GetClassNameW(hwnd, classBuffer, 256);
+        if (classLen === 0) return true;
+        
+        const className = classBuffer.toString('utf16le', 0, classLen * 2).replace(/\0/g, '');
+        
+        const titleBuffer = Buffer.alloc(1024);
+        const titleLen = this.user32.GetWindowTextW(hwnd, titleBuffer, 512);
+        const title = titleBuffer.toString('utf16le', 0, titleLen * 2).replace(/\0/g, '');
+        
+        // 只收集有标题的窗口或特定类名
+        if (title || className === '#32770' || className.includes('Chrome')) {
+          windows.push({ hwnd: hwnd.toString(), className, title });
+        }
+        
+        return true;
+      });
+      
+      // 枚举所有顶级窗口
+      this.user32.EnumWindows(enumProc, 0);
+      
+      // 释放回调
+      setTimeout(() => this.koffi.unregister(enumProc), 100);
+      
+      // 打印所有收集到的窗口
+      if (windows.length > 0) {
+        console.log('[DialogInterceptor] === All visible windows ===');
+        windows.forEach(w => {
+          const marker = this._isFileDialog(w.title) === 'confirm' ? ' [CONFIRM]' : 
+                        this._isFileDialog(w.title) ? ' [DIALOG]' : '';
+          console.log(`  [${w.className}] "${w.title}"${marker}`);
+        });
+        console.log('[DialogInterceptor] ===========================');
+      }
+    } catch (err) {
+      console.error('[DialogInterceptor] Error scanning windows:', err.message);
     }
   }
 
@@ -293,9 +334,16 @@ class DialogInterceptor extends EventEmitter {
     
     // 文件覆盖确认弹窗
     const confirmKeywords = [
-      '确认另存为', '确认保存', '替换', '覆盖', '文件已存在', '已存在',  // 中文
-      'Confirm', 'Replace', 'Overwrite', 'exists',                      // 英文
-      'already exists', 'already exist', 'file exists',                 // 英文提示
+      // 中文
+      '确认另存为', '确认保存', '替换', '覆盖', '文件已存在', '已存在', '存在',
+      '确认要替换', '想要替换', '是否替换', '是否覆盖', '是否保存',
+      '文件已经存在', '同名文件', '替换文件', '覆盖文件',
+      // 英文
+      'Confirm', 'Replace', 'Overwrite', 'exists', 'already exists', 
+      'already exist', 'file exists', 'Do you want to replace',
+      'A file named', 'already exists in', 'Would you like to',
+      // Chrome 特定
+      'Save As', 'save as', 'Confirm Save', 'confirm save',
     ];
     
     if (confirmKeywords.some(kw => title.includes(kw))) {
@@ -505,17 +553,38 @@ class DialogInterceptor extends EventEmitter {
    */
   _clickYesButton(hwnd) {
     try {
-      console.log('[DialogInterceptor] Looking for Yes button...');
+      console.log('[DialogInterceptor] Looking for Yes button in confirm dialog...');
       
       // 尝试找到"是"按钮
-      const buttonClasses = ['Button'];
+      const buttonClasses = ['Button', 'DirectUIHWND', 'CtrlNotifySink'];
       const yesTexts = [
-        '是', '是(Y)', '是(&Y)',           // 中文
-        'Yes', 'Yes(&Y)', '&Yes',          // 英文
-        '覆盖', '替换', 'Overwrite', 'Replace',
-        '确定', 'OK', 'Save', '保存'       // 后备选项
+        '是', '是(Y)', '是(&Y)', '&是',           // 中文
+        'Yes', 'Yes(&Y)', '&Yes', 'Yes(Y)',      // 英文
+        '覆盖', '替换', 'Overwrite', 'Replace',  // 覆盖相关
+        '确定', 'OK', '&OK', 'Save', '保存', '&Save',  // 后备选项
+        'Continue', '继续', 'Confirm', '确认'    // 其他可能的文本
       ];
       
+      // 先枚举所有子控件，打印出来用于调试
+      console.log('[DialogInterceptor] Enumerating all buttons in dialog:');
+      const allButtons = [];
+      for (const btnClass of ['Button']) {
+        let child = null;
+        const classNameUtf16 = Buffer.from(btnClass + '\0', 'utf16le');
+        
+        do {
+          child = this.user32.FindWindowExW(hwnd, child, classNameUtf16, null);
+          if (child) {
+            const textBuffer = Buffer.alloc(256);
+            const textLen = this.user32.GetWindowTextW(child, textBuffer, 128);
+            const text = textBuffer.toString('utf16le', 0, textLen * 2).replace(/\0/g, '');
+            allButtons.push(text || '[empty]');
+          }
+        } while (child);
+      }
+      console.log('[DialogInterceptor] Found buttons:', allButtons);
+      
+      // 现在尝试找到并点击"是"按钮
       for (const btnClass of buttonClasses) {
         let child = null;
         const classNameUtf16 = Buffer.from(btnClass + '\0', 'utf16le');
@@ -529,30 +598,46 @@ class DialogInterceptor extends EventEmitter {
             const textLen = this.user32.GetWindowTextW(child, textBuffer, 128);
             const text = textBuffer.toString('utf16le', 0, textLen * 2).replace(/\0/g, '');
             
-            console.log('[DialogInterceptor] Found button:', text);
-            
             // 检查是否是"是"按钮
-            const isYes = yesTexts.some(yt => text.includes(yt) || text === yt);
+            const isYes = yesTexts.some(yt => 
+              text.toLowerCase().includes(yt.toLowerCase()) || 
+              text === yt
+            );
             
             if (isYes) {
               console.log('[DialogInterceptor] Clicking Yes button:', text);
               
-              // 发送点击消息
+              // 发送点击消息 - 尝试多种方式
               const WM_COMMAND = 0x0111;
               const BN_CLICKED = 0;
+              const BM_CLICK = 0x00F5;
               
-              const childAddr = this.koffi.address(child);
-              this.user32.PostMessageW(hwnd, WM_COMMAND, (BN_CLICKED << 16) | 1, childAddr);
+              // 方式1: PostMessage WM_COMMAND
+              try {
+                const childAddr = this.koffi.address(child);
+                this.user32.PostMessageW(hwnd, WM_COMMAND, (BN_CLICKED << 16) | 1, childAddr);
+              } catch (e) {
+                // 忽略错误
+              }
+              
+              // 方式2: SendMessage BM_CLICK (更可靠)
+              setTimeout(() => {
+                try {
+                  this.user32.SendMessageW(child, BM_CLICK, 0, 0);
+                } catch (e) {
+                  console.log('[DialogInterceptor] BM_CLICK failed:', e.message);
+                }
+              }, 100);
               
               console.log('[DialogInterceptor] Yes button clicked');
-              return;
+              return true;
             }
           }
         } while (child);
       }
       
       // 如果没找到特定按钮，尝试发送 IDYES
-      console.log('[DialogInterceptor] Sending IDYES command');
+      console.log('[DialogInterceptor] No Yes button found, trying IDYES command');
       const WM_COMMAND = 0x0111;
       const IDYES = 6;
       this.user32.PostMessageW(hwnd, WM_COMMAND, IDYES, 0);
