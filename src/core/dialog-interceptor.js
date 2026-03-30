@@ -82,7 +82,9 @@ class DialogInterceptor extends EventEmitter {
       
       // 启动轮询检测（每 100ms 检查一次）
       this.pollInterval = setInterval(() => {
-        this._pollForDialogs();
+        this._pollForDialogs().catch(err => {
+          console.error('[DialogInterceptor] Poll error:', err.message);
+        });
       }, 100);
       
       console.log('[DialogInterceptor] Started in polling mode');
@@ -129,7 +131,7 @@ class DialogInterceptor extends EventEmitter {
   /**
    * 轮询检测对话框
    */
-  _pollForDialogs() {
+  async _pollForDialogs() {
     if (!this.pendingFile || !this.user32) {
       if (this.pendingFile) {
         console.log('[DialogInterceptor] Polling skipped: user32 not available');
@@ -140,7 +142,7 @@ class DialogInterceptor extends EventEmitter {
     try {
       // 策略1: 先检查前台窗口（最常见情况）
       const fgWindow = this.user32.GetForegroundWindow();
-      if (fgWindow && this._checkAndHandleDialog(fgWindow)) {
+      if (fgWindow && await this._checkAndHandleDialog(fgWindow)) {
         return;
       }
       
@@ -159,7 +161,7 @@ class DialogInterceptor extends EventEmitter {
         // 遍历所有该类的窗口
         do {
           hwnd = this.user32.FindWindowExW(null, hwnd, classNameUtf16, null);
-          if (hwnd && this._checkAndHandleDialog(hwnd)) {
+          if (hwnd && await this._checkAndHandleDialog(hwnd)) {
             console.log('[DialogInterceptor] Found dialog via window enumeration:', className);
             return;
           }
@@ -192,7 +194,7 @@ class DialogInterceptor extends EventEmitter {
   /**
    * 检查并处理单个窗口
    */
-  _checkAndHandleDialog(hwnd) {
+  async _checkAndHandleDialog(hwnd) {
     try {
       // 获取窗口类名（同时验证窗口是否有效）
       const classBuffer = Buffer.alloc(512);
@@ -226,7 +228,7 @@ class DialogInterceptor extends EventEmitter {
       
       if (isFileDialog) {
         console.log('[DialogInterceptor] File dialog confirmed, auto-filling...');
-        this._autoFillDialog(hwnd);
+        await this._autoFillDialog(hwnd);
         return true;
       }
       
@@ -240,7 +242,7 @@ class DialogInterceptor extends EventEmitter {
   /**
    * 通过遍历查找对话框
    */
-  _findDialogsByTraversal() {
+  async _findDialogsByTraversal() {
     try {
       const classNameUtf16 = Buffer.from('#32770\0', 'utf16le');
       let hwnd = null;
@@ -248,7 +250,7 @@ class DialogInterceptor extends EventEmitter {
       // 遍历所有 #32770 类的窗口
       do {
         hwnd = this.user32.FindWindowExW(null, hwnd, classNameUtf16, null);
-        if (hwnd && this._checkAndHandleDialog(hwnd)) {
+        if (hwnd && await this._checkAndHandleDialog(hwnd)) {
           return;
         }
       } while (hwnd);
@@ -303,7 +305,7 @@ class DialogInterceptor extends EventEmitter {
   /**
    * 自动填充对话框
    */
-  _autoFillDialog(hwnd) {
+  async _autoFillDialog(hwnd) {
     if (!this.pendingFile) return;
 
     try {
@@ -341,7 +343,24 @@ class DialogInterceptor extends EventEmitter {
         }
       }
       
-      // 如果找不到输入框，发出手动干预事件
+      // 方法2: 对于 Chrome 保存对话框，尝试键盘模拟输入
+      console.log('[DialogInterceptor] Trying keyboard simulation for Chrome dialog...');
+      const keyboardSuccess = await this._fillByKeyboard(hwnd, this.pendingFile);
+      
+      if (keyboardSuccess) {
+        console.log('[DialogInterceptor] Keyboard simulation successful');
+        // 触发事件
+        this.emit('file:selected', {
+          filePath: this.pendingFile,
+          hwnd: hwnd,
+          title: this._getWindowTitle(hwnd)
+        });
+        // 清除待选文件
+        this.pendingFile = null;
+        return;
+      }
+      
+      // 如果键盘模拟也失败，发出手动干预事件
       console.warn('[DialogInterceptor] Could not find filename input, manual intervention needed');
       this.emit('dialog:manual-required', {
         hwnd: hwnd,
@@ -497,6 +516,101 @@ class DialogInterceptor extends EventEmitter {
     } catch (err) {
       console.error('[DialogInterceptor] Error enumerating children:', err.message);
     }
+  }
+
+  /**
+   * 使用键盘模拟填充文件路径（用于 Chrome 保存对话框）
+   */
+  async _fillByKeyboard(hwnd, filePath) {
+    try {
+      console.log('[DialogInterceptor] Using keyboard simulation to fill path:', filePath);
+      
+      // 确保窗口在前台
+      this.user32.SetForegroundWindow(hwnd);
+      await this._sleep(100);
+      
+      // Ctrl+A 全选当前内容（如果有）
+      this._sendKeyCombo(hwnd, 0x11, 0x41); // Ctrl+A
+      await this._sleep(50);
+      
+      // 直接输入文件路径
+      for (const char of filePath) {
+        const vk = this._charToVk(char);
+        if (vk) {
+          this._sendKey(hwnd, vk);
+          await this._sleep(10);
+        }
+      }
+      
+      await this._sleep(200);
+      
+      // 按回车确认
+      this._sendKey(hwnd, 0x0D); // Enter
+      
+      console.log('[DialogInterceptor] Keyboard input completed');
+      return true;
+    } catch (err) {
+      console.error('[DialogInterceptor] Keyboard simulation failed:', err.message);
+      return false;
+    }
+  }
+
+  /**
+   * 发送单个按键
+   */
+  _sendKey(hwnd, vkCode) {
+    const WM_KEYDOWN = 0x0100;
+    const WM_KEYUP = 0x0101;
+    
+    // 发送按键按下
+    this.user32.PostMessageW(hwnd, WM_KEYDOWN, vkCode, 0);
+    // 发送按键释放
+    this.user32.PostMessageW(hwnd, WM_KEYUP, vkCode, 0);
+  }
+
+  /**
+   * 发送组合键
+   */
+  _sendKeyCombo(hwnd, vkModifier, vkKey) {
+    const WM_KEYDOWN = 0x0100;
+    const WM_KEYUP = 0x0101;
+    
+    // 按下修饰键
+    this.user32.PostMessageW(hwnd, WM_KEYDOWN, vkModifier, 0);
+    // 按下主键
+    this.user32.PostMessageW(hwnd, WM_KEYDOWN, vkKey, 0);
+    // 释放主键
+    this.user32.PostMessageW(hwnd, WM_KEYUP, vkKey, 0);
+    // 释放修饰键
+    this.user32.PostMessageW(hwnd, WM_KEYUP, vkModifier, 0);
+  }
+
+  /**
+   * 字符转虚拟键码
+   */
+  _charToVk(char) {
+    // 简单映射常用字符
+    const map = {
+      'a': 0x41, 'b': 0x42, 'c': 0x43, 'd': 0x44, 'e': 0x45, 'f': 0x46,
+      'g': 0x47, 'h': 0x48, 'i': 0x49, 'j': 0x4A, 'k': 0x4B, 'l': 0x4C,
+      'm': 0x4D, 'n': 0x4E, 'o': 0x4F, 'p': 0x50, 'q': 0x51, 'r': 0x52,
+      's': 0x53, 't': 0x54, 'u': 0x55, 'v': 0x56, 'w': 0x57, 'x': 0x58,
+      'y': 0x59, 'z': 0x5A,
+      '0': 0x30, '1': 0x31, '2': 0x32, '3': 0x33, '4': 0x34,
+      '5': 0x35, '6': 0x36, '7': 0x37, '8': 0x38, '9': 0x39,
+      ':': 0xBA, '\\': 0xDC, '/': 0xBF, '.': 0xBE, '-': 0xBD, '_': 0xBD,
+      ' ': 0x20
+    };
+    
+    const upper = char.toUpperCase();
+    return map[upper] || map[char.toLowerCase()] || null;
+  }
+
+  /**
+   * 睡眠辅助
+   */
+  _sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   /**
