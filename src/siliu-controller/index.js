@@ -1431,7 +1431,9 @@ class SiliuController {
     // 如果没有指定路径，使用默认下载目录（带时间戳文件名）
     if (!downloadPath) {
       const path = require('path');
-      const downloadsDir = this.workspace.getDownloadsDir();
+      const { getWorkspaceManager } = require('../core/workspace-manager');
+      const workspace = getWorkspaceManager();
+      const downloadsDir = workspace.getDownloadsDir();
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       downloadPath = path.join(downloadsDir, `download-${timestamp}`);
     }
