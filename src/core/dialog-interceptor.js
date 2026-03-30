@@ -427,31 +427,12 @@ class DialogInterceptor extends EventEmitter {
         if (classLen > 0) {
           const className = classBuffer.toString('utf16le', 0, classLen * 2).replace(/\0/g, '');
           
-          if (className === 'DUIViewWndClassName') {
-            console.log('[DialogInterceptor] Found DUIViewWndClassName, searching inside...');
-            // 在 DUIViewWndClassName 内部查找 Edit
-            let innerChild = null;
-            do {
-              innerChild = this.user32.FindWindowExW(childHwnd, innerChild, null, null);
-              if (innerChild) {
-                const innerClassBuffer = Buffer.alloc(256);
-                const innerClassLen = this.user32.GetClassNameW(innerChild, innerClassBuffer, 128);
-                if (innerClassLen > 0) {
-                  const innerClassName = innerClassBuffer.toString('utf16le', 0, innerClassLen * 2).replace(/\0/g, '');
-                  console.log(`[DialogInterceptor] Inner child: ${innerClassName}`);
-                  
-                  if (innerClassName === 'Edit') {
-                    console.log('[DialogInterceptor] Found Edit inside DUIViewWndClassName!');
-                    return innerChild;
-                  }
-                }
-              }
-            } while (innerChild);
-            
-            // 如果 DUIViewWndClassName 里面没有 Edit，使用键盘模拟
-            console.log('[DialogInterceptor] No Edit found in DUIViewWndClassName, using keyboard simulation');
-            this._simulateKeyboardInput(parentHwnd, this.pendingFile);
-            return 'KEYBOARD_MODE';
+          if (className === 'DUIViewWndClassName' || className === 'DirectUIHWND') {
+            console.log(`[DialogInterceptor] Found ${className}, searching recursively for Edit...`);
+            const foundEdit = this._findEditRecursively(childHwnd);
+            if (foundEdit) {
+              return foundEdit;
+            }
           }
         }
       }
@@ -459,6 +440,37 @@ class DialogInterceptor extends EventEmitter {
       console.error('[DialogInterceptor] Error finding edit box:', err.message);
       return null;
     }
+  }
+
+  /**
+   * 递归查找 Edit 控件
+   */
+  _findEditRecursively(parentHwnd, depth = 0) {
+    if (depth > 5) return null; // 限制递归深度
+    
+    let child = null;
+    do {
+      child = this.user32.FindWindowExW(parentHwnd, child, null, null);
+      if (child) {
+        const classBuffer = Buffer.alloc(256);
+        const classLen = this.user32.GetClassNameW(child, classBuffer, 128);
+        if (classLen > 0) {
+          const className = classBuffer.toString('utf16le', 0, classLen * 2).replace(/\0/g, '');
+          console.log(`[DialogInterceptor] Depth ${depth}: ${className}`);
+          
+          if (className === 'Edit') {
+            console.log('[DialogInterceptor] Found Edit at depth', depth);
+            return child;
+          }
+          
+          // 递归查找
+          const found = this._findEditRecursively(child, depth + 1);
+          if (found) return found;
+        }
+      }
+    } while (child);
+    
+    return null;
   }
 
   /**
