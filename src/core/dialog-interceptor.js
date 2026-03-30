@@ -49,6 +49,7 @@ class DialogInterceptor extends EventEmitter {
       this.user32.IsWindow = this.user32.func('bool IsWindow(void *)');
       this.user32.IsWindowVisible = this.user32.func('bool IsWindowVisible(void *)');
       this.user32.GetForegroundWindow = this.user32.func('void *GetForegroundWindow(void)');
+      this.user32.SetForegroundWindow = this.user32.func('bool SetForegroundWindow(void *)');
       this.user32.EnumWindows = this.user32.func('bool EnumWindows(void *, int64)');
       this.user32.GetWindowThreadProcessId = this.user32.func('uint32 GetWindowThreadProcessId(void *, void *)');
       

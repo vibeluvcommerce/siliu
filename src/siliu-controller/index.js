@@ -1429,15 +1429,26 @@ class SiliuController {
       throw new Error('Download failed: file manager not available');
     }
 
-    // 如果没有指定路径，使用默认下载目录
+    // 如果没有指定路径，使用默认下载目录 + 默认文件名
     if (!downloadPath) {
       const { getWorkspaceManager } = require('../core/workspace-manager');
       const workspace = getWorkspaceManager();
-      downloadPath = workspace.getDownloadsDir();
+      const path = require('path');
+      const downloadsDir = workspace.getDownloadsDir();
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      downloadPath = path.join(downloadsDir, `download-${timestamp}.txt`);
     }
 
     // 解析 ~ 路径
     downloadPath = resolveHomePath(downloadPath);
+    
+    // 确保路径有文件名（不是目录）
+    const path = require('path');
+    if (!path.extname(downloadPath)) {
+      // 如果没有扩展名，添加默认文件名
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      downloadPath = path.join(downloadPath, `download-${timestamp}.txt`);
+    }
 
     return await this._downloadWithSystemInterceptor(downloadPath);
   }
