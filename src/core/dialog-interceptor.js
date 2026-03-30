@@ -447,6 +447,11 @@ class DialogInterceptor extends EventEmitter {
                 }
               }
             } while (innerChild);
+            
+            // 如果 DUIViewWndClassName 里面没有 Edit，使用键盘模拟
+            console.log('[DialogInterceptor] No Edit found in DUIViewWndClassName, using keyboard simulation');
+            this._simulateKeyboardInput(parentHwnd, this.pendingFile);
+            return 'KEYBOARD_MODE';
           }
         }
       }
