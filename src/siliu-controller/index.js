@@ -1412,25 +1412,115 @@ class SiliuController {
   // ========== 下载功能 ==========
 
   /**
-   * 触发下载
-   * @param {string} selectorOrText - 下载按钮选择器或文本
-   * @param {object} coordinate - 可选，坐标 {x, y}
+   * 触发下载（使用系统对话框拦截）
+   * 工作流程：
+   * 1. AI 先执行 click 操作触发下载链接/按钮
+   * 2. 系统弹出保存文件对话框
+   * 3. 拦截器自动填充下载路径并确认
+   * 
+   * @param {string} downloadPath - 下载保存路径（可选，默认使用工作区downloads目录）
    * @returns {Promise<Object>}
    */
-  async download(selectorOrText, coordinate = null) {
-    console.log('[SiliuController] download:', { selectorOrText, coordinate });
+  async download(downloadPath = null) {
+    console.log('[SiliuController] download:', { downloadPath });
 
-    // 使用 CDP 直接下载（如果有 CDP 连接）
-    if (this.cdpController?.isConnected) {
-      try {
-        return await this.cdpController.download(selectorOrText, coordinate);
-      } catch (err) {
-        console.error('[SiliuController] CDP download failed:', err.message);
-        throw err;
-      }
+    if (!this.tabManager?.fileManager) {
+      throw new Error('Download failed: file manager not available');
     }
 
-    throw new Error('Download requires CDP connection');
+    // 如果没有指定路径，使用默认下载目录（带时间戳文件名）
+    if (!downloadPath) {
+      const path = require('path');
+      const downloadsDir = this.workspace.getDownloadsDir();
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      downloadPath = path.join(downloadsDir, `download-${timestamp}`);
+    }
+
+    return await this._downloadWithSystemInterceptor(downloadPath);
+  }
+
+  /**
+   * 使用系统对话框拦截器执行下载
+   */
+  async _downloadWithSystemInterceptor(downloadPath) {
+    const fileManager = this.tabManager.fileManager;
+    
+    // 1. 检查拦截器是否可用
+    const interceptorAvailable = fileManager.interceptor?.isAvailable() || false;
+    const interceptorRunning = fileManager.interceptor?.isRunning || false;
+    
+    console.log('[SiliuController] Interceptor status:', { 
+      available: interceptorAvailable, 
+      running: interceptorRunning 
+    });
+
+    // 2. 先设置 Promise 和事件监听器
+    console.log('[SiliuController] Setting up download promise for:', downloadPath);
+    
+    const timeout = 30000; // 30秒总超时
+    let resolved = false;
+    
+    const downloadPromise = new Promise((resolve) => {
+      // 监听成功事件
+      const onSelected = (data) => {
+        if (resolved) return;
+        resolved = true;
+        fileManager.off('file:selected', onSelected);
+        fileManager.off('dialog:manual-required', onManual);
+        console.log('[SiliuController] File saved via interceptor:', data);
+        resolve({ 
+          success: true, 
+          downloadPath: data.filePath, 
+          mode: 'SYSTEM_DIALOG' 
+        });
+      };
+      
+      const onManual = (data) => {
+        if (resolved) return;
+        resolved = true;
+        fileManager.off('dialog:manual-required', onManual);
+        fileManager.off('file:selected', onSelected);
+        console.warn('[SiliuController] Manual intervention required:', data);
+        resolve({ 
+          success: false, 
+          error: 'Manual dialog intervention required',
+          mode: 'SYSTEM_MANUAL',
+          hwnd: data.hwnd
+        });
+      };
+      
+      fileManager.once('file:selected', onSelected);
+      fileManager.once('dialog:manual-required', onManual);
+      
+      // 超时检查
+      setTimeout(() => {
+        if (resolved) return;
+        resolved = true;
+        fileManager.off('file:selected', onSelected);
+        fileManager.off('dialog:manual-required', onManual);
+        fileManager.clearNextFile();
+        console.error('[SiliuController] Download timeout - dialog not intercepted');
+        resolve({ 
+          success: false, 
+          error: 'Download timeout - dialog not intercepted',
+          mode: 'SYSTEM_TIMEOUT'
+        });
+      }, timeout);
+    });
+    
+    // 3. 准备下载（设置保存路径到拦截器）
+    console.log('[SiliuController] Preparing download:', downloadPath);
+    const prepared = fileManager.prepareDownload(downloadPath);
+    if (!prepared) {
+      throw new Error('Failed to prepare download');
+    }
+    
+    // 【注意】download 方法不再负责点击按钮
+    // 应由 AI 先执行 click 操作触发系统对话框，然后调用 download 只负责填充保存路径
+    
+    // 4. 等待拦截器完成或超时
+    console.log('[SiliuController] Waiting for save dialog interception...');
+    return downloadPromise;
   }
 }
 

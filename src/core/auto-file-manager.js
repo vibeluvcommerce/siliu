@@ -134,6 +134,40 @@ class AutoFileManager extends EventEmitter {
   }
 
   /**
+   * 准备下载文件
+   * @param {string} downloadPath - 下载保存路径（支持 ~ 简写）
+   * @returns {boolean} 是否成功准备
+   */
+  prepareDownload(downloadPath) {
+    // 解析 ~ 路径
+    downloadPath = resolveHomePath(downloadPath);
+    
+    // 确保下载目录存在
+    const dir = path.dirname(downloadPath);
+    if (!fs.existsSync(dir)) {
+      try {
+        fs.mkdirSync(dir, { recursive: true });
+      } catch (err) {
+        console.error('[AutoFileManager] Failed to create download dir:', err.message);
+        return false;
+      }
+    }
+    
+    this.pendingOperation = {
+      type: 'download',
+      filePath: downloadPath
+    };
+    
+    // 设置到拦截器
+    if (this.interceptor) {
+      this.interceptor.setNextFile(downloadPath);
+    }
+    
+    console.log('[AutoFileManager] Download prepared:', downloadPath);
+    return true;
+  }
+
+  /**
    * 清除待处理操作和拦截器中的待选文件
    */
   clearNextFile() {
