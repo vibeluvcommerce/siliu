@@ -268,7 +268,36 @@ class DialogInterceptor extends EventEmitter {
       '上传', 'Upload',              // 上传
     ];
     
-    return keywords.some(kw => title.includes(kw));
+    // 检查是否包含关键词
+    if (keywords.some(kw => title.includes(kw))) {
+      return true;
+    }
+    
+    // 对于 Chrome 下载对话框，标题可能是文件名或 URL
+    // 例如："some-file.txt" 或 "https://example.com/file.txt"
+    // 我们通过检查是否包含常见的文件扩展名来判断
+    const fileExtensions = [
+      '.txt', '.pdf', '.doc', '.docx', '.xls', '.xlsx', 
+      '.ppt', '.pptx', '.zip', '.rar', '.7z', '.tar', '.gz',
+      '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.svg', '.webp',
+      '.mp4', '.mp3', '.avi', '.mov', '.wmv', '.flv', '.webm',
+      '.exe', '.msi', '.dmg', '.pkg', '.deb', '.rpm',
+      '.js', '.css', '.html', '.htm', '.json', '.xml', '.csv'
+    ];
+    
+    const lowerTitle = title.toLowerCase();
+    if (fileExtensions.some(ext => lowerTitle.includes(ext))) {
+      console.log('[DialogInterceptor] Detected file dialog by extension:', title);
+      return true;
+    }
+    
+    // 检查是否是 URL 格式（可能是下载链接）
+    if (title.startsWith('http://') || title.startsWith('https://')) {
+      console.log('[DialogInterceptor] Detected file dialog by URL:', title);
+      return true;
+    }
+    
+    return false;
   }
 
   /**
