@@ -179,19 +179,14 @@ class SiliuController {
     // 解析 ~ 路径
     filePath = resolveHomePath(filePath);
     
-    // 使用系统级对话框拦截（模拟真实用户操作，绕过反自动化检测）
-    if (this.tabManager?.fileManager) {
-      try {
-        console.log('[SiliuController] upload: using system dialog interceptor...');
-        return await this._uploadWithSystemInterceptor(selectorOrText, filePath);
-      } catch (err) {
-        console.error('[SiliuController] upload: system interceptor failed:', err.message);
-      }
+    // 【简化】只使用系统级对话框拦截上传
+    // 如果此方法失败，其他方法（CDP直接上传/原生JS）同样会失败，无需降级
+    if (!this.tabManager?.fileManager) {
+      throw new Error('Upload failed: file manager not available');
     }
     
-    // 降级到原生 JS 上传
-    console.log('[SiliuController] upload: falling back to JS...');
-    return this._nativeUpload(selectorOrText, filePath);
+    console.log('[SiliuController] upload: using system dialog interceptor...');
+    return await this._uploadWithSystemInterceptor(selectorOrText, filePath);
   }
   
   /**
@@ -1234,15 +1229,6 @@ class SiliuController {
     `);
 
     return { success: true };
-  }
-
-  async _nativeUpload(selectorOrText, filePath) {
-    const wc = this._getActiveWebContents();
-    if (!wc) throw new Error('无法获取页面');
-
-    // JS 方式无法直接设置文件路径（安全限制）
-    // 只能返回错误，提示需要使用 CDP 模式
-    throw new Error('File upload requires CDP mode. Please ensure CDP is connected.');
   }
 
   async _nativePress(key) {
