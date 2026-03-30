@@ -311,10 +311,13 @@ class DialogInterceptor extends EventEmitter {
 
     try {
       console.log('[DialogInterceptor] Attempting to fill dialog with:', this.pendingFile);
+      console.log('[DialogInterceptor] Dialog hwnd:', hwnd);
       
       // 方法1: 尝试找到文件名输入框
       // 类名可能是 "Edit" 或 "ComboBoxEx32"
+      console.log('[DialogInterceptor] Calling _findFilenameEdit...');
       const editBox = this._findFilenameEdit(hwnd);
+      console.log('[DialogInterceptor] _findFilenameEdit returned:', editBox);
       
       if (editBox) {
         console.log('[DialogInterceptor] Found filename edit box');
@@ -361,6 +364,7 @@ class DialogInterceptor extends EventEmitter {
    * 查找文件名输入框（简化版，参考上传的实现）
    */
   _findFilenameEdit(parentHwnd) {
+    console.log('[DialogInterceptor] _findFilenameEdit called with hwnd:', parentHwnd);
     try {
       // 标准 Windows 文件对话框的文件名输入框类名
       const editClasses = ['Edit', 'ComboBoxEx32', 'ComboBox'];
