@@ -2108,11 +2108,16 @@ class CDPController {
       console.warn('[CDPController] Failed to set download path, using browser default');
     }
 
+    // 处理 selectorOrText 是坐标对象的情况（如 {type: "coordinate", x, y}）
+    if (selectorOrText && typeof selectorOrText === 'object' && selectorOrText.type === 'coordinate') {
+      coordinate = { x: selectorOrText.x, y: selectorOrText.y };
+    }
+
     // 触发下载
     if (coordinate && coordinate.x !== undefined && coordinate.y !== undefined) {
       // 使用坐标点击
       await this.clickAt(coordinate.x, coordinate.y);
-    } else if (selectorOrText) {
+    } else if (selectorOrText && typeof selectorOrText === 'string') {
       // 使用选择器或文本点击
       await this.click(selectorOrText);
     } else {
