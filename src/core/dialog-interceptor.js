@@ -639,96 +639,142 @@ class DialogInterceptor extends EventEmitter {
     try {
       console.log('[DialogInterceptor] Looking for Yes button in confirm dialog...');
       
-      // 尝试找到"是"按钮
-      const buttonClasses = ['Button', 'DirectUIHWND', 'CtrlNotifySink'];
       const yesTexts = [
-        '是', '是(Y)', '是(&Y)', '&是',           // 中文
-        'Yes', 'Yes(&Y)', '&Yes', 'Yes(Y)',      // 英文
+        '是', '是(Y)', '是(&Y)', '&是', 'Y',           // 中文
+        'Yes', 'Yes(&Y)', '&Yes', 'Yes(Y)', '&Y',      // 英文
         '覆盖', '替换', 'Overwrite', 'Replace',  // 覆盖相关
         '确定', 'OK', '&OK', 'Save', '保存', '&Save',  // 后备选项
         'Continue', '继续', 'Confirm', '确认'    // 其他可能的文本
       ];
       
-      // 先枚举所有子控件，打印出来用于调试
-      console.log('[DialogInterceptor] Enumerating all buttons in dialog:');
-      const allButtons = [];
-      for (const btnClass of ['Button']) {
-        let child = null;
-        const classNameUtf16 = Buffer.from(btnClass + '\0', 'utf16le');
-        
-        do {
-          child = this.user32.FindWindowExW(hwnd, child, classNameUtf16, null);
-          if (child) {
-            const textBuffer = Buffer.alloc(256);
-            const textLen = this.user32.GetWindowTextW(child, textBuffer, 128);
-            const text = textBuffer.toString('utf16le', 0, textLen * 2).replace(/\0/g, '');
-            allButtons.push(text || '[empty]');
-          }
-        } while (child);
-      }
-      console.log('[DialogInterceptor] Found buttons:', allButtons);
+      // 递归查找所有子窗口
+      const allControls = this._getAllChildWindows(hwnd);
+      console.log('[DialogInterceptor] Found controls:', allControls.map(c => `[${c.className}] "${c.text}"`));
       
-      // 现在尝试找到并点击"是"按钮
-      for (const btnClass of buttonClasses) {
-        let child = null;
-        const classNameUtf16 = Buffer.from(btnClass + '\0', 'utf16le');
+      // 查找匹配"是"的按钮
+      for (const control of allControls) {
+        const isYes = yesTexts.some(yt => 
+          control.text.toLowerCase().includes(yt.toLowerCase()) || 
+          control.text === yt
+        );
         
-        do {
-          child = this.user32.FindWindowExW(hwnd, child, classNameUtf16, null);
-          
-          if (child) {
-            // 获取按钮文字
-            const textBuffer = Buffer.alloc(256);
-            const textLen = this.user32.GetWindowTextW(child, textBuffer, 128);
-            const text = textBuffer.toString('utf16le', 0, textLen * 2).replace(/\0/g, '');
-            
-            // 检查是否是"是"按钮
-            const isYes = yesTexts.some(yt => 
-              text.toLowerCase().includes(yt.toLowerCase()) || 
-              text === yt
-            );
-            
-            if (isYes) {
-              console.log('[DialogInterceptor] Clicking Yes button:', text);
-              
-              // 发送点击消息 - 尝试多种方式
-              const WM_COMMAND = 0x0111;
-              const BN_CLICKED = 0;
-              const BM_CLICK = 0x00F5;
-              
-              // 方式1: PostMessage WM_COMMAND
-              try {
-                const childAddr = this.koffi.address(child);
-                this.user32.PostMessageW(hwnd, WM_COMMAND, (BN_CLICKED << 16) | 1, childAddr);
-              } catch (e) {
-                // 忽略错误
-              }
-              
-              // 方式2: SendMessage BM_CLICK (更可靠)
-              setTimeout(() => {
-                try {
-                  this.user32.SendMessageW(child, BM_CLICK, 0, 0);
-                } catch (e) {
-                  console.log('[DialogInterceptor] BM_CLICK failed:', e.message);
-                }
-              }, 100);
-              
-              console.log('[DialogInterceptor] Yes button clicked');
-              return true;
-            }
-          }
-        } while (child);
+        if (isYes) {
+          console.log('[DialogInterceptor] Clicking Yes button:', control.text);
+          this._sendClick(control.hwnd, hwnd);
+          return true;
+        }
       }
       
-      // 如果没找到特定按钮，尝试发送 IDYES
-      console.log('[DialogInterceptor] No Yes button found, trying IDYES command');
-      const WM_COMMAND = 0x0111;
-      const IDYES = 6;
-      this.user32.PostMessageW(hwnd, WM_COMMAND, IDYES, 0);
+      // 如果没找到特定按钮，尝试点击默认按钮（通常是第一个按钮）
+      const buttonControls = allControls.filter(c => 
+        c.className === 'Button' || 
+        c.text.match(/是|Yes|确定|OK|覆盖|替换/i)
+      );
+      
+      if (buttonControls.length > 0) {
+        console.log('[DialogInterceptor] Clicking first matching button:', buttonControls[0].text);
+        this._sendClick(buttonControls[0].hwnd, hwnd);
+        return true;
+      }
+      
+      // 最后的尝试：发送 IDYES 或回车键
+      console.log('[DialogInterceptor] No button found, trying alternative methods...');
+      this._sendDefaultConfirmation(hwnd);
       
     } catch (err) {
       console.error('[DialogInterceptor] Error clicking Yes button:', err.message);
     }
+  }
+  
+  /**
+   * 获取所有子窗口
+   */
+  _getAllChildWindows(parentHwnd) {
+    const controls = [];
+    
+    try {
+      let child = null;
+      
+      do {
+        child = this.user32.FindWindowExW(parentHwnd, child, null, null);
+        if (child) {
+          const classBuffer = Buffer.alloc(256);
+          const classLen = this.user32.GetClassNameW(child, classBuffer, 128);
+          const className = classBuffer.toString('utf16le', 0, classLen * 2).replace(/\0/g, '');
+          
+          const textBuffer = Buffer.alloc(256);
+          const textLen = this.user32.GetWindowTextW(child, textBuffer, 128);
+          const text = textBuffer.toString('utf16le', 0, textLen * 2).replace(/\0/g, '');
+          
+          controls.push({ hwnd: child, className, text });
+          
+          // 递归获取子窗口
+          const subControls = this._getAllChildWindows(child);
+          controls.push(...subControls);
+        }
+      } while (child);
+    } catch (err) {
+      console.error('[DialogInterceptor] Error getting child windows:', err.message);
+    }
+    
+    return controls;
+  }
+  
+  /**
+   * 发送点击消息
+   */
+  _sendClick(buttonHwnd, parentHwnd) {
+    const WM_COMMAND = 0x0111;
+    const BN_CLICKED = 0;
+    const BM_CLICK = 0x00F5;
+    
+    try {
+      // 方式1: SendMessage BM_CLICK
+      this.user32.SendMessageW(buttonHwnd, BM_CLICK, 0, 0);
+    } catch (e) {
+      console.log('[DialogInterceptor] BM_CLICK failed:', e.message);
+    }
+    
+    // 方式2: PostMessage WM_COMMAND
+    try {
+      const buttonAddr = this.koffi.address(buttonHwnd);
+      this.user32.PostMessageW(parentHwnd, WM_COMMAND, (BN_CLICKED << 16) | 1, buttonAddr);
+    } catch (e) {
+      // 忽略错误
+    }
+    
+    console.log('[DialogInterceptor] Button clicked');
+  }
+  
+  /**
+   * 发送默认确认（回车键或 IDYES）
+   */
+  _sendDefaultConfirmation(hwnd) {
+    const WM_COMMAND = 0x0111;
+    const IDYES = 6;
+    const WM_KEYDOWN = 0x0100;
+    const WM_KEYUP = 0x0101;
+    const VK_RETURN = 0x0D;
+    const VK_SPACE = 0x20;
+    
+    // 尝试发送 IDYES
+    try {
+      this.user32.PostMessageW(hwnd, WM_COMMAND, IDYES, 0);
+      console.log('[DialogInterceptor] Sent IDYES command');
+    } catch (e) {
+      console.log('[DialogInterceptor] IDYES failed:', e.message);
+    }
+    
+    // 尝试发送回车键（激活默认按钮）
+    setTimeout(() => {
+      try {
+        this.user32.PostMessageW(hwnd, WM_KEYDOWN, VK_RETURN, 0);
+        this.user32.PostMessageW(hwnd, WM_KEYUP, VK_RETURN, 0);
+        console.log('[DialogInterceptor] Sent Enter key');
+      } catch (e) {
+        console.log('[DialogInterceptor] Enter key failed:', e.message);
+      }
+    }, 100);
   }
 
   /**
