@@ -152,9 +152,6 @@ class DialogInterceptor extends EventEmitter {
       }
       
       try {
-        // 扫描所有可能的确认弹窗
-        const confirmKeywords = ['确认', '覆盖', '替换', '已存在', 'Confirm', 'Replace', 'Overwrite', 'exists'];
-        
         // 检查前台窗口
         const fgWindow = this.user32.GetForegroundWindow();
         if (fgWindow) {
@@ -162,35 +159,24 @@ class DialogInterceptor extends EventEmitter {
           const titleLen = this.user32.GetWindowTextW(fgWindow, titleBuffer, 512);
           const title = titleBuffer.toString('utf16le', 0, titleLen * 2).replace(/\0/g, '');
           
-          const isConfirm = confirmKeywords.some(kw => title.includes(kw));
-          if (isConfirm) {
-            console.log('[DialogInterceptor] Confirm dialog detected (watcher):', title);
+          if (this._isConfirmDialog(title)) {
+            console.log('[DialogInterceptor] ⭐ Confirm dialog detected (watcher):', title);
             await this._clickYesButton(fgWindow);
             this._stopConfirmDialogWatcher();
             return;
           }
         }
         
-        // 扫描所有 #32770 窗口
-        const classNameUtf16 = Buffer.from('#32770\0', 'utf16le');
-        let hwnd = null;
-        
-        do {
-          hwnd = this.user32.FindWindowExW(null, hwnd, classNameUtf16, null);
-          if (hwnd) {
-            const titleBuffer = Buffer.alloc(1024);
-            const titleLen = this.user32.GetWindowTextW(hwnd, titleBuffer, 512);
-            const title = titleBuffer.toString('utf16le', 0, titleLen * 2).replace(/\0/g, '');
-            
-            const isConfirm = confirmKeywords.some(kw => title.includes(kw));
-            if (isConfirm) {
-              console.log('[DialogInterceptor] Confirm dialog found via enumeration:', title);
-              await this._clickYesButton(hwnd);
-              this._stopConfirmDialogWatcher();
-              return;
-            }
+        // 扫描所有可见窗口（不限于 #32770 类）
+        const allWindows = this._getAllVisibleWindows();
+        for (const { hwnd, title } of allWindows) {
+          if (this._isConfirmDialog(title)) {
+            console.log('[DialogInterceptor] ⭐ Confirm dialog found via enumeration:', title);
+            await this._clickYesButton(hwnd);
+            this._stopConfirmDialogWatcher();
+            return;
           }
-        } while (hwnd);
+        }
         
       } catch (err) {
         console.error('[DialogInterceptor] Error in confirm watcher:', err.message);
@@ -263,15 +249,13 @@ class DialogInterceptor extends EventEmitter {
   }
 
   /**
-   * 扫描所有可见窗口（调试用途）
+   * 获取所有可见窗口列表
    */
-  _scanAllVisibleWindows() {
+  _getAllVisibleWindows() {
+    const windows = [];
+    
     try {
-      const windows = [];
-      
-      // 定义回调函数类型
       const enumProc = this.koffi.callback(this.koffi.pointer(this.koffi.types.void), ['pointer', 'int64'], (hwnd, lParam) => {
-        // 只收集可见窗口
         if (!this.user32.IsWindowVisible(hwnd)) return true;
         
         const classBuffer = Buffer.alloc(512);
@@ -284,26 +268,37 @@ class DialogInterceptor extends EventEmitter {
         const titleLen = this.user32.GetWindowTextW(hwnd, titleBuffer, 512);
         const title = titleBuffer.toString('utf16le', 0, titleLen * 2).replace(/\0/g, '');
         
-        // 只收集有标题的窗口或特定类名
-        if (title || className === '#32770' || className.includes('Chrome')) {
-          windows.push({ hwnd: hwnd.toString(), className, title });
+        // 收集所有有标题的窗口
+        if (title) {
+          windows.push({ hwnd, className, title });
         }
         
         return true;
       });
       
-      // 枚举所有顶级窗口
       this.user32.EnumWindows(enumProc, 0);
-      
-      // 释放回调
       setTimeout(() => this.koffi.unregister(enumProc), 100);
+    } catch (err) {
+      console.error('[DialogInterceptor] Error getting windows:', err.message);
+    }
+    
+    return windows;
+  }
+
+  /**
+   * 扫描所有可见窗口（调试用途）
+   */
+  _scanAllVisibleWindows() {
+    try {
+      const windows = this._getAllVisibleWindows();
       
       // 打印所有收集到的窗口
       if (windows.length > 0) {
         console.log('[DialogInterceptor] === All visible windows ===');
         windows.forEach(w => {
-          const marker = this._isFileDialog(w.title) === 'confirm' ? ' [CONFIRM]' : 
-                        this._isFileDialog(w.title) ? ' [DIALOG]' : '';
+          const isConfirm = this._isConfirmDialog(w.title);
+          const isDialog = this._isFileDialog(w.title);
+          const marker = isConfirm ? ' [CONFIRM]' : isDialog ? ' [DIALOG]' : '';
           console.log(`  [${w.className}] "${w.title}"${marker}`);
         });
         console.log('[DialogInterceptor] ===========================');
@@ -332,35 +327,36 @@ class DialogInterceptor extends EventEmitter {
       const title = titleBuffer.toString('utf16le', 0, titleLen * 2).replace(/\0/g, '');
       
       // 支持的对话框类名
-      // #32770 - 标准 Windows 对话框
-      // Chrome_WidgetWin_* - Chromium/Electron 对话框（可能有多个实例）
       const dialogClasses = [
         '#32770', 
         'Chrome_WidgetWin_0', 'Chrome_WidgetWin_1', 'Chrome_WidgetWin_2', 
         'Chrome_WidgetWin_3', 'Chrome_WidgetWin_4', 'Chrome_WidgetWin_5'
       ];
       
-      // 检查是否是文件选择对话框（通过标题关键词）
-      const isFileDialog = this._isFileDialog(title);
-      
       // 调试：打印所有潜在对话框窗口
       if (className === '#32770' || className.includes('Chrome_WidgetWin')) {
-        console.log('[DialogInterceptor] Checking dialog:', { className, title: title.substring(0, 100), isFileDialog });
+        console.log('[DialogInterceptor] Checking dialog:', { className, title: title.substring(0, 100) });
       }
       
-      // 确认弹窗检测：检查是否为覆盖确认弹窗（放宽类名限制）
-      const isConfirmDialog = isFileDialog === 'confirm';
+      // 【优先级1】检测确认弹窗（覆盖确认、替换确认等）- 完全不受类名限制
+      const isConfirmDialog = this._isConfirmDialog(title);
       if (isConfirmDialog) {
-        console.log('[DialogInterceptor] Confirm dialog detected:', { className, title: title.substring(0, 100) });
-        // 确认弹窗也处理
+        console.log('[DialogInterceptor] ⭐ CONFIRM DIALOG DETECTED:', { className, title });
         await this._clickYesButton(hwnd);
         return true;
       }
       
-      // 检查是否是支持的对话框类
-      if (!dialogClasses.includes(className)) return false;
+      // 【优先级2】检测文件对话框 - 需要类名匹配
+      const isFileDialog = this._isFileDialog(title);
+      if (!isFileDialog) return false;
       
-      console.log('[DialogInterceptor] Checking window:', { className, title: title.substring(0, 100) });
+      // 检查是否是支持的对话框类
+      if (!dialogClasses.includes(className)) {
+        // 即使是文件对话框，类名不匹配也不处理
+        return false;
+      }
+      
+      console.log('[DialogInterceptor] File dialog confirmed:', { className, title });
       
       if (isFileDialog) {
         console.log('[DialogInterceptor] File dialog confirmed, auto-filling...');
@@ -396,7 +392,34 @@ class DialogInterceptor extends EventEmitter {
   }
 
   /**
-   * 判断是否是文件选择对话框或相关确认弹窗
+   * 判断是否是确认弹窗（覆盖确认等）- 独立于文件对话框检测
+   */
+  _isConfirmDialog(title) {
+    if (!title || title.length === 0) return false;
+    
+    // 确认弹窗关键词 - 全面覆盖中英文场景
+    const confirmKeywords = [
+      // 中文确认弹窗
+      '确认', '确认另存为', '确认保存', '确认替换', '确认覆盖',
+      '替换', '覆盖', '文件已存在', '已存在', 
+      '确认要替换', '想要替换', '是否替换', '是否覆盖', '是否保存',
+      '文件已经存在', '同名文件', '替换文件', '覆盖文件',
+      // 英文确认弹窗
+      'Confirm', 'Confirm Save', 'Confirm Replace', 'Confirm Overwrite',
+      'Replace', 'Overwrite', 'exists', 'already exists', 
+      'already exist', 'file exists', 'Do you want to replace',
+      'A file named', 'already exists in', 'Would you like to',
+    ];
+    
+    const isConfirm = confirmKeywords.some(kw => title.includes(kw));
+    if (isConfirm) {
+      console.log('[DialogInterceptor] Confirm dialog detected by keyword:', title);
+    }
+    return isConfirm;
+  }
+
+  /**
+   * 判断是否是文件选择对话框
    */
   _isFileDialog(title) {
     // 主对话框关键词
@@ -410,25 +433,6 @@ class DialogInterceptor extends EventEmitter {
     // 检查是否包含关键词
     if (keywords.some(kw => title.includes(kw))) {
       return true;
-    }
-    
-    // 文件覆盖确认弹窗
-    const confirmKeywords = [
-      // 中文
-      '确认另存为', '确认保存', '替换', '覆盖', '文件已存在', '已存在', '存在',
-      '确认要替换', '想要替换', '是否替换', '是否覆盖', '是否保存',
-      '文件已经存在', '同名文件', '替换文件', '覆盖文件',
-      // 英文
-      'Confirm', 'Replace', 'Overwrite', 'exists', 'already exists', 
-      'already exist', 'file exists', 'Do you want to replace',
-      'A file named', 'already exists in', 'Would you like to',
-      // Chrome 特定
-      'Save As', 'save as', 'Confirm Save', 'confirm save',
-    ];
-    
-    if (confirmKeywords.some(kw => title.includes(kw))) {
-      console.log('[DialogInterceptor] Detected confirm dialog:', title);
-      return 'confirm';
     }
     
     // 对于 Chrome 下载对话框，标题可能是文件名或 URL
