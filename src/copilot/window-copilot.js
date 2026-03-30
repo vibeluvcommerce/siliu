@@ -1519,24 +1519,22 @@ class WindowCopilot {
             break;
           }
           case 'download': {
-            // download 操作现在采用类似 upload 的方式：
-            // 1. AI 先 click 点击下载链接/按钮触发系统保存对话框
-            // 2. download 操作只负责准备保存路径，由拦截器自动填充
+            // download 操作设置下载路径，然后 AI 需要 click 点击下载链接
+            // Chrome 会自动下载到指定目录，无需处理系统对话框
             const downloadPath = decision.downloadPath || decision.filePath || decision.path;
             
-            console.log(`[WindowCopilot:${this.windowId}] download: preparing download path=${downloadPath || '(default)'}`);
+            console.log(`[WindowCopilot:${this.windowId}] download: setting download path=${downloadPath || '(default)'}`);
             
             try {
               const result = await this.controller.download(downloadPath || null);
               stepResult = result;
-              actualMode = 'SYSTEM';
+              actualMode = result.mode || 'CDP';
             } catch (err) {
               console.error(`[WindowCopilot:${this.windowId}] download failed:`, err.message);
               stepResult = { success: false, error: err.message };
-              actualMode = 'SYSTEM';
+              actualMode = 'CDP';
             }
             
-            await this._smartWait('click');
             break;
           }
           case 'type': {

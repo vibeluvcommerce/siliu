@@ -106,8 +106,8 @@ class BaseAgent {
       },
       download: {
         params: ['downloadPath'],
-        desc: '【文件下载专用】系统会自动打开保存文件对话框并填充保存路径。如果不指定downloadPath，文件将保存到默认下载目录(~/.siliu/workspace/downloads/)。注意：AI需要先click点击下载链接/按钮触发保存对话框，再用download操作指定保存路径',
-        example: { action: 'download', downloadPath: 'D:/downloads/myfile.txt', description: '触发保存对话框并指定保存路径' }
+        desc: '【文件下载专用】设置文件下载保存路径。使用CDP设置下载目录，Chrome会自动下载到该目录而不弹出保存对话框。如果不指定downloadPath，文件将保存到默认下载目录(~/.siliu/workspace/downloads/)',
+        example: { action: 'download', downloadPath: 'D:/downloads/myfile.txt', description: '设置下载保存路径' }
       },
       select: { 
         params: ['selector', 'option'], 
@@ -209,7 +209,7 @@ class BaseAgent {
 
 【操作选择指南 - 必须遵守】
 - 【上传文件】看到"上传"按钮时，先 click 点击触发系统对话框，再使用 upload 操作选择文件
-- 【下载文件】看到"下载"链接/按钮时，先 click 点击触发保存对话框，再使用 download 操作指定保存路径（可选）
+- 【下载文件】先使用 download 操作设置保存路径（可选），然后 click 点击下载链接，Chrome会自动下载到指定目录
 - 【采集规则 - 重要】
   - AI 职责：滚动/翻页加载数据，从页面提取数据，调用 collect 时【必须提供 content 参数】
   - 【强制】collect 操作必须包含 content 参数，格式：{"action":"collect","content":{"type":"table","data":{"headers":["名称"],"rows":[["值"]]}},"description":"采集当前数据"}
@@ -285,7 +285,7 @@ ${examples}
 
 【操作选择示例】
 1. 上传文件：click 点击"上传视频"按钮触发系统对话框 → upload 操作选择文件
-2. 下载文件：click 点击"下载"链接/按钮触发保存对话框 → download 操作指定保存路径（可选，不指定则使用默认路径）
+2. 下载文件：download 操作设置保存路径（可选）→ click 点击"下载"链接，Chrome自动下载到指定目录
 3. 选择分区（普通）：click 点击下拉框展开 (x:0.5,y:0.7) → screenshot 查看选项 → click 点击"生活经验"
 3. 选择分区（需滚动查找，假设点击位置是 x:0.5,y:0.7）：
    - click 点击下拉框展开 (x:0.5,y:0.7)
@@ -307,7 +307,7 @@ ${examples}
 - selectAll 支持：使用 Ctrl+A 全选文本框内容，配合 type 可替换原有内容
 - 【重要】upload 操作：分两步完成上传：1) 先用 click 点击上传按钮触发系统对话框 2) 再用 upload 操作填充文件路径。upload 只负责选择文件，不负责点击按钮
 - upload 的 filePath 必须使用绝对路径（如 "D:/test/video.mp4"）
-- 【重要】download 操作：分两步完成下载：1) 先用 click 点击下载链接/按钮触发保存对话框 2) 再用 download 操作指定保存路径（可选）。download 只负责设置保存路径，不负责点击下载按钮
+- 【重要】download 操作：先使用 download 操作设置下载路径（Chrome会自动下载到该目录），然后 click 点击下载链接。不指定路径时使用默认下载目录
 - 【重要】select 操作：当下拉框、选择器、分区选择时，直接使用 select 操作选择选项，不要尝试用 scroll 滚动查找
 - 【重要】抖音/视频类网站请使用 wheel 而非 scroll 来切换视频
 - 输入错误时可使用 press + Backspace 删除后重新输入
