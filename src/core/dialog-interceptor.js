@@ -375,9 +375,12 @@ class DialogInterceptor extends EventEmitter {
       
       // 遍历子窗口查找 Edit 类
       let child = null;
+      const childList = [];
+      
       do {
         child = this.user32.FindWindowExW(parentHwnd, child, null, null);
         if (child) {
+          childList.push(child);
           const classBuffer = Buffer.alloc(256);
           const classLen = this.user32.GetClassNameW(child, classBuffer, 128);
           if (classLen > 0) {
@@ -391,11 +394,57 @@ class DialogInterceptor extends EventEmitter {
         }
       } while (child);
       
+      // 递归查找容器内的 Edit 控件（用于 Chrome 等现代对话框）
+      for (const childHwnd of childList) {
+        const classBuffer = Buffer.alloc(256);
+        const classLen = this.user32.GetClassNameW(childHwnd, classBuffer, 128);
+        if (classLen > 0) {
+          const className = classBuffer.toString('utf16le', 0, classLen * 2).replace(/\0/g, '');
+          
+          if (className === 'DUIViewWndClassName' || className === 'DirectUIHWND') {
+            const foundEdit = this._findEditRecursively(childHwnd);
+            if (foundEdit) {
+              return foundEdit;
+            }
+          }
+        }
+      }
+      
       return null;
     } catch (err) {
       console.error('[DialogInterceptor] Error finding edit box:', err.message);
       return null;
     }
+  }
+  
+  /**
+   * 递归查找 Edit 控件
+   */
+  _findEditRecursively(parentHwnd, depth = 0) {
+    if (depth > 5) return null;
+    
+    let child = null;
+    do {
+      child = this.user32.FindWindowExW(parentHwnd, child, null, null);
+      if (child) {
+        const classBuffer = Buffer.alloc(256);
+        const classLen = this.user32.GetClassNameW(child, classBuffer, 128);
+        if (classLen > 0) {
+          const className = classBuffer.toString('utf16le', 0, classLen * 2).replace(/\0/g, '');
+          
+          if (className === 'Edit' || className === 'ComboBoxEx32' || className === 'ComboBox') {
+            console.log(`[DialogInterceptor] Found ${className} at depth ${depth}`);
+            return child;
+          }
+          
+          // 递归查找
+          const found = this._findEditRecursively(child, depth + 1);
+          if (found) return found;
+        }
+      }
+    } while (child);
+    
+    return null;
   }
 
   /**
