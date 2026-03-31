@@ -161,18 +161,22 @@ class CDPController {
     // 使用 CDP 导航
     await this.cdp.send('Page.navigate', { url: targetUrl });
 
-    // 等待加载完成
-    await this.cdp.waitForLoad();
-
-    // 额外等待网络空闲（确保动态内容加载）
+    // 等待加载完成（优化：使用更短的超时）
     try {
-      await this.cdp.waitForNetworkIdle(3000, 500);
+      await this.cdp.waitForLoad(10000); // 10秒超时
+    } catch (e) {
+      console.log('[CDPController] waitForLoad timeout, continuing...');
+    }
+
+    // 优化：大幅减少网络空闲等待时间
+    try {
+      await this.cdp.waitForNetworkIdle(2000, 100); // 2秒超时，100ms空闲即可
     } catch (e) {
       // 网络空闲超时没关系，继续
     }
 
-    // 优化：减少渲染等待时间
-    await this.sleep(100);
+    // 优化：最小化渲染等待
+    await this.sleep(50);
 
     return { success: true, url: targetUrl };
   }

@@ -1239,8 +1239,8 @@ class WindowCopilot {
             console.log(`[WindowCopilot:${this.windowId}] navigate returned mode: ${mode}`);
             stepResult = result;
             actualMode = mode;
-            // 智能等待页面加载
-            await this._smartWait('navigate');
+            // 优化：navigate内部已经等待过，这里只进行简短确认
+            await this._sleep(100);
             break;
           }
           case 'goBack': {
@@ -1249,7 +1249,8 @@ class WindowCopilot {
             console.log(`[WindowCopilot:${this.windowId}] goBack returned mode: ${mode}`);
             stepResult = result;
             actualMode = mode;
-            await this._smartWait('navigate');
+            // 优化：使用简短等待替代完整的navigate等待
+            await this._sleep(150);
             break;
           }
           case 'goForward': {
@@ -1258,7 +1259,8 @@ class WindowCopilot {
             console.log(`[WindowCopilot:${this.windowId}] goForward returned mode: ${mode}`);
             stepResult = result;
             actualMode = mode;
-            await this._smartWait('navigate');
+            // 优化：使用简短等待替代完整的navigate等待
+            await this._sleep(150);
             break;
           }
           case 'switchTab': {
@@ -1267,7 +1269,8 @@ class WindowCopilot {
             console.log(`[WindowCopilot:${this.windowId}] switchTab returned mode: ${mode}`);
             stepResult = result;
             actualMode = mode;
-            await this._smartWait('navigate');
+            // 优化：使用简短等待替代完整的navigate等待
+            await this._sleep(100);
             break;
           }
           case 'click': {
@@ -2939,7 +2942,8 @@ ${text.substring(0, 500)}
     // 如果是导航操作，额外检查页面加载状态
     if (actionType === 'navigate') {
       console.log(`[WindowCopilot:${this.windowId}] Smart wait for navigation...`);
-      await this._waitForPageLoad(options);
+      // 优化：navigate已经等待过页面加载，这里使用更短的超时
+      await this._waitForPageLoad({ ...options, maxWait: 3000 });
       return;
     }
 
@@ -2996,7 +3000,7 @@ ${text.substring(0, 500)}
       // 快速检查失败，继续正常等待流程
     }
 
-    const maxWait = options.maxWait || 10000; // 最大等待 10 秒
+    const maxWait = options.maxWait || 5000; // 优化：最大等待 5 秒（减少一半）
     const startTime = Date.now();
 
     while (Date.now() - startTime < maxWait) {
@@ -3018,10 +3022,15 @@ ${text.substring(0, 500)}
             console.log(`[WindowCopilot:${this.windowId}] Page loaded in ${Date.now() - startTime}ms`);
             return;
           }
+          // 优化：即使有 loading 元素，如果已经等待超过1秒，也继续
+          if (Date.now() - startTime > 1000) {
+            console.log(`[WindowCopilot:${this.windowId}] Page loaded with loading indicators, continuing...`);
+            return;
+          }
         }
 
-        // 优化：减少轮询间隔
-        await this._sleep(50);
+        // 优化：更短的轮询间隔
+        await this._sleep(30);
       } catch (e) {
         // 优化：减少错误时的等待
         await this._sleep(100);
