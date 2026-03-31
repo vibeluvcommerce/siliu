@@ -49,7 +49,7 @@ class AutoFileManager extends EventEmitter {
   _initInterceptor() {
     try {
       const DialogInterceptor = require('./dialog-interceptor');
-      this.interceptor = DialogInterceptor;
+      this.interceptor = new DialogInterceptor();
       
       // 监听拦截器事件
       this.interceptor.on('file:selected', (data) => {
@@ -64,8 +64,8 @@ class AutoFileManager extends EventEmitter {
       });
       
       // 启动拦截器
-      if (this.interceptor.isAvailable()) {
-        this.interceptor.start();
+      const started = this.interceptor.start();
+      if (started) {
         console.log('[AutoFileManager] Dialog interceptor started');
       } else {
         console.warn('[AutoFileManager] Dialog interceptor not available (koffi missing)');
