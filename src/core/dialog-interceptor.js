@@ -319,34 +319,46 @@ class DialogInterceptor extends EventEmitter {
    * 自动填充对话框
    */
   async _autoFillDialog(hwnd) {
+    // 防止重复处理同一个对话框
+    if (this._processingDialog) {
+      console.log('[DialogInterceptor] Already processing a dialog, skipping');
+      return;
+    }
+    
     if (!this.pendingFile) return;
 
     try {
-      console.log('[DialogInterceptor] Auto-filling dialog with:', this.pendingFile);
+      this._processingDialog = true;
+      const currentFile = this.pendingFile; // 保存当前文件路径
+      
+      console.log('[DialogInterceptor] Auto-filling dialog with:', currentFile);
       
       const editBox = this._findFilenameEdit(hwnd);
       
       if (editBox) {
-        const filePathUtf16 = Buffer.from(this.pendingFile + '\0', 'utf16le');
+        const filePathUtf16 = Buffer.from(currentFile + '\0', 'utf16le');
         this.user32.SetWindowTextW(editBox, filePathUtf16);
         
         setTimeout(() => {
           this._clickConfirmButton(hwnd);
         }, 200);
         
-        // 先触发 file:selected 事件（对话框已处理）
+        // 先清除 pendingFile 防止重复处理
+        this.clearNextFile();
+        
+        // 触发 file:selected 事件（对话框已处理）
         this.emit('file:selected', {
-          filePath: this.pendingFile,
+          filePath: currentFile,
           hwnd: hwnd
         });
         
-        // 启动文件下载完成检测
-        this._monitorDownloadComplete(this.pendingFile);
-        
-        this.clearNextFile();
+        // 启动文件下载完成检测（使用保存的 currentFile）
+        this._monitorDownloadComplete(currentFile);
       }
     } catch (err) {
       console.error('[DialogInterceptor] Error auto-filling:', err.message);
+    } finally {
+      this._processingDialog = false;
     }
   }
   
@@ -355,6 +367,12 @@ class DialogInterceptor extends EventEmitter {
    * 通过轮询检测文件大小是否稳定来判断
    */
   _monitorDownloadComplete(filePath) {
+    // 检查 filePath 是否有效
+    if (!filePath) {
+      console.error('[DialogInterceptor] Cannot monitor download: filePath is null/undefined');
+      return;
+    }
+    
     const downloadId = Date.now();
     const checkInterval = 500; // 每500ms检查一次
     const stableThreshold = 3; // 连续3次大小不变认为下载完成
