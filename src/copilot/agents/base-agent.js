@@ -69,7 +69,7 @@ class BaseAgent {
 所有用户数据存储在 ~/.siliu/workspace/ 目录下（~ 表示用户主目录）：
 - 截图: ~/.siliu/workspace/screenshots/     (AI 操作截图、页面截图)
 - 上传: ~/.siliu/workspace/auto-files/uploads/  (AI 准备上传的文件)
-- 下载: ~/.siliu/workspace/auto-files/downloads/ (AI 控制下载的文件)
+- 下载: ~/.siliu/workspace/downloads/      (下载的文件)
 - 导出: ~/.siliu/workspace/exports/         (PDF、图片、数据等导出文件)`;
   }
 
