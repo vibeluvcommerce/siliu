@@ -160,7 +160,10 @@ class AutoFileManager extends EventEmitter {
     
     // 设置到拦截器
     if (this.interceptor) {
+      console.log('[AutoFileManager] Setting next file to interceptor:', downloadPath);
       this.interceptor.setNextFile(downloadPath);
+    } else {
+      console.warn('[AutoFileManager] Interceptor not available!');
     }
     
     console.log('[AutoFileManager] Download prepared:', downloadPath);
