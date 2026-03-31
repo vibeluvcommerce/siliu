@@ -525,6 +525,9 @@ class WindowCopilot {
     this.currentTask = task;
     this.stepCount = 0;
     this.memory = { history: [], findings: [] };
+    
+    // 【关键】新任务开始时重置 hover 状态
+    this._hoverPanelActive = false;
 
     this._emitToWindow(COPILOT_EVENTS.TASK_START, { task, windowId: this.windowId });
 
@@ -2835,6 +2838,8 @@ ${text.substring(0, 500)}
     this.memory = { history: [], findings: [] };
     this.loginWaitCount = 0;
     this._cancelled = false;
+    // 【关键】重置 hover 状态，避免影响下一个任务
+    this._hoverPanelActive = false;
   }
 
   /**

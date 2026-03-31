@@ -241,7 +241,11 @@ class BaseAgent {
   1. 【首选】尝试 click 触发按钮/区域本身，有些面板 click 后会保持展开状态
   2. 【次选】如果必须使用 hover，系统会在 hover 后自动保持 hover 状态，可以在面板内进行多次 click 操作
   3. 【多元素点击】当需要在同一个 hover 面板内点击多个元素时（如选择多个筛选项），直接连续 click，无需重复 hover
-  4. 【退出时机】执行 scroll、navigate、press 等非 click/type 操作后会自动退出 hover 状态
+  4. 【退出时机】以下情况会自动退出 hover 状态：
+     - 执行 scroll、navigate、press 等非 click/type 操作后
+     - hover 面板内的操作完成后（如价格筛选已提交）
+     - 开始新任务时
+     【判断标准】当 hover 面板内的所有交互都已完成，且需要查看页面整体状态或执行其他操作时，可执行 screenshot 退出 hover 状态
   5. 【面板内输入】可以在 hover 面板内直接 type 输入文本，面板会保持展开
   6. 【坐标策略】通过截图定位面板内目标元素的精确坐标，直接在触发 hover 后 click 该坐标
 - 【文本输入】看到输入框时，先 click 点击输入框，再使用 type 操作输入文本
