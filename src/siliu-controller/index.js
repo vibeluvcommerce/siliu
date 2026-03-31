@@ -1504,7 +1504,7 @@ class SiliuController {
     const fileManager = this.tabManager.fileManager;
     
     console.log('[SiliuController] Interceptor status:', { 
-      available: fileManager.interceptor?.isAvailable() || false, 
+      hasInterceptor: !!fileManager.interceptor, 
       running: fileManager.interceptor?.isRunning || false 
     });
 
