@@ -1508,14 +1508,14 @@ class SiliuController {
       running: fileManager.interceptor?.isRunning || false 
     });
 
-    // 1. 先设置 Promise 和事件监听器
+    // 1. 先设置 Promise 和事件监听器（对话框处理）
     console.log('[SiliuController] Setting up download promise for:', downloadPath);
     
-    const timeout = 30000; // 30秒总超时
+    const dialogTimeout = 30000; // 30秒对话框超时
     let resolved = false;
     
-    const downloadPromise = new Promise((resolve) => {
-      // 监听成功事件
+    const dialogPromise = new Promise((resolve) => {
+      // 监听对话框处理成功事件
       const onSelected = (data) => {
         if (resolved) return;
         resolved = true;
@@ -1524,8 +1524,8 @@ class SiliuController {
         console.log('[SiliuController] File saved via interceptor:', data);
         resolve({ 
           success: true, 
-          downloadPath: data.filePath, 
-          mode: 'SYSTEM_DIALOG' 
+          dialogHandled: true,
+          downloadPath: data.filePath 
         });
       };
       
@@ -1559,7 +1559,7 @@ class SiliuController {
           error: 'Download timeout - dialog not intercepted',
           mode: 'SYSTEM_TIMEOUT'
         });
-      }, timeout);
+      }, dialogTimeout);
     });
     
     // 2. 准备下载（设置保存路径到拦截器）
@@ -1571,9 +1571,87 @@ class SiliuController {
     
     // 【注意】AI 需要先执行 click 操作触发保存对话框
     
-    // 3. 等待拦截器完成或超时
+    // 3. 等待对话框处理完成
     console.log('[SiliuController] Waiting for save dialog interception...');
-    return downloadPromise;
+    const dialogResult = await dialogPromise;
+    
+    if (!dialogResult.success) {
+      return dialogResult;
+    }
+    
+    // 4. 等待文件实际下载完成
+    console.log('[SiliuController] Waiting for file download to complete...');
+    const downloadCompleteResult = await this._waitForDownloadComplete(fileManager, downloadPath);
+    
+    return {
+      ...dialogResult,
+      ...downloadCompleteResult,
+      mode: 'SYSTEM_DIALOG'
+    };
+  }
+  
+  /**
+   * 等待文件下载完成
+   */
+  async _waitForDownloadComplete(fileManager, downloadPath) {
+    return new Promise((resolve) => {
+      let resolved = false;
+      
+      // 监听下载完成事件
+      const onComplete = (data) => {
+        if (resolved) return;
+        if (data.filePath !== downloadPath) return; // 只处理当前下载
+        
+        resolved = true;
+        fileManager.off('download:complete', onComplete);
+        fileManager.off('download:timeout', onTimeout);
+        
+        console.log('[SiliuController] Download complete:', data);
+        resolve({
+          success: true,
+          downloadComplete: true,
+          filePath: data.filePath,
+          fileName: data.fileName,
+          fileSize: data.fileSize,
+          message: data.message
+        });
+      };
+      
+      const onTimeout = (data) => {
+        if (resolved) return;
+        if (data.filePath !== downloadPath) return;
+        
+        resolved = true;
+        fileManager.off('download:complete', onComplete);
+        fileManager.off('download:timeout', onTimeout);
+        
+        console.warn('[SiliuController] Download monitoring timeout:', data);
+        resolve({
+          success: true, // 对话框已处理，但无法确认下载是否完成
+          downloadComplete: false,
+          filePath: downloadPath,
+          warning: 'Download progress monitoring timeout, but dialog was handled'
+        });
+      };
+      
+      fileManager.once('download:complete', onComplete);
+      fileManager.once('download:timeout', onTimeout);
+      
+      // 下载监控超时（60秒）
+      setTimeout(() => {
+        if (resolved) return;
+        resolved = true;
+        fileManager.off('download:complete', onComplete);
+        fileManager.off('download:timeout', onTimeout);
+        
+        resolve({
+          success: true,
+          downloadComplete: false,
+          filePath: downloadPath,
+          warning: 'Download monitoring timeout'
+        });
+      }, 65000);
+    });
   }
 }
 

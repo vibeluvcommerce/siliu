@@ -102,6 +102,17 @@ class TabManager extends EventEmitter {
       // 这里会通过 controller 触发点击
       this.emit('upload:click', { selector, filePath });
     });
+    
+    // 监听下载完成事件
+    this.fileManager.on('download:complete', (data) => {
+      console.log('[TabManager] Download complete:', data);
+      this.emit('download:complete', data);
+    });
+    
+    this.fileManager.on('download:timeout', (data) => {
+      console.warn('[TabManager] Download timeout:', data);
+      this.emit('download:timeout', data);
+    });
   }
 
   /**

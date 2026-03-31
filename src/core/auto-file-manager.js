@@ -63,6 +63,17 @@ class AutoFileManager extends EventEmitter {
         this.emit('dialog:manual-required', data);
       });
       
+      // 监听下载完成事件
+      this.interceptor.on('download:complete', (data) => {
+        console.log('[AutoFileManager] Download complete:', data);
+        this.emit('download:complete', data);
+      });
+      
+      this.interceptor.on('download:timeout', (data) => {
+        console.warn('[AutoFileManager] Download timeout:', data);
+        this.emit('download:timeout', data);
+      });
+      
       // 启动拦截器
       const started = this.interceptor.start();
       if (started) {

@@ -4,6 +4,8 @@
  */
 
 const { EventEmitter } = require('events');
+const fs = require('fs');
+const path = require('path');
 
 class DialogInterceptor extends EventEmitter {
   constructor() {
@@ -14,6 +16,7 @@ class DialogInterceptor extends EventEmitter {
     this.koffi = null;
     this.user32 = null;
     this.kernel32 = null;
+    this._activeDownloads = new Map(); // 跟踪正在下载的文件
     
     // 尝试加载 koffi
     try {
@@ -331,16 +334,102 @@ class DialogInterceptor extends EventEmitter {
           this._clickConfirmButton(hwnd);
         }, 200);
         
+        // 先触发 file:selected 事件（对话框已处理）
         this.emit('file:selected', {
           filePath: this.pendingFile,
           hwnd: hwnd
         });
+        
+        // 启动文件下载完成检测
+        this._monitorDownloadComplete(this.pendingFile);
         
         this.clearNextFile();
       }
     } catch (err) {
       console.error('[DialogInterceptor] Error auto-filling:', err.message);
     }
+  }
+  
+  /**
+   * 监控文件下载是否完成
+   * 通过轮询检测文件大小是否稳定来判断
+   */
+  _monitorDownloadComplete(filePath) {
+    const downloadId = Date.now();
+    const checkInterval = 500; // 每500ms检查一次
+    const stableThreshold = 3; // 连续3次大小不变认为下载完成
+    const maxWaitTime = 60000; // 最多等待60秒
+    
+    let lastSize = -1;
+    let stableCount = 0;
+    let elapsedTime = 0;
+    
+    console.log(`[DialogInterceptor] Started monitoring download: ${filePath}`);
+    
+    const monitor = setInterval(() => {
+      elapsedTime += checkInterval;
+      
+      // 超时处理
+      if (elapsedTime > maxWaitTime) {
+        clearInterval(monitor);
+        this._activeDownloads.delete(downloadId);
+        console.log(`[DialogInterceptor] Download monitoring timeout: ${filePath}`);
+        this.emit('download:timeout', { filePath, downloadId });
+        return;
+      }
+      
+      try {
+        // 检查文件是否存在
+        if (!fs.existsSync(filePath)) {
+          // 文件可能还没创建，继续等待
+          return;
+        }
+        
+        const stats = fs.statSync(filePath);
+        const currentSize = stats.size;
+        
+        // 文件大小稳定检测
+        if (currentSize === lastSize && currentSize > 0) {
+          stableCount++;
+          
+          if (stableCount >= stableThreshold) {
+            clearInterval(monitor);
+            this._activeDownloads.delete(downloadId);
+            
+            const fileName = path.basename(filePath);
+            console.log(`[DialogInterceptor] ✅ Download complete: ${fileName} (${this._formatFileSize(currentSize)})`);
+            
+            // 触发下载完成事件
+            this.emit('download:complete', {
+              filePath: filePath,
+              fileName: fileName,
+              fileSize: currentSize,
+              downloadId: downloadId,
+              message: `文件 "${fileName}" 已下载完成，保存路径: ${filePath}`
+            });
+          }
+        } else {
+          // 文件大小变化，重置计数器
+          stableCount = 0;
+          lastSize = currentSize;
+        }
+      } catch (err) {
+        // 文件可能暂时无法访问，继续等待
+      }
+    }, checkInterval);
+    
+    this._activeDownloads.set(downloadId, { filePath, monitor });
+  }
+  
+  /**
+   * 格式化文件大小
+   */
+  _formatFileSize(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 
   /**

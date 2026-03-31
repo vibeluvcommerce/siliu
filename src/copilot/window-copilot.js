@@ -1522,6 +1522,7 @@ class WindowCopilot {
             // download 操作采用类似 upload 的方式：
             // 1. AI 先 click 点击下载链接触发保存对话框
             // 2. download 操作准备保存路径，拦截器自动填充并确认
+            // 3. 系统监控文件下载完成并通知 AI
             const downloadPath = decision.downloadPath || decision.filePath || decision.path;
             const sourceUrl = decision.sourceUrl || decision.url || decision.href;
             
@@ -1531,6 +1532,16 @@ class WindowCopilot {
               const result = await this.controller.download(downloadPath || null, sourceUrl || null);
               stepResult = result;
               actualMode = result.mode || 'SYSTEM';
+              
+              // 如果下载完成，添加成功信息
+              if (result.success && result.downloadComplete) {
+                const fileInfo = result.fileName || path.basename(result.filePath);
+                const sizeInfo = result.fileSize ? ` (${this._formatFileSize(result.fileSize)})` : '';
+                stepResult.description = `文件 "${fileInfo}"${sizeInfo} 已下载完成，保存路径: ${result.filePath}`;
+                console.log(`[WindowCopilot:${this.windowId}] ${stepResult.description}`);
+              } else if (result.success) {
+                stepResult.description = `保存对话框已处理，文件保存至: ${result.filePath}`;
+              }
             } catch (err) {
               console.error(`[WindowCopilot:${this.windowId}] download failed:`, err.message);
               stepResult = { success: false, error: err.message };
@@ -3033,6 +3044,17 @@ ${text.substring(0, 500)}
     if (this.mode === 'action' && this.isExecuting) {
       this._continueAction({ success: true, resumed: true });
     }
+  }
+
+  /**
+   * 格式化文件大小
+   */
+  _formatFileSize(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 
   /**
