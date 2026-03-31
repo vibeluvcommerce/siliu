@@ -181,6 +181,12 @@ class SiliuController {
     // 解析 ~ 路径
     filePath = resolveHomePath(filePath);
     
+    // 【前置检测】检查文件是否存在
+    const fs = require('fs');
+    if (!fs.existsSync(filePath)) {
+      throw new Error(`Upload failed: file not found at ${filePath}`);
+    }
+    
     // 【简化】只使用系统级对话框拦截上传
     // 如果此方法失败，其他方法（CDP直接上传/原生JS）同样会失败，无需降级
     if (!this.tabManager?.fileManager) {

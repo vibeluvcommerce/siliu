@@ -107,6 +107,14 @@ class DialogInterceptor extends EventEmitter {
   }
 
   /**
+   * 检查拦截器是否可用
+   * @returns {boolean} 是否可用
+   */
+  isAvailable() {
+    return !!this.koffi && !!this.user32;
+  }
+
+  /**
    * 设置下一个要自动选择的文件
    */
   setNextFile(filePath) {

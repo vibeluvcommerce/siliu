@@ -1451,9 +1451,9 @@ class WindowCopilot {
                 }
                 
                 // 3. 执行上传
-                const { result, mode } = await this.controller.upload(uploadSelector || null, filePath);
-                stepResult = { ...stepResult, ...result };
-                actualMode = mode;
+                const uploadResult = await this.controller.upload(uploadSelector || null, filePath);
+                stepResult = { ...stepResult, ...uploadResult };
+                actualMode = uploadResult.mode;
               } catch (err) {
                 console.error(`[WindowCopilot:${this.windowId}] upload failed:`, err.message);
                 stepResult = { success: false, error: err.message };
