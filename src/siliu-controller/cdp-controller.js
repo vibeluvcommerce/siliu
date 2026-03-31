@@ -668,12 +668,6 @@ class CDPController {
         el.click();
         el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
         
-        // 如果是链接，处理跳转
-        const link = el.tagName === 'A' ? el : el.closest('a');
-        if (link && link.href) {
-          window.location.assign(link.href);
-        }
-        
         return { 
           success: true, 
           element: el.tagName,
@@ -850,10 +844,6 @@ class CDPController {
           
           clickTarget.click();
           clickTarget.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-          
-          if (link && link.href) {
-            window.location.assign(link.href);
-          }
           
           return { 
             success: true, 

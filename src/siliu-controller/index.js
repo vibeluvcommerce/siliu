@@ -480,10 +480,6 @@ class SiliuController {
         clickTarget.click();
         clickTarget.dispatchEvent(new MouseEvent('click', { bubbles: true }));
         
-        if (clickTarget.href) {
-          window.location.assign(clickTarget.href);
-        }
-        
         return { 
           success: true, 
           element: clickTarget.tagName,
