@@ -129,6 +129,13 @@ class WorkspaceManager {
     return path.join(this.workspaceBase, this.subdirs.downloads);
   }
 
+  /**
+   * Get workspace base directory
+   */
+  getWorkspaceDir() {
+    return this.workspaceBase;
+  }
+
   // ==========================================
   // Screenshot Management
   // ==========================================
