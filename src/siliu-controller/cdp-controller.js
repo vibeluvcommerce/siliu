@@ -664,9 +664,8 @@ class CDPController {
           el.dispatchEvent(new FocusEvent('focus', { bubbles: true }));
         }
         
-        // 触发点击
+        // 触发点击（只使用原生 click）
         el.click();
-        el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
         
         return { 
           success: true, 
@@ -842,8 +841,8 @@ class CDPController {
             clickTarget.dispatchEvent(new FocusEvent('focus', { bubbles: true }));
           }
           
+          // 只使用原生 click，避免重复触发
           clickTarget.click();
-          clickTarget.dispatchEvent(new MouseEvent('click', { bubbles: true }));
           
           return { 
             success: true, 

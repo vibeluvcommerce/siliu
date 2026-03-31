@@ -476,9 +476,8 @@ class SiliuController {
         
         const clickTarget = el.tagName === 'A' ? el : (el.closest('a') || el);
         
-        // 触发点击
+        // 触发点击（只使用原生 click）
         clickTarget.click();
-        clickTarget.dispatchEvent(new MouseEvent('click', { bubbles: true }));
         
         return { 
           success: true, 
