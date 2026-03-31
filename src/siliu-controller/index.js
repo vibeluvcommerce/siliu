@@ -1750,7 +1750,9 @@ class SiliuController {
     // 注入脚本触发右键菜单
     const result = await webContents.executeJavaScript(`
       (function() {
-        const elem = document.elementFromPoint(${x * window.innerWidth}, ${y * window.innerHeight});
+        const x = ${x} * window.innerWidth;
+        const y = ${y} * window.innerHeight;
+        const elem = document.elementFromPoint(x, y);
         if (!elem) return { success: false, error: 'No element at position' };
         
         // 查找图片元素
