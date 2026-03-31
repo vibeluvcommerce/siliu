@@ -406,8 +406,17 @@ class DialogInterceptor extends EventEmitter {
         const stats = fs.statSync(filePath);
         const currentSize = stats.size;
         
-        // 文件大小稳定检测
-        if (currentSize === lastSize && currentSize > 0) {
+        // 文件存在但大小为0，可能是空文件或下载尚未开始
+        if (currentSize === 0) {
+          // 记录空文件状态，但继续等待（给下载一些时间）
+          if (elapsedTime % 5000 === 0) { // 每5秒记录一次
+            console.log(`[DialogInterceptor] File exists but size is 0, waiting for download to start...`);
+          }
+          return;
+        }
+        
+        // 文件大小稳定检测（大小 > 0）
+        if (currentSize === lastSize) {
           stableCount++;
           
           if (stableCount >= stableThreshold) {
@@ -545,7 +554,7 @@ class DialogInterceptor extends EventEmitter {
         const isYes = yesTexts.some(yt => control.text.toLowerCase().includes(yt.toLowerCase()));
         if (isYes) {
           console.log('[DialogInterceptor] Clicking Yes button:', control.text);
-          this._sendClick(control.hwnd);
+          this._clickButtonWithRetry(control.hwnd);
           return;
         }
       }
@@ -554,15 +563,45 @@ class DialogInterceptor extends EventEmitter {
       const buttonControls = allControls.filter(c => c.className === 'Button');
       if (buttonControls.length > 0) {
         console.log('[DialogInterceptor] Clicking first button:', buttonControls[0].text);
-        this._sendClick(buttonControls[0].hwnd);
+        this._clickButtonWithRetry(buttonControls[0].hwnd);
         return;
       }
       
-      // 最后尝试发送 IDYES
+      // 最后尝试发送 IDYES 到对话框
+      console.log('[DialogInterceptor] Sending IDYES to dialog');
       this.user32.PostMessageW(hwnd, 0x0111, 6, 0);
     } catch (err) {
       console.error('[DialogInterceptor] Error clicking Yes:', err.message);
     }
+  }
+  
+  /**
+   * 点击按钮（带重试机制）
+   */
+  _clickButtonWithRetry(buttonHwnd, retries = 3) {
+    const tryClick = (attempt) => {
+      try {
+        // 方法1: BM_CLICK
+        this.user32.SendMessageW(buttonHwnd, 0x00F5, 0, 0);
+        
+        // 方法2: 模拟鼠标点击
+        setTimeout(() => {
+          try {
+            this.user32.PostMessageW(buttonHwnd, 0x0201, 0, 0); // WM_LBUTTONDOWN
+            this.user32.PostMessageW(buttonHwnd, 0x0202, 0, 0); // WM_LBUTTONUP
+          } catch (e) {}
+        }, 50 * attempt);
+        
+        console.log(`[DialogInterceptor] Click attempt ${attempt} sent`);
+      } catch (err) {
+        console.error(`[DialogInterceptor] Click attempt ${attempt} failed:`, err.message);
+        if (attempt < retries) {
+          setTimeout(() => tryClick(attempt + 1), 100);
+        }
+      }
+    };
+    
+    tryClick(1);
   }
   
   /**
@@ -601,12 +640,24 @@ class DialogInterceptor extends EventEmitter {
   
   /**
    * 发送点击消息
+   * 使用多种方式尝试点击，确保兼容性
    */
   _sendClick(buttonHwnd) {
     try {
+      // 方法1: BM_CLICK 消息
       this.user32.SendMessageW(buttonHwnd, 0x00F5, 0, 0); // BM_CLICK
+      
+      // 方法2: 模拟鼠标点击 (WM_LBUTTONDOWN + WM_LBUTTONUP)
+      setTimeout(() => {
+        try {
+          this.user32.PostMessageW(buttonHwnd, 0x0201, 0, 0); // WM_LBUTTONDOWN
+          this.user32.PostMessageW(buttonHwnd, 0x0202, 0, 0); // WM_LBUTTONUP
+        } catch (e) {}
+      }, 50);
+      
+      console.log('[DialogInterceptor] Click sent to button');
     } catch (e) {
-      // 忽略错误
+      console.error('[DialogInterceptor] Error sending click:', e.message);
     }
   }
 }
