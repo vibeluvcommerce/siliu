@@ -1666,7 +1666,7 @@ class SiliuController {
     console.log('[SiliuController] saveImage:', { target, savePath });
     
     // 获取工作区目录
-    const { getWorkspaceManager } = require('./workspace-manager');
+    const { getWorkspaceManager } = require('../core/workspace-manager');
     const workspace = getWorkspaceManager();
     const downloadsDir = workspace.getDownloadsDir();
     const workspaceDir = workspace.getWorkspaceDir();
