@@ -2242,10 +2242,10 @@ ${text.substring(0, 500)}
     }
 
     try {
-      // 如果上一步失败，等待一下让页面稳定
+      // 如果上一步失败，短暂等待让页面稳定（优化：减少等待时间）
       if (previousResult && !previousResult.success) {
-        console.log(`[WindowCopilot:${this.windowId}] Previous step failed, waiting 1s before retry...`);
-        await this._sleep(1000);
+        console.log(`[WindowCopilot:${this.windowId}] Previous step failed, waiting 300ms before retry...`);
+        await this._sleep(300);
       }
 
       // 【取消检查】等待后再次检查
@@ -2913,16 +2913,16 @@ ${text.substring(0, 500)}
    */
   async _smartWait(actionType, options = {}) {
     const baseWait = {
-      navigate: 500,     // 导航后等待页面加载
-      click: 250,        // 点击后等待响应
-      hover: 250,        // hover后等待下拉菜单/Tooltip显示
-      select: 150,       // 选择后等待页面响应
-      type: 100,         // 输入后短暂等待
-      scroll: 400,       // 滚动后等待内容加载
-      wheel: 500,        // 滚轮切换视频等待动画
+      navigate: 300,     // 导航后等待页面加载（优化：适度减少）
+      click: 150,        // 点击后等待响应（优化：适度减少）
+      hover: 150,        // hover后等待下拉菜单显示（优化：适度减少）
+      select: 100,       // 选择后等待页面响应（优化：适度减少）
+      type: 80,          // 输入后短暂等待（优化：适度减少）
+      scroll: 250,       // 滚动后等待内容加载（优化：适度减少）
+      wheel: 400,        // 滚轮切换视频等待动画（优化：适度减少）
       screenshot: 0,     // 截图无需等待
-      press: 400,        // 按键后等待（如 Enter 提交）
-      wait: 500          // 默认等待
+      press: 250,        // 按键后等待（优化：适度减少）
+      wait: 300          // 默认等待（优化：适度减少）
     };
 
     const waitTime = options.ms || baseWait[actionType] || 500;
@@ -2945,7 +2945,8 @@ ${text.substring(0, 500)}
       const currentUrl = await this.getActiveViewWebContents()?.executeJavaScript('window.location.href').catch(() => initialUrl);
       if (currentUrl !== initialUrl) {
         console.log(`[WindowCopilot:${this.windowId}] Page navigated after click, extending wait...`);
-        await this._sleep(1000); // 页面跳转，额外等待
+        // 优化：减少跳转后的额外等待时间
+        await this._sleep(300);
       }
       return;
     }
@@ -2990,9 +2991,11 @@ ${text.substring(0, 500)}
           }
         }
 
-        await this._sleep(200);
+        // 优化：减少轮询间隔
+        await this._sleep(100);
       } catch (e) {
-        await this._sleep(500);
+        // 优化：减少错误时的等待
+        await this._sleep(200);
       }
     }
 
