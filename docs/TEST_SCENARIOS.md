@@ -469,8 +469,17 @@
 ### AI 操作示例
 
 ```json
+// 基础用法：自动生成文件名（推荐）
 {"action": "saveImage", "target": {"type": "coordinate", "x": 0.25, "y": 0.4}, "description": "右键保存页面第一张图片"}
+
+// 指定文件名（系统会自动处理重复）
+{"action": "saveImage", "target": {"type": "coordinate", "x": 0.25, "y": 0.4}, "savePath": "my-image.png", "description": "右键保存图片并命名为 my-image.png"}
 ```
+
+### 重要说明
+- **强制工作区限制**：无论 AI 是否指定 `savePath`，文件最终都会保存在 `~/.siliu/workspace/downloads/` 目录下（如果 AI 指定了外部路径，会被强制改为工作区内）
+- **自动防重复**：如果文件名已存在，系统会自动添加序号，如 `my-image.png` → `my-image(1).png`
+- **自动生成文件名**：如果不指定 `savePath`，系统使用 `image-{timestamp}.png` 格式
 
 ### 验证方法
 保存完成后，系统会向 AI 发送消息：

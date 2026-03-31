@@ -1659,7 +1659,7 @@ class SiliuController {
    * AI 在指定坐标右键点击图片，系统自动保存到指定路径
    * 
    * @param {Object} target - 图片坐标 {type: 'coordinate', x, y}
-   * @param {string} savePath - 保存路径（可选，默认使用工作区downloads目录）
+   * @param {string} savePath - 保存路径（可选，默认使用工作区downloads目录，强制限制在工作区内）
    * @returns {Promise<Object>} 保存结果
    */
   async saveImage(target, savePath = null) {
@@ -1669,24 +1669,58 @@ class SiliuController {
     const { getWorkspaceManager } = require('./workspace-manager');
     const workspace = getWorkspaceManager();
     const downloadsDir = workspace.getDownloadsDir();
+    const workspaceDir = workspace.getWorkspaceDir();
     
-    // 如果没有指定路径，生成默认路径
+    // 如果没有指定路径，生成默认路径（使用时间戳确保唯一性）
     if (!savePath) {
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       savePath = path.join(downloadsDir, `image-${timestamp}.png`);
+    } else {
+      savePath = resolveHomePath(savePath);
+      
+      // 【强制限制】所有文件必须保存在 workspace 目录下
+      const resolvedSavePath = path.resolve(savePath);
+      const resolvedWorkspaceDir = path.resolve(workspaceDir);
+      
+      if (!resolvedSavePath.startsWith(resolvedWorkspaceDir)) {
+        console.warn(`[SiliuController] saveImage: path ${savePath} is outside workspace, forcing to downloads dir`);
+        // 提取文件名，保存到 downloads 目录
+        const filename = path.basename(savePath);
+        savePath = path.join(downloadsDir, filename);
+      }
     }
-    
-    savePath = resolveHomePath(savePath);
     
     // 确保有扩展名
     if (!path.extname(savePath)) {
       savePath += '.png';
     }
     
-    // 确保目录存在
+    // 【防止重复】如果文件已存在，添加序号
+    const originalPath = savePath;
+    let counter = 1;
+    const ext = path.extname(savePath);
+    const baseName = path.basename(savePath, ext);
     const dir = path.dirname(savePath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
+    
+    while (fs.existsSync(savePath)) {
+      savePath = path.join(dir, `${baseName}(${counter})${ext}`);
+      counter++;
+      // 安全限制，最多尝试 1000 次
+      if (counter > 1000) {
+        const timestamp = Date.now();
+        savePath = path.join(dir, `${baseName}-${timestamp}${ext}`);
+        break;
+      }
+    }
+    
+    if (savePath !== originalPath) {
+      console.log(`[SiliuController] saveImage: file already exists, using ${savePath}`);
+    }
+    
+    // 确保目录存在
+    const finalDir = path.dirname(savePath);
+    if (!fs.existsSync(finalDir)) {
+      fs.mkdirSync(finalDir, { recursive: true });
     }
     
     // 准备图片保存

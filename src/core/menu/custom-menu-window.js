@@ -533,6 +533,40 @@ class CustomMenuWindow {
           }
           savePath = result.filePath;
         }
+        
+        // 【强制限制】AI 预设路径必须在工作区内（用户手动选择不受限制）
+        if (fileManager) {
+          const workspace = this.core?.modules?.get('workspace');
+          if (workspace) {
+            const workspaceDir = workspace.getWorkspaceDir();
+            const resolvedSavePath = path.resolve(savePath);
+            const resolvedWorkspaceDir = path.resolve(workspaceDir);
+            
+            if (!resolvedSavePath.startsWith(resolvedWorkspaceDir)) {
+              console.warn(`[CustomMenu] save-image: path outside workspace, forcing to downloads dir`);
+              const downloadsDir = workspace.getDownloadsDir();
+              const baseName = path.basename(savePath);
+              savePath = path.join(downloadsDir, baseName);
+            }
+          }
+        }
+        
+        // 【防止重复】如果文件已存在，添加序号
+        const originalPath = savePath;
+        let counter = 1;
+        const ext = path.extname(savePath);
+        const baseName = path.basename(savePath, ext);
+        const dir = path.dirname(savePath);
+        
+        while (fs.existsSync(savePath)) {
+          savePath = path.join(dir, `${baseName}(${counter})${ext}`);
+          counter++;
+          if (counter > 1000) {
+            const timestamp = Date.now();
+            savePath = path.join(dir, `${baseName}-${timestamp}${ext}`);
+            break;
+          }
+        }
 
         // 执行下载
         const protocol = url.protocol === 'https:' ? https : http;
