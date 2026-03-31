@@ -1657,8 +1657,8 @@ class SiliuController {
   }
   
   /**
-   * 右键保存图片（另存为）
-   * AI 在指定坐标右键点击图片，系统自动保存到指定路径
+   * 保存图片（直接下载）
+   * AI 在指定坐标定位图片，系统自动获取图片URL并下载保存
    * 
    * @param {Object} target - 图片坐标 {type: 'coordinate', x, y}
    * @param {string} savePath - 保存路径（可选，默认使用工作区downloads目录，强制限制在工作区内）
@@ -1673,10 +1673,81 @@ class SiliuController {
     const downloadsDir = workspace.getDownloadsDir();
     const workspaceDir = workspace.getWorkspaceDir();
     
-    // 如果没有指定路径，生成默认路径（使用时间戳确保唯一性）
+    // 获取当前激活的 view
+    const activeView = this.tabManager.getActiveView();
+    if (!activeView || !activeView.view) {
+      throw new Error('No active view');
+    }
+    
+    const webContents = activeView.view.webContents;
+    const x = target.x;
+    const y = target.y;
+    
+    console.log(`[SiliuController] Getting image at (${x}, ${y})`);
+    
+    // 注入脚本获取图片 URL
+    const imageInfo = await webContents.executeJavaScript(`
+      (function() {
+        const x = ${x} * window.innerWidth;
+        const y = ${y} * window.innerHeight;
+        const elem = document.elementFromPoint(x, y);
+        if (!elem) return { success: false, error: 'No element at position' };
+        
+        // 查找图片元素
+        let img = elem;
+        if (elem.tagName !== 'IMG') {
+          img = elem.closest('img') || elem.querySelector('img');
+        }
+        
+        if (!img || img.tagName !== 'IMG') {
+          return { success: false, error: 'No image found at position' };
+        }
+        
+        // 获取图片 URL（优先使用 srcset 中的最大图，否则用 src）
+        let imageUrl = img.src;
+        if (img.srcset) {
+          // 解析 srcset 获取最大尺寸图片
+          const srcsetParts = img.srcset.split(',').map(s => s.trim());
+          let maxWidth = 0;
+          for (const part of srcsetParts) {
+            const [url, widthStr] = part.split(' ');
+            if (widthStr) {
+              const width = parseInt(widthStr.replace('w', ''));
+              if (width > maxWidth) {
+                maxWidth = width;
+                imageUrl = url;
+              }
+            }
+          }
+        }
+        
+        // 处理相对路径
+        if (imageUrl && !imageUrl.startsWith('http')) {
+          imageUrl = new URL(imageUrl, window.location.href).href;
+        }
+        
+        return { 
+          success: true, 
+          src: imageUrl,
+          alt: img.alt,
+          naturalWidth: img.naturalWidth,
+          naturalHeight: img.naturalHeight
+        };
+      })();
+    `);
+    
+    console.log('[SiliuController] Image info:', imageInfo);
+    
+    if (!imageInfo.success) {
+      throw new Error(imageInfo.error || 'Failed to find image');
+    }
+    
+    // 如果没有指定路径，根据图片 URL 生成文件名
     if (!savePath) {
+      const url = new URL(imageInfo.src);
+      const ext = path.extname(url.pathname) || '.jpg';
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      savePath = path.join(downloadsDir, `image-${timestamp}.png`);
+      savePath = path.join(downloadsDir, `image-${timestamp}${ext}`);
     } else {
       savePath = resolveHomePath(savePath);
       
@@ -1686,7 +1757,6 @@ class SiliuController {
       
       if (!resolvedSavePath.startsWith(resolvedWorkspaceDir)) {
         console.warn(`[SiliuController] saveImage: path ${savePath} is outside workspace, forcing to downloads dir`);
-        // 提取文件名，保存到 downloads 目录
         const filename = path.basename(savePath);
         savePath = path.join(downloadsDir, filename);
       }
@@ -1694,7 +1764,7 @@ class SiliuController {
     
     // 确保有扩展名
     if (!path.extname(savePath)) {
-      savePath += '.png';
+      savePath += '.jpg';
     }
     
     // 【防止重复】如果文件已存在，添加序号
@@ -1707,7 +1777,6 @@ class SiliuController {
     while (fs.existsSync(savePath)) {
       savePath = path.join(dir, `${baseName}(${counter})${ext}`);
       counter++;
-      // 安全限制，最多尝试 1000 次
       if (counter > 1000) {
         const timestamp = Date.now();
         savePath = path.join(dir, `${baseName}-${timestamp}${ext}`);
@@ -1725,84 +1794,77 @@ class SiliuController {
       fs.mkdirSync(finalDir, { recursive: true });
     }
     
-    // 准备图片保存
-    const fileManager = this.tabManager?.fileManager;
-    if (!fileManager) {
-      throw new Error('File manager not available');
-    }
+    // 直接下载图片
+    console.log(`[SiliuController] Downloading image from ${imageInfo.src} to ${savePath}`);
     
-    fileManager.prepareImageSave(savePath);
+    const https = require('https');
+    const http = require('http');
     
-    // 在指定坐标右键点击（触发图片右键菜单）
-    const x = target.x;
-    const y = target.y;
-    
-    console.log(`[SiliuController] Right-clicking image at (${x}, ${y})`);
-    
-    // 获取当前激活的 view
-    const activeView = this.tabManager.getActiveView();
-    if (!activeView || !activeView.view) {
-      throw new Error('No active view');
-    }
-    
-    const webContents = activeView.view.webContents;
-    
-    // 注入脚本触发右键菜单
-    const result = await webContents.executeJavaScript(`
-      (function() {
-        const x = ${x} * window.innerWidth;
-        const y = ${y} * window.innerHeight;
-        const elem = document.elementFromPoint(x, y);
-        if (!elem) return { success: false, error: 'No element at position' };
-        
-        // 查找图片元素
-        let img = elem;
-        if (elem.tagName !== 'IMG') {
-          img = elem.closest('img') || elem.querySelector('img');
+    await new Promise((resolve, reject) => {
+      const url = new URL(imageInfo.src);
+      const protocol = url.protocol === 'https:' ? https : http;
+      
+      const file = fs.createWriteStream(savePath);
+      
+      protocol.get(imageInfo.src, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Referer': webContents.getURL()
+        }
+      }, (response) => {
+        if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
+          // 处理重定向
+          const redirectUrl = new URL(response.headers.location, imageInfo.src).href;
+          console.log(`[SiliuController] Following redirect to ${redirectUrl}`);
+          imageInfo.src = redirectUrl;
+          this.saveImage(target, savePath).then(resolve).catch(reject);
+          return;
         }
         
-        if (!img || img.tagName !== 'IMG') {
-          return { success: false, error: 'No image found at position' };
+        if (response.statusCode !== 200) {
+          reject(new Error(`HTTP ${response.statusCode}`));
+          return;
         }
         
-        // 发送右键菜单事件
-        const rect = img.getBoundingClientRect();
-        const contextMenuEvent = new MouseEvent('contextmenu', {
-          bubbles: true,
-          cancelable: true,
-          view: window,
-          button: 2,
-          clientX: rect.left + rect.width / 2,
-          clientY: rect.top + rect.height / 2
+        response.pipe(file);
+        
+        file.on('finish', () => {
+          file.close();
+          resolve();
         });
-        img.dispatchEvent(contextMenuEvent);
-        
-        return { 
-          success: true, 
-          src: img.src,
-          alt: img.alt,
-          x: rect.left + rect.width / 2,
-          y: rect.top + rect.height / 2
-        };
-      })();
-    `);
+      }).on('error', (err) => {
+        fs.unlink(savePath, () => {});
+        reject(err);
+      });
+    });
     
-    console.log('[SiliuController] Right-click result:', result);
+    // 获取文件大小
+    const stats = fs.statSync(savePath);
+    const fileSize = stats.size;
     
-    if (!result.success) {
-      throw new Error(result.error || 'Failed to right-click image');
-    }
-    
-    // 等待下载完成
-    console.log('[SiliuController] Waiting for image save to complete...');
-    const saveResult = await this._waitForDownloadComplete(fileManager, savePath);
+    console.log(`[SiliuController] Image saved: ${path.basename(savePath)} (${fileSize} bytes)`);
     
     return {
       success: true,
-      saveComplete: saveResult.downloadComplete,
-      imageSrc: result.src,
-      ...saveResult
+      saveComplete: true,
+      downloadPath: savePath,
+      filePath: savePath,
+      fileName: path.basename(savePath),
+      fileSize: fileSize,
+      imageSrc: imageInfo.src,
+      message: `图片 "${path.basename(savePath)}" (${this._formatFileSize(fileSize)}) 已保存完成，路径: ${savePath}`
     };
+  }
+  
+  /**
+   * 格式化文件大小
+   */
+  _formatFileSize(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 }
 
