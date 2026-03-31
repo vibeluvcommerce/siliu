@@ -1726,7 +1726,7 @@ class SiliuController {
     }
     
     // 准备图片保存
-    const fileManager = this.core.modules.get('fileManager');
+    const fileManager = this.tabManager?.fileManager;
     if (!fileManager) {
       throw new Error('File manager not available');
     }
