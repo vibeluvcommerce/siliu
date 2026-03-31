@@ -1552,10 +1552,10 @@ class WindowCopilot {
             break;
           }
           case 'saveImage': {
-            // saveImage 操作：在指定坐标右键点击图片并保存
-            // 1. AI 提供图片坐标
-            // 2. 可选提供保存路径
-            // 3. 系统在坐标处右键点击，触发保存流程
+            // saveImage 操作：在指定坐标右键点击图片，触发系统保存对话框
+            // 【新流程】
+            // 1. saveImage: 在图片位置显示蓝色标记 -> 右键点击 -> 弹出系统保存对话框
+            // 2. AI 下一步使用 download 操作处理对话框
             const target = decision.target;
             const savePath = decision.savePath || decision.downloadPath || decision.filePath || decision.path;
             
@@ -1571,14 +1571,16 @@ class WindowCopilot {
               stepResult = result;
               actualMode = 'SYSTEM';
               
-              // 如果保存完成，添加成功信息
               if (result.success && result.saveComplete) {
-                const fileInfo = result.fileName || path.basename(result.filePath);
+                // 下载已完成（用户快速确认了对话框）
                 const sizeInfo = result.fileSize ? ` (${this._formatFileSize(result.fileSize)})` : '';
-                stepResult.description = `图片 "${fileInfo}"${sizeInfo} 已保存完成，路径: ${result.filePath}`;
+                stepResult.description = `图片 "${result.fileName}"${sizeInfo} 已保存完成，路径: ${result.filePath}`;
                 console.log(`[WindowCopilot:${this.windowId}] ${stepResult.description}`);
-              } else if (result.success) {
-                stepResult.description = `图片保存已触发，保存至: ${result.filePath}`;
+              } else if (result.success && result.downloadTriggered) {
+                // 下载已触发，系统对话框已弹出（或即将弹出）
+                const suggestedPath = result.suggestedPath || result.filePath;
+                stepResult.description = `已触发图片下载（蓝色标记处），系统保存对话框已弹出。请使用 download 操作完成保存，建议路径: ${suggestedPath}`;
+                console.log(`[WindowCopilot:${this.windowId}] ${stepResult.description}`);
               }
             } catch (err) {
               console.error(`[WindowCopilot:${this.windowId}] saveImage failed:`, err.message);

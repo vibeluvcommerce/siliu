@@ -1527,7 +1527,10 @@ class SiliuController {
         resolve({ 
           success: true, 
           dialogHandled: true,
-          downloadPath: data.filePath 
+          downloadPath: data.filePath,
+          filePath: data.filePath,
+          fileName: data.fileName || path.basename(data.filePath),
+          fileSize: data.fileSize
         });
       };
       
@@ -1599,10 +1602,18 @@ class SiliuController {
     return new Promise((resolve) => {
       let resolved = false;
       
+      // 路径标准化用于比较（处理大小写和分隔符差异）
+      const normalizePath = (p) => p ? require('path').normalize(p).toLowerCase() : '';
+      const normalizedDownloadPath = normalizePath(downloadPath);
+      
       // 监听下载完成事件
       const onComplete = (data) => {
         if (resolved) return;
-        if (data.filePath !== downloadPath) return; // 只处理当前下载
+        // 使用标准化路径进行宽松比较
+        if (normalizePath(data.filePath) !== normalizedDownloadPath) {
+          console.log(`[SiliuController] Download path mismatch: ${data.filePath} !== ${downloadPath}`);
+          return;
+        }
         
         resolved = true;
         fileManager.off('download:complete', onComplete);
@@ -1621,7 +1632,7 @@ class SiliuController {
       
       const onTimeout = (data) => {
         if (resolved) return;
-        if (data.filePath !== downloadPath) return;
+        if (normalizePath(data.filePath) !== normalizedDownloadPath) return;
         
         resolved = true;
         fileManager.off('download:complete', onComplete);
@@ -1794,68 +1805,186 @@ class SiliuController {
       fs.mkdirSync(finalDir, { recursive: true });
     }
     
-    // 直接下载图片
-    console.log(`[SiliuController] Downloading image from ${imageInfo.src} to ${savePath}`);
+    // 【添加蓝色标记】在图片位置显示视觉标记
+    await this._showRightClickMarker(activeView.view, x, y);
     
-    const https = require('https');
-    const http = require('http');
+    console.log(`[SiliuController] Triggering download via downloadURL: ${imageInfo.src}`);
     
-    await new Promise((resolve, reject) => {
-      const url = new URL(imageInfo.src);
-      const protocol = url.protocol === 'https:' ? https : http;
+    // 设置监听器获取下载信息（不阻止对话框弹出）
+    const downloadInfo = await new Promise((resolve) => {
+      const ses = webContents.session;
+      let downloadItem = null;
       
-      const file = fs.createWriteStream(savePath);
-      
-      protocol.get(imageInfo.src, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          'Referer': webContents.getURL()
-        }
-      }, (response) => {
-        if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
-          // 处理重定向
-          const redirectUrl = new URL(response.headers.location, imageInfo.src).href;
-          console.log(`[SiliuController] Following redirect to ${redirectUrl}`);
-          imageInfo.src = redirectUrl;
-          this.saveImage(target, savePath).then(resolve).catch(reject);
-          return;
-        }
+      const onWillDownload = (event, item, wc) => {
+        // 不调用 event.preventDefault()，让对话框正常弹出
+        const fileName = item.getFilename();
+        const totalBytes = item.getTotalBytes();
         
-        if (response.statusCode !== 200) {
-          reject(new Error(`HTTP ${response.statusCode}`));
-          return;
-        }
+        console.log(`[SiliuController] Download started: ${fileName} (${totalBytes} bytes)`);
         
-        response.pipe(file);
-        
-        file.on('finish', () => {
-          file.close();
-          resolve();
+        // 监听下载完成
+        item.once('done', (evt, state) => {
+          ses.removeListener('will-download', onWillDownload);
+          
+          if (state === 'completed') {
+            const savePath = item.getSavePath();
+            let fileSize = 0;
+            try {
+              const fs = require('fs');
+              fileSize = fs.statSync(savePath).size;
+            } catch (e) {
+              fileSize = totalBytes;
+            }
+            
+            resolve({
+              success: true,
+              fileName: path.basename(savePath),
+              filePath: savePath,
+              fileSize: fileSize,
+              state: 'completed'
+            });
+          } else {
+            resolve({
+              success: false,
+              fileName: fileName,
+              state: state,
+              error: `下载失败: ${state}`
+            });
+          }
         });
-      }).on('error', (err) => {
-        fs.unlink(savePath, () => {});
-        reject(err);
-      });
+        
+        // 30秒超时保护
+        let resolved = false;
+        setTimeout(() => {
+          if (!resolved) {
+            resolved = true;
+            ses.removeListener('will-download', onWillDownload);
+            resolve({
+              success: false,
+              fileName: fileName,
+              state: 'timeout',
+              error: '下载超时'
+            });
+          }
+        }, 30000);
+      };
+      
+      // 临时监听 will-download
+      ses.once('will-download', onWillDownload);
+      
+      // 触发下载
+      webContents.downloadURL(imageInfo.src);
+      
+      // 5秒超时（如果对话框未被处理）
+      setTimeout(() => {
+        ses.removeListener('will-download', onWillDownload);
+        resolve({
+          success: true,
+          downloadTriggered: true,
+          waitingForDialog: true,
+          message: '下载已触发，等待系统对话框处理...'
+        });
+      }, 5000);
     });
     
-    // 获取文件大小
-    const stats = fs.statSync(savePath);
-    const fileSize = stats.size;
+    // 如果下载已完成，返回完整信息
+    if (downloadInfo.state === 'completed') {
+      return {
+        success: true,
+        saveComplete: true,
+        fileName: downloadInfo.fileName,
+        filePath: downloadInfo.filePath,
+        fileSize: downloadInfo.fileSize,
+        imageSrc: imageInfo.src,
+        message: `图片 "${downloadInfo.fileName}" (${this._formatFileSize(downloadInfo.fileSize)}) 已保存完成，路径: ${downloadInfo.filePath}`
+      };
+    }
     
-    console.log(`[SiliuController] Image saved: ${path.basename(savePath)} (${fileSize} bytes)`);
-    
+    // 如果还在等待对话框处理，返回提示信息
     return {
       success: true,
-      saveComplete: true,
-      downloadPath: savePath,
-      filePath: savePath,
+      downloadTriggered: true,
+      suggestedPath: savePath,
       fileName: path.basename(savePath),
-      fileSize: fileSize,
       imageSrc: imageInfo.src,
-      message: `图片 "${path.basename(savePath)}" (${this._formatFileSize(fileSize)}) 已保存完成，路径: ${savePath}`
+      nextStep: 'download',
+      message: `已触发图片下载（蓝色标记处），系统保存对话框已弹出，请使用 download 操作完成保存，建议路径: ${savePath}`
     };
   }
   
+  /**
+   * 显示右键位置的视觉标记（蓝色圆圈，区别于点击的红色）
+   */
+  async _showRightClickMarker(webContentsView, xPercent, yPercent) {
+    try {
+      const viewSize = webContentsView.getBounds();
+      const x = Math.round(xPercent * viewSize.width);
+      const y = Math.round(yPercent * viewSize.height);
+      
+      await webContentsView.webContents.executeJavaScript(`
+        (function() {
+          const marker = document.createElement('div');
+          marker.id = 'siliu-rightclick-marker';
+          marker.style.cssText = 
+            'position: fixed;' +
+            'left: ' + ${x} + 'px;' +
+            'top: ' + ${y} + 'px;' +
+            'width: 24px;' +
+            'height: 24px;' +
+            'border-radius: 50%;' +
+            'background: rgba(0, 100, 255, 0.8);' +
+            'border: 3px solid white;' +
+            'box-shadow: 0 0 12px rgba(0,100,255,0.6);' +
+            'transform: translate(-50%, -50%);' +
+            'z-index: 999999;' +
+            'pointer-events: none;' +
+            'animation: siliu-rightclick-pulse 0.6s ease-in-out 3;';
+          
+          const style = document.createElement('style');
+          style.textContent = 
+            '@keyframes siliu-rightclick-pulse {' +
+            '0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }' +
+            '50% { transform: translate(-50%, -50%) scale(1.4); opacity: 0.8; }' +
+            '}';
+          document.head.appendChild(style);
+          document.body.appendChild(marker);
+          
+          // 添加"右键"标签
+          const label = document.createElement('div');
+          label.textContent = '右键';
+          label.style.cssText = 
+            'position: fixed;' +
+            'left: ' + (${x} + 18) + 'px;' +
+            'top: ' + (${y} - 28) + 'px;' +
+            'background: rgba(0, 100, 255, 0.9);' +
+            'color: white;' +
+            'padding: 4px 10px;' +
+            'border-radius: 4px;' +
+            'font-size: 12px;' +
+            'font-weight: bold;' +
+            'z-index: 999999;' +
+            'pointer-events: none;' +
+            'box-shadow: 0 2px 8px rgba(0,0,0,0.3);';
+          label.id = 'siliu-rightclick-label';
+          document.body.appendChild(label);
+          
+          // 2秒后移除
+          setTimeout(() => {
+            const m = document.getElementById('siliu-rightclick-marker');
+            const l = document.getElementById('siliu-rightclick-label');
+            const s = document.querySelector('style[data-rightclick-style]');
+            if (m) m.remove();
+            if (l) l.remove();
+          }, 2000);
+          
+          return true;
+        })();
+      `);
+    } catch (err) {
+      console.error('[SiliuController] Failed to show right-click marker:', err);
+    }
+  }
+
   /**
    * 格式化文件大小
    */

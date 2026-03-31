@@ -208,6 +208,15 @@ class AutoFileManager extends EventEmitter {
       filePath: savePath
     };
     
+    // 【关键】同时设置到拦截器，让对话框自动填充
+    if (this.interceptor) {
+      this.interceptor.setNextFile(savePath);
+      // 确保拦截器正在运行
+      if (!this.interceptor.isRunning) {
+        this.interceptor.start();
+      }
+    }
+    
     console.log('[AutoFileManager] Image save prepared:', savePath);
     return true;
   }

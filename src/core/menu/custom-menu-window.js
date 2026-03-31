@@ -511,30 +511,23 @@ class CustomMenuWindow {
         const url = new URL(src);
         const filename = path.basename(url.pathname) || 'image';
         
-        // 检查是否有预设的自动保存路径（AI 模式）
-        let savePath = null;
-        const fileManager = this.core?.modules?.get('fileManager');
-        if (fileManager) {
-          savePath = fileManager.getAndClearImageSavePath();
+        // 弹出系统保存对话框
+        // 注意：如果 AI 事先调用了 download 操作，拦截器会自动处理此对话框
+        const result = await dialog.showSaveDialog(win, {
+          defaultPath: filename,
+          filters: [
+            { name: '图片文件', extensions: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'] },
+            { name: '所有文件', extensions: ['*'] }
+          ]
+        });
+        
+        if (result.canceled || !result.filePath) {
+          return;
         }
-
-        // 如果有预设路径，直接使用；否则弹出对话框
-        if (!savePath) {
-          const result = await dialog.showSaveDialog(win, {
-            defaultPath: filename,
-            filters: [
-              { name: '图片文件', extensions: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'] },
-              { name: '所有文件', extensions: ['*'] }
-            ]
-          });
-          
-          if (result.canceled || !result.filePath) {
-            return;
-          }
-          savePath = result.filePath;
-        }
+        let savePath = result.filePath;
         
         // 【强制限制】AI 预设路径必须在工作区内（用户手动选择不受限制）
+        const fileManager = this.core?.modules?.get('fileManager');
         if (fileManager) {
           const workspace = this.core?.modules?.get('workspace');
           if (workspace) {

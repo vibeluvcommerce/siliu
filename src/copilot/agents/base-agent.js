@@ -111,8 +111,8 @@ class BaseAgent {
       },
       saveImage: {
         params: ['target', 'savePath'],
-        desc: '【图片右键保存专用】在指定坐标处右键点击图片并自动保存。适用于没有下载链接的嵌入式图片（如知乎、公众号配图）。AI需要提供图片的坐标位置，可选指定保存路径',
-        example: { action: 'saveImage', target: { type: 'coordinate', x: 0.5, y: 0.3 }, description: '右键保存页面中央的图片' }
+        desc: '【图片保存专用】在指定坐标处获取图片并触发下载（显示蓝色标记）。系统会弹出保存对话框，AI 需要在下一步使用 download 操作完成保存。复用当前页面 Cookie/Session，适用于有防盗链的图片',
+        example: { action: 'saveImage', target: { type: 'coordinate', x: 0.5, y: 0.3 }, savePath: '~/.siliu/workspace/downloads/image.jpg', description: '下载页面中央的图片' }
       },
       select: { 
         params: ['selector', 'option'], 
@@ -215,7 +215,7 @@ class BaseAgent {
 【操作选择指南 - 必须遵守】
 - 【上传文件】看到"上传"按钮时，先 click 点击触发系统对话框，再使用 upload 操作选择文件
 - 【下载文件】看到"下载"链接/按钮时，先 click 点击触发保存对话框，再使用 download 操作指定保存路径（可选）
-- 【保存图片】看到需要保存的嵌入式图片（无下载链接）时，使用 saveImage 操作在图片坐标处右键保存
+- 【保存图片】看到需要保存的图片时：1) 先用 saveImage 操作在图片坐标处触发下载（会显示蓝色标记），2) 系统弹出保存对话框后，再用 download 操作完成保存
 - 【采集规则 - 重要】
   - AI 职责：滚动/翻页加载数据，从页面提取数据，调用 collect 时【必须提供 content 参数】
   - 【强制】collect 操作必须包含 content 参数，格式：{"action":"collect","content":{"type":"table","data":{"headers":["名称"],"rows":[["值"]]}},"description":"采集当前数据"}
@@ -642,6 +642,20 @@ ${examples}
         if (decision.description) {
           detail = ` - ${decision.description}`;
         }
+        
+        // 显示执行结果的关键信息（如下载文件名）
+        if (h.result) {
+          if (h.result.fileName) {
+            detail += ` (${h.result.fileName}`;
+            if (h.result.fileSize) {
+              detail += `, ${this._formatFileSize(h.result.fileSize)}`;
+            }
+            detail += ')';
+          } else if (h.result.description && !decision.description) {
+            detail += ` - ${h.result.description}`;
+          }
+        }
+        
         if (action === 'type' && decision.text) {
           detail += ` ("${decision.text.substring(0, 20)}${decision.text.length > 20 ? '...' : ''}")`;
         }
@@ -674,6 +688,23 @@ ${examples}
     if (previousResult.success) {
       section += '\n执行成功 ✓';
       
+      // 显示详细描述（如果有）
+      if (previousResult.description) {
+        section += `\n${previousResult.description}`;
+      }
+      
+      // 显示文件下载信息
+      if (previousResult.fileName) {
+        section += `\n文件名: ${previousResult.fileName}`;
+        if (previousResult.fileSize) {
+          const sizeStr = this._formatFileSize(previousResult.fileSize);
+          section += `\n文件大小: ${sizeStr}`;
+        }
+        if (previousResult.filePath) {
+          section += `\n保存路径: ${previousResult.filePath}`;
+        }
+      }
+      
       // 显示采集进度
       if (previousResult.batchIndex !== undefined) {
         section += `\n已采集批次: 第 ${previousResult.batchIndex + 1} 批（本次collect成功）`;
@@ -685,6 +716,17 @@ ${examples}
       }
     }
     return section;
+  }
+  
+  /**
+   * 格式化文件大小
+   */
+  _formatFileSize(bytes) {
+    if (bytes === 0 || bytes === undefined || bytes === null) return '';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 
   /**

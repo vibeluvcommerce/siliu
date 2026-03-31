@@ -347,8 +347,10 @@ class DialogInterceptor extends EventEmitter {
         this.clearNextFile();
         
         // 触发 file:selected 事件（对话框已处理）
+        const fileName = path.basename(currentFile);
         this.emit('file:selected', {
           filePath: currentFile,
+          fileName: fileName,
           hwnd: hwnd
         });
         
