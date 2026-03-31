@@ -8,6 +8,8 @@
  * 自动降级：CDP → JS
  */
 
+const path = require('path');
+const fs = require('fs');
 const { globalEventBus } = require('../core/event-bus');
 const CDPController = require('./cdp-controller');
 const { resolveHomePath } = require('../core/path-utils');
