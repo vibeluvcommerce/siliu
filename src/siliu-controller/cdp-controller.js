@@ -99,14 +99,14 @@ class CDPController {
   }
 
   /**
-   * 随机停顿（模拟人类思考和反应）
+   * 随机停顿（模拟人类思考和反应）- 优化版本，减少等待时间
    */
   async humanPause(type = 'normal') {
     const pauses = {
-      normal: [200, 500],      // 正常停顿
-      think: [800, 1500],      // 思考
-      read: [1500, 3000],      // 阅读
-      hesitate: [100, 300]     // 犹豫
+      normal: [30, 80],        // 正常停顿（优化：大幅减少）
+      think: [100, 200],       // 思考（优化：大幅减少）
+      read: [200, 400],        // 阅读（优化：大幅减少）
+      hesitate: [20, 50]       // 犹豫（优化：大幅减少）
     };
 
     const [min, max] = pauses[type] || pauses.normal;
@@ -171,8 +171,8 @@ class CDPController {
       // 网络空闲超时没关系，继续
     }
 
-    // 最后再等待一下确保渲染完成
-    await this.sleep(500);
+    // 优化：减少渲染等待时间
+    await this.sleep(100);
 
     return { success: true, url: targetUrl };
   }
@@ -477,8 +477,8 @@ class CDPController {
         attempts++;
         if (attempts < maxAttempts) {
           console.log(`[CDPController] Element not found, waiting... (${attempts}/${maxAttempts})`);
-          // 增加等待时间，更自然
-          await this.sleep(1000 + Math.random() * 500);
+          // 优化：大幅减少等待时间
+          await this.sleep(200 + Math.random() * 200);
         }
       }
     }
@@ -564,8 +564,8 @@ class CDPController {
     let nodeId = await this.smartFind(selectorOrText);
     
     if (!nodeId) {
-      // 等待一下再试
-      await this.sleep(500);
+      // 优化：减少等待时间
+      await this.sleep(150);
       nodeId = await this.smartFind(selectorOrText);
       if (!nodeId) {
         throw new Error(`Element not found: ${selectorOrText}`);
@@ -614,7 +614,8 @@ class CDPController {
     // 查找元素
     let nodeId = await this.smartFind(selectorOrText);
     if (!nodeId) {
-      await this.sleep(500);
+      // 优化：减少等待时间
+      await this.sleep(150);
       nodeId = await this.smartFind(selectorOrText);
       if (!nodeId) {
         throw new Error(`Element not found for JS click: ${selectorOrText}`);
@@ -624,7 +625,8 @@ class CDPController {
     // 滚动到元素可见
     try {
       await this.cdp.send('DOM.scrollIntoViewIfNeeded', { nodeId });
-      await this.sleep(200);
+      // 优化：减少等待时间
+      await this.sleep(50);
     } catch (e) {
       // 忽略
     }
@@ -931,13 +933,15 @@ class CDPController {
       if (typeof selectorOrText === 'object' && selectorOrText.x !== undefined) {
         // 坐标方式：直接点击获取焦点
         await this.clickAt(selectorOrText.x, selectorOrText.y);
-        await this.sleep(100);
+        // 优化：减少等待时间
+        await this.sleep(30);
       } else if (typeof selectorOrText === 'string') {
         // 字符串选择器方式
         // 查找元素
         let nodeId = await this.smartFind(selectorOrText);
         if (!nodeId) {
-          await this.sleep(500);
+          // 优化：减少等待时间
+          await this.sleep(150);
           nodeId = await this.smartFind(selectorOrText);
           if (!nodeId) {
             throw new Error(`Element not found: ${selectorOrText}`);
@@ -947,14 +951,16 @@ class CDPController {
         // 滚动到元素可见
         try {
           await this.cdp.send('DOM.scrollIntoViewIfNeeded', { nodeId });
-          await this.sleep(200);
+          // 优化：减少等待时间
+          await this.sleep(50);
         } catch (e) {
           // 忽略
         }
 
         // 点击聚焦
         await this.click(selectorOrText, { fast: true });
-        await this.sleep(100);
+        // 优化：减少等待时间
+        await this.sleep(30);
       }
     }
 
@@ -981,7 +987,8 @@ class CDPController {
       })()
     `);
 
-    await this.sleep(100);
+    // 优化：减少等待时间
+    await this.sleep(30);
 
     return { success: true };
   }
@@ -1170,7 +1177,8 @@ class CDPController {
         attempts++;
         if (attempts < maxAttempts) {
           console.log(`[CDPController] Element not found for type, waiting... (${attempts}/${maxAttempts})`);
-          await this.sleep(1000 + Math.random() * 500);
+          // 优化：大幅减少等待时间
+          await this.sleep(200 + Math.random() * 200);
         }
       }
     }
@@ -1286,7 +1294,8 @@ class CDPController {
     // 等待元素出现
     let nodeId = await this.smartFind(selectorOrText);
     if (!nodeId) {
-      await this.sleep(500);
+      // 优化：减少等待时间
+      await this.sleep(150);
       nodeId = await this.smartFind(selectorOrText);
       if (!nodeId) {
         throw new Error(`Element not found for JS type: ${selectorOrText}`);
@@ -1296,7 +1305,8 @@ class CDPController {
     // 滚动到元素可见
     try {
       await this.cdp.send('DOM.scrollIntoViewIfNeeded', { nodeId });
-      await this.sleep(200);
+      // 优化：减少等待时间
+      await this.sleep(50);
     } catch (e) {
       // 忽略
     }
@@ -1490,7 +1500,8 @@ class CDPController {
 
     await this.cdp.evaluate(`window.scrollBy(${x}, ${y})`);
 
-    await this.sleep(this.humanize.scrollDelay || 200);
+    // 优化：减少滚动等待时间
+    await this.sleep(this.humanize.scrollDelay || 80);
 
     return { success: true, scrollX: x, scrollY: y };
   }
@@ -1610,7 +1621,8 @@ class CDPController {
       })()
     `);
 
-    await this.sleep(500);
+    // 优化：减少等待时间
+    await this.sleep(100);
 
     return { success: true };
   }
@@ -1842,7 +1854,8 @@ class CDPController {
     let nodeId = await this.smartFind(selectorOrText);
 
     if (!nodeId) {
-      await this.sleep(500);
+      // 优化：减少等待时间
+      await this.sleep(150);
       nodeId = await this.smartFind(selectorOrText);
       if (!nodeId) {
         throw new Error(`Element not found: ${selectorOrText}`);
@@ -1852,7 +1865,8 @@ class CDPController {
     // 滚动到元素可见
     try {
       await this.cdp.send('DOM.scrollIntoViewIfNeeded', { nodeId });
-      await this.sleep(200);
+      // 优化：减少等待时间
+      await this.sleep(50);
     } catch (e) {
       // 忽略
     }

@@ -1884,6 +1884,9 @@ class WindowCopilot {
         }
         // ======================
 
+        // 【优化】记录步骤执行完成时间，用于判断是否需要跳过下次等待
+        this._lastStepTime = Date.now();
+        
         return stepResult || { success: true };
       } catch (err) {
         // 发送步骤更新事件（失败时使用 JS 模式）
@@ -2242,10 +2245,16 @@ ${text.substring(0, 500)}
     }
 
     try {
-      // 如果上一步失败，短暂等待让页面稳定（优化：减少等待时间）
-      if (previousResult && !previousResult.success) {
+      // 【优化】如果上一步成功且刚执行完（<2秒），跳过失败等待直接观察
+      const lastStepTime = this._lastStepTime || 0;
+      const timeSinceLastStep = Date.now() - lastStepTime;
+      const skipWait = previousResult?.success && timeSinceLastStep < 2000;
+      
+      if (!skipWait && previousResult && !previousResult.success) {
         console.log(`[WindowCopilot:${this.windowId}] Previous step failed, waiting 300ms before retry...`);
         await this._sleep(300);
+      } else if (skipWait) {
+        console.log(`[WindowCopilot:${this.windowId}] Step executed recently (${timeSinceLastStep}ms), skipping wait...`);
       }
 
       // 【取消检查】等待后再次检查
@@ -2967,6 +2976,26 @@ ${text.substring(0, 500)}
       return;
     }
 
+    // 【优化】先快速检查一次，如果页面已经加载完成则立即返回
+    try {
+      const quickCheck = await webContents.executeJavaScript(`
+        (function() {
+          return {
+            readyState: document.readyState,
+            loading: document.querySelectorAll('[class*="loading"], [class*="spinner"], [class*="skeleton"]').length,
+            hasContent: document.body.innerText.length > 100
+          };
+        })()
+      `);
+      
+      if (quickCheck.readyState === 'complete' && quickCheck.hasContent && quickCheck.loading === 0) {
+        console.log(`[WindowCopilot:${this.windowId}] Page already loaded, skipping wait`);
+        return;
+      }
+    } catch (e) {
+      // 快速检查失败，继续正常等待流程
+    }
+
     const maxWait = options.maxWait || 10000; // 最大等待 10 秒
     const startTime = Date.now();
 
@@ -2992,10 +3021,10 @@ ${text.substring(0, 500)}
         }
 
         // 优化：减少轮询间隔
-        await this._sleep(100);
+        await this._sleep(50);
       } catch (e) {
         // 优化：减少错误时的等待
-        await this._sleep(200);
+        await this._sleep(100);
       }
     }
 
