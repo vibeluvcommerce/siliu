@@ -35,8 +35,8 @@ class TaobaoAgent extends BaseAgent {
 - 搜索建议下拉框出现时，可以用 click 选择
 
 【筛选商品（价格区间等）】
-- 淘宝的筛选条件（价格、品牌等）需要 hover 悬停后展开面板
-- 步骤：hover 悬停筛选按钮 → screenshot 确认面板 → click 输入框 → type 输入数值 → click 确定按钮
+- 淘宝的筛选条件需要 hover 悬停"区间"按钮后展开价格面板
+- 步骤：hover 悬停"区间"筛选按钮 → screenshot 确认面板 → click 输入框 → type 输入数值 → click 确定按钮
 - 价格筛选面板：包含最低价、最高价两个输入框和确定按钮
 - 筛选后页面会自动刷新，显示符合条件的商品
 
