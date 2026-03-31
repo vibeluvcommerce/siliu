@@ -506,29 +506,60 @@ class CustomMenuWindow {
         const https = require('https');
         const http = require('http');
         const fs = require('fs');
+        const { dialog } = require('electron');
 
         const url = new URL(src);
         const filename = path.basename(url.pathname) || 'image';
-
-        const result = await dialog.showSaveDialog(win, {
-          defaultPath: filename,
-          filters: [
-            { name: '图片文件', extensions: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'] },
-            { name: '所有文件', extensions: ['*'] }
-          ]
-        });
-
-        if (!result.canceled && result.filePath) {
-          const protocol = url.protocol === 'https:' ? https : http;
-          const file = fs.createWriteStream(result.filePath);
-          
-          protocol.get(src, (response) => {
-            response.pipe(file);
-            file.on('finish', () => file.close());
-          }).on('error', (err) => {
-            console.error('Download failed:', err.message);
-          });
+        
+        // 检查是否有预设的自动保存路径（AI 模式）
+        let savePath = null;
+        const fileManager = this.core?.modules?.get('fileManager');
+        if (fileManager) {
+          savePath = fileManager.getAndClearImageSavePath();
         }
+
+        // 如果有预设路径，直接使用；否则弹出对话框
+        if (!savePath) {
+          const result = await dialog.showSaveDialog(win, {
+            defaultPath: filename,
+            filters: [
+              { name: '图片文件', extensions: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'] },
+              { name: '所有文件', extensions: ['*'] }
+            ]
+          });
+          
+          if (result.canceled || !result.filePath) {
+            return;
+          }
+          savePath = result.filePath;
+        }
+
+        // 执行下载
+        const protocol = url.protocol === 'https:' ? https : http;
+        const file = fs.createWriteStream(savePath);
+        
+        protocol.get(src, (response) => {
+          response.pipe(file);
+          file.on('finish', () => {
+            file.close();
+            const stats = fs.statSync(savePath);
+            console.log(`[CustomMenu] Image saved: ${path.basename(savePath)} (${stats.size} bytes)`);
+            
+            // 触发下载完成事件
+            if (fileManager) {
+              fileManager.emit('download:complete', {
+                filePath: savePath,
+                fileName: path.basename(savePath),
+                fileSize: stats.size,
+                sourceUrl: src,
+                message: `图片 "${path.basename(savePath)}" 已保存完成，路径: ${savePath}`
+              });
+            }
+          });
+        }).on('error', (err) => {
+          console.error('[CustomMenu] Image download failed:', err.message);
+          fs.unlink(savePath, () => {});
+        });
       },
       'copy-image-url': () => clipboard.writeText(src)
     };

@@ -180,6 +180,47 @@ class AutoFileManager extends EventEmitter {
     console.log('[AutoFileManager] Download prepared:', downloadPath);
     return true;
   }
+  
+  /**
+   * 准备保存图片（右键另存为）
+   * @param {string} savePath - 图片保存路径（支持 ~ 简写）
+   * @returns {boolean} 是否成功准备
+   */
+  prepareImageSave(savePath) {
+    // 解析 ~ 路径
+    savePath = resolveHomePath(savePath);
+    
+    // 确保保存目录存在
+    const dir = path.dirname(savePath);
+    if (!fs.existsSync(dir)) {
+      try {
+        fs.mkdirSync(dir, { recursive: true });
+      } catch (err) {
+        console.error('[AutoFileManager] Failed to create image save dir:', err.message);
+        return false;
+      }
+    }
+    
+    // 设置图片自动保存路径（供右键菜单使用）
+    this.imageSavePath = savePath;
+    this.pendingOperation = {
+      type: 'imageSave',
+      filePath: savePath
+    };
+    
+    console.log('[AutoFileManager] Image save prepared:', savePath);
+    return true;
+  }
+  
+  /**
+   * 获取并清除图片保存路径
+   * @returns {string|null} 保存路径
+   */
+  getAndClearImageSavePath() {
+    const path = this.imageSavePath;
+    this.imageSavePath = null;
+    return path;
+  }
 
   /**
    * 清除待处理操作和拦截器中的待选文件

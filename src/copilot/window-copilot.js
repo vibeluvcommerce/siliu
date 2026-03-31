@@ -1551,6 +1551,44 @@ class WindowCopilot {
             await this._smartWait('click');
             break;
           }
+          case 'saveImage': {
+            // saveImage 操作：在指定坐标右键点击图片并保存
+            // 1. AI 提供图片坐标
+            // 2. 可选提供保存路径
+            // 3. 系统在坐标处右键点击，触发保存流程
+            const target = decision.target;
+            const savePath = decision.savePath || decision.downloadPath || decision.filePath || decision.path;
+            
+            console.log(`[WindowCopilot:${this.windowId}] saveImage: target=${JSON.stringify(target)}, savePath=${savePath || '(default)'}`);
+            
+            if (!target || target.type !== 'coordinate') {
+              stepResult = { success: false, error: 'saveImage requires target with type "coordinate"' };
+              break;
+            }
+            
+            try {
+              const result = await this.controller.saveImage(target, savePath || null);
+              stepResult = result;
+              actualMode = 'SYSTEM';
+              
+              // 如果保存完成，添加成功信息
+              if (result.success && result.saveComplete) {
+                const fileInfo = result.fileName || path.basename(result.filePath);
+                const sizeInfo = result.fileSize ? ` (${this._formatFileSize(result.fileSize)})` : '';
+                stepResult.description = `图片 "${fileInfo}"${sizeInfo} 已保存完成，路径: ${result.filePath}`;
+                console.log(`[WindowCopilot:${this.windowId}] ${stepResult.description}`);
+              } else if (result.success) {
+                stepResult.description = `图片保存已触发，保存至: ${result.filePath}`;
+              }
+            } catch (err) {
+              console.error(`[WindowCopilot:${this.windowId}] saveImage failed:`, err.message);
+              stepResult = { success: false, error: err.message };
+              actualMode = 'SYSTEM';
+            }
+            
+            await this._smartWait('click');
+            break;
+          }
           case 'type': {
             console.log(`[WindowCopilot:${this.windowId}] Calling controller.type...`);
 

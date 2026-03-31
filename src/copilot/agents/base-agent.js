@@ -109,6 +109,11 @@ class BaseAgent {
         desc: '【文件下载专用】系统自动打开保存文件对话框并填充保存路径。如果不指定downloadPath，文件将保存到默认下载目录。如果提供sourceUrl（下载链接URL），系统会自动从URL提取原始文件名。注意：AI需要先click点击下载链接/按钮触发保存对话框，再用download操作指定保存路径',
         example: { action: 'download', sourceUrl: 'https://example.com/file.pdf', description: '触发保存对话框并自动使用原始文件名' }
       },
+      saveImage: {
+        params: ['target', 'savePath'],
+        desc: '【图片右键保存专用】在指定坐标处右键点击图片并自动保存。适用于没有下载链接的嵌入式图片（如知乎、公众号配图）。AI需要提供图片的坐标位置，可选指定保存路径',
+        example: { action: 'saveImage', target: { type: 'coordinate', x: 0.5, y: 0.3 }, description: '右键保存页面中央的图片' }
+      },
       select: { 
         params: ['selector', 'option'], 
         desc: '选择下拉框选项（仅支持原生<select>或有输入过滤的下拉）。对于需要滚动查找的下拉，请使用 click + wheel + screenshot 手动操作',
@@ -210,6 +215,7 @@ class BaseAgent {
 【操作选择指南 - 必须遵守】
 - 【上传文件】看到"上传"按钮时，先 click 点击触发系统对话框，再使用 upload 操作选择文件
 - 【下载文件】看到"下载"链接/按钮时，先 click 点击触发保存对话框，再使用 download 操作指定保存路径（可选）
+- 【保存图片】看到需要保存的嵌入式图片（无下载链接）时，使用 saveImage 操作在图片坐标处右键保存
 - 【采集规则 - 重要】
   - AI 职责：滚动/翻页加载数据，从页面提取数据，调用 collect 时【必须提供 content 参数】
   - 【强制】collect 操作必须包含 content 参数，格式：{"action":"collect","content":{"type":"table","data":{"headers":["名称"],"rows":[["值"]]}},"description":"采集当前数据"}

@@ -1653,6 +1653,119 @@ class SiliuController {
       }, 65000);
     });
   }
+  
+  /**
+   * 右键保存图片（另存为）
+   * AI 在指定坐标右键点击图片，系统自动保存到指定路径
+   * 
+   * @param {Object} target - 图片坐标 {type: 'coordinate', x, y}
+   * @param {string} savePath - 保存路径（可选，默认使用工作区downloads目录）
+   * @returns {Promise<Object>} 保存结果
+   */
+  async saveImage(target, savePath = null) {
+    console.log('[SiliuController] saveImage:', { target, savePath });
+    
+    // 获取工作区目录
+    const { getWorkspaceManager } = require('./workspace-manager');
+    const workspace = getWorkspaceManager();
+    const downloadsDir = workspace.getDownloadsDir();
+    
+    // 如果没有指定路径，生成默认路径
+    if (!savePath) {
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      savePath = path.join(downloadsDir, `image-${timestamp}.png`);
+    }
+    
+    savePath = resolveHomePath(savePath);
+    
+    // 确保有扩展名
+    if (!path.extname(savePath)) {
+      savePath += '.png';
+    }
+    
+    // 确保目录存在
+    const dir = path.dirname(savePath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    
+    // 准备图片保存
+    const fileManager = this.core.modules.get('fileManager');
+    if (!fileManager) {
+      throw new Error('File manager not available');
+    }
+    
+    fileManager.prepareImageSave(savePath);
+    
+    // 在指定坐标右键点击（触发图片右键菜单）
+    const x = target.x;
+    const y = target.y;
+    
+    console.log(`[SiliuController] Right-clicking image at (${x}, ${y})`);
+    
+    // 获取当前激活的 view
+    const activeView = this.tabManager.getActiveView();
+    if (!activeView || !activeView.view) {
+      throw new Error('No active view');
+    }
+    
+    const webContents = activeView.view.webContents;
+    
+    // 注入脚本触发右键菜单
+    const result = await webContents.executeJavaScript(`
+      (function() {
+        const elem = document.elementFromPoint(${x * window.innerWidth}, ${y * window.innerHeight});
+        if (!elem) return { success: false, error: 'No element at position' };
+        
+        // 查找图片元素
+        let img = elem;
+        if (elem.tagName !== 'IMG') {
+          img = elem.closest('img') || elem.querySelector('img');
+        }
+        
+        if (!img || img.tagName !== 'IMG') {
+          return { success: false, error: 'No image found at position' };
+        }
+        
+        // 发送右键菜单事件
+        const rect = img.getBoundingClientRect();
+        const contextMenuEvent = new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          view: window,
+          button: 2,
+          clientX: rect.left + rect.width / 2,
+          clientY: rect.top + rect.height / 2
+        });
+        img.dispatchEvent(contextMenuEvent);
+        
+        return { 
+          success: true, 
+          src: img.src,
+          alt: img.alt,
+          x: rect.left + rect.width / 2,
+          y: rect.top + rect.height / 2
+        };
+      })();
+    `);
+    
+    console.log('[SiliuController] Right-click result:', result);
+    
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to right-click image');
+    }
+    
+    // 等待下载完成
+    console.log('[SiliuController] Waiting for image save to complete...');
+    const saveResult = await this._waitForDownloadComplete(fileManager, savePath);
+    
+    return {
+      success: true,
+      saveComplete: saveResult.downloadComplete,
+      imageSrc: result.src,
+      ...saveResult
+    };
+  }
 }
 
 module.exports = SiliuController;
