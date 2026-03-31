@@ -1921,6 +1921,10 @@ class SiliuController {
       const x = Math.round(xPercent * viewSize.width);
       const y = Math.round(yPercent * viewSize.height);
       
+      // 传入相对坐标用于显示
+      const xRel = xPercent.toFixed(2);
+      const yRel = yPercent.toFixed(2);
+      
       await webContentsView.webContents.executeJavaScript(`
         (function() {
           const marker = document.createElement('div');
@@ -1949,9 +1953,9 @@ class SiliuController {
           document.head.appendChild(style);
           document.body.appendChild(marker);
           
-          // 添加"右键"标签
+          // 添加相对坐标标签
           const label = document.createElement('div');
-          label.textContent = '右键';
+          label.textContent = '(${xRel}, ${yRel})';
           label.style.cssText = 
             'position: fixed;' +
             'left: ' + (${x} + 18) + 'px;' +
