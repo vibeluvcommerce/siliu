@@ -1321,6 +1321,21 @@ class CDPController {
       throw new Error('Failed to resolve node for JS type');
     }
     
+    // 【关键】先点击输入框确保获得焦点（对hover面板中的输入框很重要）
+    await this.cdp.evaluate(`
+      (function() {
+        const el = document.querySelector('${selectorOrText.replace(/'/g, "\\'")}');
+        if (el) {
+          el.click();
+          el.focus();
+          el.dispatchEvent(new FocusEvent('focus', { bubbles: true }));
+        }
+      })()
+    `);
+    
+    // 短暂等待确保焦点已获得
+    await this.sleep(50);
+    
     // 使用 JS 直接设置值
     const result = await this.cdp.evaluate(`
       (function() {
@@ -1330,9 +1345,11 @@ class CDPController {
         const isInput = el.tagName === 'INPUT' || el.tagName === 'TEXTAREA';
         const isEditable = el.isContentEditable;
         
-        // 聚焦元素
-        el.focus();
-        el.dispatchEvent(new FocusEvent('focus', { bubbles: true }));
+        // 确保聚焦元素
+        if (document.activeElement !== el) {
+          el.focus();
+          el.dispatchEvent(new FocusEvent('focus', { bubbles: true }));
+        }
         
         // 清空现有内容（如果需要）
         if (${options.clear !== false} && isInput) {
