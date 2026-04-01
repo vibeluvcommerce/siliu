@@ -1841,9 +1841,9 @@ class WindowCopilot {
             stepResult = { success: false, error: `未知操作: ${decision.action}` };
         }
 
-        // 【关键】非 click/hover/type 操作会退出 hover 面板上下文
-        // 允许在 hover 面板内连续点击或输入文本
-        if (decision.action !== 'click' && decision.action !== 'hover' && decision.action !== 'type') {
+        // 【关键】非 click/hover/type/screenshot/wait/yes/no 操作会退出 hover 面板上下文
+        // 允许在 hover 面板内连续点击、输入文本、截图查看状态或等待
+        if (!['click', 'hover', 'type', 'screenshot', 'wait', 'yes', 'no'].includes(decision.action)) {
           if (this._hoverPanelActive) {
             console.log(`[WindowCopilot:${this.windowId}] Exiting hover panel context after ${decision.action}`);
             this._hoverPanelActive = false;
