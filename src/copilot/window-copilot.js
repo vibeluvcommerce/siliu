@@ -1354,7 +1354,7 @@ class WindowCopilot {
             
             // 【关键】hover 后给 AI 提示下拉菜单的位置
             if (stepResult.success) {
-              stepResult.message = '悬停成功。如果下拉菜单出现，通常在头像/按钮下方（y坐标比头像大0.05-0.15）。请先截图确认下拉菜单位置再点击。';
+              stepResult.message = '【重要】悬停成功！下拉菜单/面板可能已经展开。你必须先执行 screenshot 操作确认面板位置和状态后，再执行下一步点击或输入操作。不要直接点击！';
             }
             break;
           }
