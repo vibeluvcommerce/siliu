@@ -699,19 +699,19 @@ class CDPController {
           const marker = document.createElement('div');
           marker.id = 'siliu-click-marker';
           marker.style.cssText = 
-            'position: fixed;' +
-            'left: ' + ${x} + 'px;' +
-            'top: ' + ${y} + 'px;' +
-            'width: 20px;' +
-            'height: 20px;' +
-            'border-radius: 50%;' +
-            'background: rgba(255, 0, 0, 0.8);' +
-            'border: 3px solid white;' +
-            'box-shadow: 0 0 10px rgba(0,0,0,0.5);' +
-            'transform: translate(-50%, -50%);' +
-            'z-index: 999999;' +
-            'pointer-events: none;' +
-            'animation: siliu-marker-pulse 0.5s ease-in-out 3;';
+            'position: fixed !important;' +
+            'left: ' + ${x} + 'px !important;' +
+            'top: ' + ${y} + 'px !important;' +
+            'width: 20px !important;' +
+            'height: 20px !important;' +
+            'border-radius: 50% !important;' +
+            'background: rgba(255, 0, 0, 0.9) !important;' +
+            'border: 3px solid white !important;' +
+            'box-shadow: 0 0 15px rgba(255,0,0,0.8) !important;' +
+            'transform: translate(-50%, -50%) !important;' +
+            'z-index: 2147483647 !important;' +  /* 最大z-index */
+            'pointer-events: none !important;' +
+            'animation: siliu-marker-pulse 0.5s ease-in-out 3 !important';
           
           // 添加动画样式
           const style = document.createElement('style');
@@ -729,17 +729,17 @@ class CDPController {
           const label = document.createElement('div');
           label.textContent = '${x}, ${y}';
           label.style.cssText = 
-            'position: fixed;' +
-            'left: ' + (${x} + 15) + 'px;' +
-            'top: ' + (${y} - 25) + 'px;' +
-            'background: rgba(0, 0, 0, 0.7);' +
-            'color: white;' +
-            'padding: 4px 8px;' +
-            'border-radius: 4px;' +
-            'font-size: 12px;' +
-            'font-family: monospace;' +
-            'z-index: 999999;' +
-            'pointer-events: none;';
+            'position: fixed !important;' +
+            'left: ' + (${x} + 15) + 'px !important;' +
+            'top: ' + (${y} - 25) + 'px !important;' +
+            'background: rgba(0, 0, 0, 0.85) !important;' +
+            'color: white !important;' +
+            'padding: 4px 8px !important;' +
+            'border-radius: 4px !important;' +
+            'font-size: 12px !important;' +
+            'font-family: monospace !important;' +
+            'z-index: 2147483647 !important;' +  /* 最大z-index */
+            'pointer-events: none !important;'
           document.body.appendChild(label);
           
           // 1.5秒后移除

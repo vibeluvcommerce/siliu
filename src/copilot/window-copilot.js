@@ -1298,6 +1298,7 @@ class WindowCopilot {
               
               // 【关键】如果当前处于 hover 面板上下文中，点击要保持 hover 状态（使用 JS 点击）
               const preserveHover = this._hoverPanelActive;
+              console.log(`[WindowCopilot:${this.windowId}] click coordinate: _hoverPanelActive=${this._hoverPanelActive}, preserveHover=${preserveHover}`);
               if (preserveHover) {
                 console.log(`[WindowCopilot:${this.windowId}] Preserving hover state for panel click`);
               }
@@ -1660,6 +1661,7 @@ class WindowCopilot {
                 
                 // 【关键】如果处于 hover 面板上下文中，使用 JS 点击保持 hover 状态
                 const preserveHover = this._hoverPanelActive;
+                console.log(`[WindowCopilot:${this.windowId}] type coordinate: _hoverPanelActive=${this._hoverPanelActive}, preserveHover=${preserveHover}`);
                 if (preserveHover) {
                   console.log(`[WindowCopilot:${this.windowId}] Preserving hover state for type operation`);
                 }
