@@ -1273,6 +1273,19 @@ class WindowCopilot {
             await this._sleep(100);
             break;
           }
+          case 'exitHover': {
+            console.log(`[WindowCopilot:${this.windowId}] Exiting hover panel context`);
+            this._hoverPanelActive = false;
+            try {
+              // 移动鼠标到左上角空白处，触发 mouseleave 关闭面板
+              await this.controller.hoverAt(0.01, 0.01);
+            } catch (err) {
+              console.warn(`[WindowCopilot:${this.windowId}] hoverAt fallback failed:`, err.message);
+            }
+            stepResult = { success: true, message: '已退出 hover 面板状态' };
+            actualMode = 'JS';
+            break;
+          }
           case 'click': {
             console.log(`[WindowCopilot:${this.windowId}] Calling controller.click...`);
 
@@ -1288,16 +1301,6 @@ class WindowCopilot {
               await this._blurShellInput();
             } else if (isCoordinateClick) {
               console.log(`[WindowCopilot:${this.windowId}] Coordinate click, skipping blur to preserve hover state`);
-            }
-
-            // 【关键】检测 AI 是否有退出 hover 面板的意图（如"点击空白区域"）
-            if (this._hoverPanelActive && decision.description) {
-              const exitKeywords = ['空白', '退出', '关闭', '收起', '面板外', '非面板', 'dismiss', 'close', 'blank', 'outside'];
-              const shouldExitHover = exitKeywords.some(k => decision.description.toLowerCase().includes(k.toLowerCase()));
-              if (shouldExitHover) {
-                console.log(`[WindowCopilot:${this.windowId}] Detected hover exit intent: "${decision.description}", resetting hover state`);
-                this._hoverPanelActive = false;
-              }
             }
 
             // 支持坐标点击（视觉驱动）
@@ -1854,7 +1857,7 @@ class WindowCopilot {
 
         // 【关键】非 click/hover/type/screenshot/wait/yes/no 操作会退出 hover 面板上下文
         // 允许在 hover 面板内连续点击、输入文本、截图查看状态或等待
-        if (!['click', 'hover', 'type', 'screenshot', 'wait', 'yes', 'no'].includes(decision.action)) {
+        if (!['click', 'hover', 'type', 'screenshot', 'wait', 'yes', 'no', 'exitHover'].includes(decision.action)) {
           if (this._hoverPanelActive) {
             console.log(`[WindowCopilot:${this.windowId}] Exiting hover panel context after ${decision.action}`);
             this._hoverPanelActive = false;
