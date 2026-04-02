@@ -2507,7 +2507,7 @@
           input.onfocus = () => { input.style.borderColor = '#6366f1'; input.style.background = '#ffffff'; };
           input.onblur = () => { input.style.borderColor = '#e5e7eb'; input.style.background = '#fafafb'; };
           
-          // 快捷标签区域
+          // 快捷标签区域（语义描述）
           const tagsArea = document.createElement('div');
           tagsArea.style.cssText = 
             'margin-top:12px;' +
@@ -2537,8 +2537,82 @@
             tagsArea.appendChild(tag);
           });
           
+          // 操作类型区域（可多选）
+          const opArea = document.createElement('div');
+          opArea.style.cssText = 
+            'margin-top:10px;' +
+            'display:flex;' +
+            'flex-wrap:wrap;' +
+            'gap:8px;';
+          
+          const opTypes = [
+            { key: '点击', color: '#2563eb', bg: '#dbeafe' },
+            { key: '悬停', color: '#2563eb', bg: '#dbeafe' },
+            { key: '输入', color: '#2563eb', bg: '#dbeafe' },
+            { key: '滚动', color: '#2563eb', bg: '#dbeafe' },
+            { key: '截图', color: '#2563eb', bg: '#dbeafe' }
+          ];
+          
+          const selectedOps = new Set();
+          
+          function updateInputWithOps() {
+            let baseText = input.value;
+            // 移除已有的操作标记 [xxx]
+            baseText = baseText.replace(/\s*\[[^\]]+\]\s*$/g, '').trim();
+            
+            if (selectedOps.size > 0) {
+              const opsArray = Array.from(selectedOps);
+              input.value = baseText + ' [' + opsArray.join(', ') + ']';
+            } else {
+              input.value = baseText;
+            }
+          }
+          
+          opTypes.forEach(op => {
+            const opBtn = document.createElement('button');
+            opBtn.textContent = op.key;
+            opBtn.style.cssText = 
+              'padding:5px 12px;' +
+              'background:' + op.bg + ';' +
+              'color:' + op.color + ';' +
+              'border:none;' +
+              'border-radius:16px;' +
+              'font-size:12px;' +
+              'cursor:pointer;' +
+              'transition:all 0.15s;' +
+              'font-weight:500;';
+            
+            opBtn.onmouseenter = () => { 
+              if (!selectedOps.has(op.key)) {
+                opBtn.style.background = '#bfdbfe';
+              }
+            };
+            opBtn.onmouseleave = () => { 
+              if (!selectedOps.has(op.key)) {
+                opBtn.style.background = op.bg;
+              }
+            };
+            
+            opBtn.onclick = () => {
+              if (selectedOps.has(op.key)) {
+                selectedOps.delete(op.key);
+                opBtn.style.background = op.bg;
+                opBtn.style.boxShadow = 'none';
+              } else {
+                selectedOps.add(op.key);
+                opBtn.style.background = '#93c5fd';
+                opBtn.style.boxShadow = '0 0 0 2px #60a5fa';
+              }
+              updateInputWithOps();
+              input.focus();
+            };
+            
+            opArea.appendChild(opBtn);
+          });
+          
           inputArea.appendChild(input);
           inputArea.appendChild(tagsArea);
+          inputArea.appendChild(opArea);
           
           // 底部按钮区域
           const footer = document.createElement('div');
@@ -2724,6 +2798,9 @@
     }
     
     // 生成标点描述建议
+    // 【注意】此函数当前未在 UI 中实际渲染使用，仅计算后打印日志
+    // 未启用的原因：基于 HTML tagName 的识别不够准确，现代前端组件常使用 div/span 模拟按钮、输入框等元素
+    // 如需启用，需要结合 role 属性、aria-label、CSS 类名等更可靠的特征进行启发式识别
     function generateCoordSuggestions(tag) {
       const map = {
         'INPUT': ['搜索框', '输入用户名', '输入密码', '搜索关键字'],
