@@ -146,7 +146,7 @@ class AutoFileManager extends EventEmitter {
 
   /**
    * 准备下载文件
-   * @param {string} downloadPath - 下载保存路径（支持 ~ 简写）
+   * @param {string} downloadPath - 下载保存目录或路径（支持 ~ 简写）。实际文件名通常由浏览器从对话框原始文件名保留
    * @returns {boolean} 是否成功准备
    */
   prepareDownload(downloadPath) {
@@ -183,7 +183,7 @@ class AutoFileManager extends EventEmitter {
   
   /**
    * 准备保存图片（右键另存为）
-   * @param {string} savePath - 图片保存路径（支持 ~ 简写）
+   * @param {string} savePath - 图片保存目录或路径（支持 ~ 简写）。实际文件名通常由浏览器从对话框原始文件名保留
    * @returns {boolean} 是否成功准备
    */
   prepareImageSave(savePath) {

@@ -115,7 +115,8 @@ class DialogInterceptor extends EventEmitter {
   }
 
   /**
-   * 设置下一个要自动选择的文件
+   * 设置下一个要自动选择的文件/目录
+   * 对于下载操作，filePath 用于提取目标目录，实际文件名通常由浏览器对话框保留
    */
   setNextFile(filePath) {
     this.pendingFile = filePath;

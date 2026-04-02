@@ -1586,7 +1586,8 @@ class WindowCopilot {
               } else if (result.success && result.downloadTriggered) {
                 // 下载已触发，系统对话框已弹出（或即将弹出）
                 const suggestedPath = result.suggestedPath || result.filePath;
-                stepResult.description = `已触发图片下载（蓝色标记处），系统保存对话框已弹出。请使用 download 操作完成保存，建议路径: ${suggestedPath}`;
+                const targetDir = require('path').dirname(suggestedPath);
+                stepResult.description = `已触发图片下载（蓝色标记处），系统保存对话框已弹出。请使用 download 操作完成保存，目标目录: ${targetDir}`;
                 console.log(`[WindowCopilot:${this.windowId}] ${stepResult.description}`);
               }
             } catch (err) {

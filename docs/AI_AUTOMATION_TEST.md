@@ -829,10 +829,10 @@ AI: [执行 saveImage]
 
 ```json
 // 第1步：触发图片下载（显示蓝色坐标标记）
-{"action": "saveImage", "target": {"type": "coordinate", "x": 0.22, "y": 0.81}, "savePath": "~/.siliu/workspace/downloads/unsplash_image.jpg", "description": "在图片位置触发下载"}
+{"action": "saveImage", "target": {"type": "coordinate", "x": 0.22, "y": 0.81}, "savePath": "~/.siliu/workspace/downloads/", "description": "在图片位置触发下载"}
 
 // 第2步：完成下载（处理系统对话框）
-{"action": "download", "downloadPath": "~/.siliu/workspace/downloads/unsplash_image.jpg", "description": "完成图片保存"}
+{"action": "download", "downloadPath": "~/.siliu/workspace/downloads/", "description": "完成图片保存"}
 ```
 
 #### 工作流程说明

@@ -1487,8 +1487,8 @@ class SiliuController {
    * 1. AI click 点击下载链接触发保存对话框
    * 2. download 操作准备保存路径，拦截器自动填充并确认
    * 
-   * @param {string} downloadPath - 下载保存路径（可选，默认使用工作区downloads目录）
-   * @param {string} sourceUrl - 可选，下载来源URL，用于自动提取文件名
+   * @param {string} downloadPath - 下载保存目录或路径（可选，默认使用工作区downloads目录）。实际文件名通常由浏览器从对话框原始文件名保留
+   * @param {string} sourceUrl - 可选，下载来源URL，用于辅助推断保存目录
    * @returns {Promise<Object>}
    */
   async download(downloadPath = null, sourceUrl = null) {
@@ -1503,7 +1503,7 @@ class SiliuController {
     const workspace = getWorkspaceManager();
     const downloadsDir = workspace.getDownloadsDir();
 
-    // 如果没有指定路径，尝试从 URL 提取文件名或生成默认文件名
+    // 如果没有指定路径，尝试从 URL 提取文件名或生成默认保存路径（实际文件名由浏览器保留）
     if (!downloadPath) {
       // 1. 尝试从 sourceUrl 提取完整文件名
       let filename = null;
@@ -1718,7 +1718,7 @@ class SiliuController {
    * AI 在指定坐标定位图片，系统自动获取图片URL并下载保存
    * 
    * @param {Object} target - 图片坐标 {type: 'coordinate', x, y}
-   * @param {string} savePath - 保存路径（可选，默认使用工作区downloads目录，强制限制在工作区内）
+   * @param {string} savePath - 保存目录或路径（可选，默认使用工作区downloads目录，强制限制在工作区内）。实际文件名通常由浏览器从对话框原始文件名保留
    * @returns {Promise<Object>} 保存结果
    */
   async saveImage(target, savePath = null) {
@@ -1954,7 +1954,7 @@ class SiliuController {
       fileName: path.basename(savePath),
       imageSrc: imageInfo.src,
       nextStep: 'download',
-      message: `已触发图片下载（蓝色标记处），系统保存对话框已弹出，请使用 download 操作完成保存，建议路径: ${savePath}`
+      message: `已触发图片下载（蓝色标记处），系统保存对话框已弹出，请使用 download 操作完成保存，目标目录: ${path.dirname(savePath)}`
     };
   }
   

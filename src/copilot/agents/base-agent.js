@@ -106,13 +106,13 @@ class BaseAgent {
       },
       download: {
         params: ['downloadPath', 'sourceUrl'],
-        desc: '【文件下载专用】系统自动打开保存文件对话框并填充保存路径。如果不指定downloadPath，文件将保存到默认下载目录。如果提供sourceUrl（下载链接URL），系统会自动从URL提取原始文件名。注意：AI需要先click点击下载链接/按钮触发保存对话框，再用download操作指定保存路径',
-        example: { action: 'download', sourceUrl: 'https://example.com/file.pdf', description: '触发保存对话框并自动使用原始文件名' }
+        desc: '【文件下载专用】系统拦截保存对话框并自动确认。downloadPath用于指定保存目录（文件名由浏览器根据原始资源自动保留）。如果不指定，文件将保存到默认下载目录。sourceUrl可辅助推断目录。注意：AI需要先click点击下载链接/按钮触发保存对话框，再用download操作完成保存',
+        example: { action: 'download', downloadPath: '~/.siliu/workspace/downloads/', sourceUrl: 'https://example.com/file.pdf', description: '下载文件到指定目录并保留原始文件名' }
       },
       saveImage: {
         params: ['target', 'savePath'],
-        desc: '【图片保存专用】在指定坐标处获取图片并触发下载（显示蓝色标记）。系统会弹出保存对话框，AI 需要在下一步使用 download 操作完成保存。复用当前页面 Cookie/Session，适用于有防盗链的图片',
-        example: { action: 'saveImage', target: { type: 'coordinate', x: 0.5, y: 0.3 }, savePath: '~/.siliu/workspace/downloads/image.jpg', description: '下载页面中央的图片' }
+        desc: '【图片保存专用】在指定坐标处获取图片并触发下载（显示蓝色标记）。系统会弹出保存对话框，AI 需要在下一步使用 download 操作完成保存。savePath用于指定保存目录（最终文件名由浏览器保留）。复用当前页面 Cookie/Session，适用于有防盗链的图片',
+        example: { action: 'saveImage', target: { type: 'coordinate', x: 0.5, y: 0.3 }, savePath: '~/.siliu/workspace/downloads/', description: '下载页面中央的图片到指定目录' }
       },
       select: { 
         params: ['selector', 'option'], 
@@ -214,7 +214,7 @@ class BaseAgent {
 
 【操作选择指南 - 必须遵守】
 - 【上传文件】看到"上传"按钮时，先 click 点击触发系统对话框，再使用 upload 操作选择文件
-- 【下载文件】看到"下载"链接/按钮时，先 click 点击触发保存对话框，再使用 download 操作指定保存路径（可选）
+- 【下载文件】看到"下载"链接/按钮时，先 click 点击触发保存对话框，再使用 download 操作指定保存目录（可选）
 - 【保存图片】看到需要保存的图片时：1) 先用 saveImage 操作在图片坐标处触发下载（会显示蓝色标记），2) 系统弹出保存对话框后，再用 download 操作完成保存
 - 【采集规则 - 重要】
   - AI 职责：滚动/翻页加载数据，从页面提取数据，调用 collect 时【必须提供 content 参数】
@@ -301,9 +301,8 @@ ${examples}
 
 【操作选择示例】
 1. 上传文件：click 点击"上传视频"按钮触发系统对话框 → upload 操作选择文件
-2. 下载文件：click 点击"下载"链接/按钮触发保存对话框 → download 操作指定保存路径
-   - 【保留原始文件名】提供 sourceUrl 参数，例如: {"action":"download","sourceUrl":"https://example.com/file.pdf","description":"下载文件保留原始文件名"}
-   - 【自定义文件名】提供 downloadPath 完整路径，例如: {"action":"download","downloadPath":"C:/downloads/myname.pdf","description":"下载文件使用自定义文件名"}
+2. 下载文件：click 点击"下载"链接/按钮触发保存对话框 → download 操作指定保存目录
+   - 【保留原始文件名】提供 downloadPath 目录参数，例如: {"action":"download","downloadPath":"~/.siliu/workspace/downloads/","sourceUrl":"https://example.com/file.pdf","description":"下载文件到指定目录并保留原始文件名"}
 3. 选择分区（普通）：click 点击下拉框展开 (x:0.5,y:0.7) → screenshot 查看选项 → click 点击"生活经验"
 3. 选择分区（需滚动查找，假设点击位置是 x:0.5,y:0.7）：
    - click 点击下拉框展开 (x:0.5,y:0.7)
@@ -336,7 +335,7 @@ ${examples}
 - selectAll 支持：使用 Ctrl+A 全选文本框内容，配合 type 可替换原有内容
 - 【重要】upload 操作：分两步完成上传：1) 先用 click 点击上传按钮触发系统对话框 2) 再用 upload 操作填充文件路径。upload 只负责选择文件，不负责点击按钮
 - upload 的 filePath 必须使用绝对路径（如 "D:/test/video.mp4"）
-- 【重要】download 操作：分两步完成下载：1) 先用 click 点击下载链接/按钮触发保存对话框 2) 再用 download 操作指定保存路径（可选）。download 只负责设置保存路径，不负责点击下载按钮
+- 【重要】download 操作：分两步完成下载：1) 先用 click 点击下载链接/按钮触发保存对话框 2) 再用 download 操作指定保存目录（可选）。系统会自动保留浏览器提供的原始文件名，download 只负责设置保存目录，不负责点击下载按钮
 - 【重要】select 操作：当下拉框、选择器、分区选择时，直接使用 select 操作选择选项，不要尝试用 scroll 滚动查找
 - 【重要】抖音/视频类网站请使用 wheel 而非 scroll 来切换视频
 - 输入错误时可使用 press + Backspace 删除后重新输入
