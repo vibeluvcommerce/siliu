@@ -2560,8 +2560,8 @@
           
           function updateInputWithOps() {
             let baseText = input.value;
-            // 移除已有的操作标记 [xxx]
-            baseText = baseText.replace(/\s*\[[^\]]+\]\s*$/g, '').trim();
+            // 移除所有已有的操作标记 [xxx]（可能有多个旧的标记块）
+            baseText = baseText.replace(/\s*\[[^\]]+\]/g, '').trim();
             
             if (selectedOps.size > 0) {
               const opsArray = Array.from(selectedOps);
