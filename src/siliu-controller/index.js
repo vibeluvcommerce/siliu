@@ -1447,6 +1447,39 @@ class SiliuController {
   }
 
   /**
+   * 从 URL 提取基础文件名（无扩展名时也能返回）
+   * @param {string} url 
+   * @returns {string|null}
+   */
+  _getBasenameFromUrl(url) {
+    try {
+      if (!url) return null;
+      const urlObj = new URL(url);
+      const filename = urlObj.pathname.split('/').pop();
+      if (filename && filename !== '') {
+        return filename.replace(/[<>\:"/\\|?*]/g, '_');
+      }
+      return null;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  /**
+   * 从 URL 推断文件扩展名
+   * @param {string} url 
+   * @returns {string|null}
+   */
+  _inferExtFromUrl(url) {
+    if (!url) return null;
+    try {
+      const ext = path.extname(new URL(url).pathname);
+      if (ext) return ext;
+    } catch (e) {}
+    return null;
+  }
+
+  /**
    * 触发下载
    * 使用系统对话框拦截，像上传一样处理 Chrome 保存对话框
    * 
@@ -1472,16 +1505,24 @@ class SiliuController {
 
     // 如果没有指定路径，尝试从 URL 提取文件名或生成默认文件名
     if (!downloadPath) {
-      // 1. 尝试从 sourceUrl 提取文件名
+      // 1. 尝试从 sourceUrl 提取完整文件名
       let filename = null;
       if (sourceUrl) {
         filename = this._extractFilenameFromUrl(sourceUrl);
       }
       
-      // 2. 如果无法提取，使用默认命名
+      // 2. 如果无法提取完整文件名，尝试提取基础名（保留原始名称，无扩展名）
+      if (!filename && sourceUrl) {
+        const basename = this._getBasenameFromUrl(sourceUrl);
+        if (basename) {
+          filename = basename;
+        }
+      }
+      
+      // 3. 如果还无法提取，使用默认时间戳命名（不再硬编码 .txt）
       if (!filename) {
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        filename = `download-${timestamp}.txt`;
+        filename = `download-${timestamp}`;
       }
       
       downloadPath = path.join(downloadsDir, filename);
@@ -1492,9 +1533,10 @@ class SiliuController {
     
     // 确保路径有文件名（不是目录）
     if (!path.extname(downloadPath)) {
-      // 如果没有扩展名，添加时间戳避免覆盖
+      // 如果没有扩展名，优先从 sourceUrl 推断，推断不出则不加扩展名
+      const ext = this._inferExtFromUrl(sourceUrl) || '';
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      downloadPath = path.join(downloadPath, `download-${timestamp}.txt`);
+      downloadPath = path.join(downloadPath, `download-${timestamp}${ext}`);
     }
 
     return await this._downloadWithSystemInterceptor(downloadPath);
