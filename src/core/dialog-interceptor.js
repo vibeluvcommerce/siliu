@@ -337,14 +337,29 @@ class DialogInterceptor extends EventEmitter {
 
     try {
       this._processingDialog = true;
-      const currentFile = this.pendingFile; // 保存当前文件路径
+      const currentFile = this.pendingFile; // 保存当前文件路径（完整路径）
+      const targetDir = path.dirname(currentFile); // 提取目标目录
       
       console.log('[DialogInterceptor] Auto-filling dialog with:', currentFile);
       
       const editBox = this._findFilenameEdit(hwnd);
       
       if (editBox) {
-        const filePathUtf16 = Buffer.from(currentFile + '\0', 'utf16le');
+        // 读取对话框中已有的原始文件名（浏览器/服务器提供的）
+        const originalNameBuffer = Buffer.alloc(4096);
+        const originalNameLen = this.user32.GetWindowTextW(editBox, originalNameBuffer, 2048);
+        const originalName = originalNameBuffer.toString('utf16le', 0, originalNameLen * 2).replace(/\0/g, '');
+        
+        // 构造最终路径：保留原始文件名，只替换为指定的目标目录
+        let finalFilePath = currentFile;
+        if (originalName && originalName.trim()) {
+          finalFilePath = path.join(targetDir, originalName.trim());
+          console.log('[DialogInterceptor] Preserving original filename:', originalName, '-> final path:', finalFilePath);
+        } else {
+          console.log('[DialogInterceptor] No original filename found, using:', currentFile);
+        }
+        
+        const filePathUtf16 = Buffer.from(finalFilePath + '\0', 'utf16le');
         this.user32.SetWindowTextW(editBox, filePathUtf16);
         
         setTimeout(() => {
@@ -355,15 +370,15 @@ class DialogInterceptor extends EventEmitter {
         this.clearNextFile();
         
         // 触发 file:selected 事件（对话框已处理）
-        const fileName = path.basename(currentFile);
+        const fileName = path.basename(finalFilePath);
         this.emit('file:selected', {
-          filePath: currentFile,
+          filePath: finalFilePath,
           fileName: fileName,
           hwnd: hwnd
         });
         
-        // 启动文件下载完成检测（使用保存的 currentFile）
-        this._monitorDownloadComplete(currentFile);
+        // 启动文件下载完成检测（使用最终的保存路径）
+        this._monitorDownloadComplete(finalFilePath);
       }
     } catch (err) {
       console.error('[DialogInterceptor] Error auto-filling:', err.message);
