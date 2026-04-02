@@ -97,8 +97,12 @@ window.addEventListener('message', (e) => {
     ipcRenderer.send('view:agentEditorCancelAll', {});
   }
   if (e.data?.type === 'AGENT_EDITOR_PAUSE_STATE') {
-    console.log('[Agent Editor Preload] Pause state change:', e.data.isPaused);
-    ipcRenderer.send('view:agentEditorPauseState', { isPaused: e.data.isPaused });
+    console.log('[Agent Editor Preload] Pause state change:', e.data.isPaused, 'coordinates:', e.data.coordinates?.length || 0);
+    // 【关键】同时转发坐标数据，确保暂存时数据同步到主进程
+    ipcRenderer.send('view:agentEditorPauseState', { 
+      isPaused: e.data.isPaused,
+      coordinates: e.data.coordinates 
+    });
   }
   if (e.data?.type === 'AGENT_EDITOR_SAVE') {
     console.log('[Agent Editor Preload] Save agent clicked, forwarding to main:', e.data.config?.metadata?.name);

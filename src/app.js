@@ -832,7 +832,7 @@ function setupIpcHandlers() {
   ipcMain.on('view:agentEditorClose', agentEditorCloseHandler);
   
   // 监听 Agent Editor 暂存状态变更
-  const agentEditorPauseStateHandler = (event, { isPaused }) => {
+  const agentEditorPauseStateHandler = (event, { isPaused, coordinates }) => {
     // 获取发送者的 webContents ID，找到对应的 viewId
     const senderId = event.sender.id;
     // views 是 Map，需要转换为数组再 find
@@ -841,6 +841,11 @@ function setupIpcHandlers() {
     if (view) {
       agentEditorPausedState.set(view.id, isPaused);
       console.log('[Agent Editor] Pause state updated for', view.id, ':', isPaused);
+      // 【关键】暂存时同步更新坐标数据，确保新标签页能正确继承
+      if (coordinates && coordinates.length > 0) {
+        agentEditorData.set(view.id, coordinates);
+        console.log('[Agent Editor] Coordinates synced on pause for', view.id, ':', coordinates.length);
+      }
     } else {
       console.log('[Agent Editor] Could not find view for sender:', senderId);
     }
@@ -1450,9 +1455,13 @@ function setupIpcHandlers() {
             
             isPaused = !isPaused;
             
-            // 通过 postMessage 通知主进程更新状态
-            window.postMessage({ type: 'AGENT_EDITOR_PAUSE_STATE', isPaused: isPaused }, '*');
-            console.log('[Agent Editor] Pause state change sent:', isPaused);
+            // 通过 postMessage 通知主进程更新暂存状态，同时发送坐标数据
+            window.postMessage({ 
+              type: 'AGENT_EDITOR_PAUSE_STATE', 
+              isPaused: isPaused,
+              coordinates: window.savedCoordinates  // 【关键】同步坐标数据
+            }, '*');
+            console.log('[Agent Editor] Pause state change sent:', isPaused, 'coordinates:', window.savedCoordinates?.length || 0);
             
             if (isPaused) {
               // 暂存：隐藏遮罩层，恢复页面操作
