@@ -71,7 +71,7 @@ Download the latest release for your platform:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/siliu-browser.git
+git clone https://github.com/vibeluvcommerce/siliu.git
 cd siliu-browser
 
 # Install dependencies
@@ -102,6 +102,11 @@ Create `config.json` in the project root:
       "apiKey": "sk-your-kimi-api-key",
       "baseUrl": "https://api.moonshot.cn/v1",
       "model": "kimi-k2.5"
+    },
+    "minimax": {
+      "apiKey": "your-minimax-api-key",
+      "baseUrl": "https://api.minimax.chat/v1",
+      "model": "abab6.5s"
     }
   },
   "visual": {
@@ -117,7 +122,8 @@ Create `config.json` in the project root:
 | Mode | Description | Best For |
 |------|-------------|----------|
 | `openclaw` | Local gateway service | Self-hosted, privacy-focused |
-| `kimi` | Direct Kimi API access | Cloud-based, no local setup |
+| `kimi` | Moonshot Kimi API | Cloud-based, no local setup |
+| `minimax` | MiniMax API | Alternative cloud option |
 
 ---
 
