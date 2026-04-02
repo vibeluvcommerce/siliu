@@ -92,6 +92,8 @@ npm run dist
 
 ## ⚙️ Configuration
 
+> 💡 **Tip**: AI configuration can also be done in the Settings page after launching the app.
+
 Create `config.json` in `~/.siliu/` directory (Windows: `%USERPROFILE%\.siliu\config.json`):
 
 ```json
