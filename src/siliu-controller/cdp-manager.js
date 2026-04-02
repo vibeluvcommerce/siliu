@@ -8,7 +8,7 @@ const { EventEmitter } = require('events');
 class CDPManager extends EventEmitter {
   constructor(options = {}) {
     super();
-    this.debugPort = options.debugPort || 9223;
+    this.debugPort = options.debugPort || 35247;
     this.ws = null;
     this.sessionId = null;
     this.commandId = 0;

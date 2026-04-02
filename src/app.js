@@ -28,7 +28,7 @@ log('日志目录: ' + path.dirname(logPath))
 log('日志文件: ' + logPath)
 
 // 启用远程调试协议（用于 CDP 模式）
-const DEBUG_PORT = process.env.SILIU_DEBUG_PORT || 9223;
+const DEBUG_PORT = process.env.SILIU_DEBUG_PORT || 35247;
 
 // 注意：commandLine 需要在 app ready 之前设置，但需要在 electron 模块加载之后
 // 使用 try-catch 避免在某些环境中出错
