@@ -1290,6 +1290,16 @@ class WindowCopilot {
               console.log(`[WindowCopilot:${this.windowId}] Coordinate click, skipping blur to preserve hover state`);
             }
 
+            // 【关键】检测 AI 是否有退出 hover 面板的意图（如"点击空白区域"）
+            if (this._hoverPanelActive && decision.description) {
+              const exitKeywords = ['空白', '退出', '关闭', '收起', '面板外', '非面板', 'dismiss', 'close', 'blank', 'outside'];
+              const shouldExitHover = exitKeywords.some(k => decision.description.toLowerCase().includes(k.toLowerCase()));
+              if (shouldExitHover) {
+                console.log(`[WindowCopilot:${this.windowId}] Detected hover exit intent: "${decision.description}", resetting hover state`);
+                this._hoverPanelActive = false;
+              }
+            }
+
             // 支持坐标点击（视觉驱动）
             if (isCoordinateClick) {
               const { x, y } = decision.target;
