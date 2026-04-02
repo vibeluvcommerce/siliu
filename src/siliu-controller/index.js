@@ -1628,12 +1628,15 @@ class SiliuController {
     }
     
     // 4. 等待文件实际下载完成
-    console.log('[SiliuController] Waiting for file download to complete...');
-    const downloadCompleteResult = await this._waitForDownloadComplete(fileManager, downloadPath);
+    // 使用拦截器实际填写的最终路径（可能保留了原始文件名）
+    const actualDownloadPath = dialogResult.filePath || downloadPath;
+    console.log('[SiliuController] Waiting for file download to complete... actual path:', actualDownloadPath);
+    const downloadCompleteResult = await this._waitForDownloadComplete(fileManager, actualDownloadPath);
     
     return {
       ...dialogResult,
       ...downloadCompleteResult,
+      filePath: actualDownloadPath,
       mode: 'SYSTEM_DIALOG'
     };
   }
