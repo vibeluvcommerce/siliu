@@ -84,42 +84,29 @@ npm run dist
 
 ## ⚙️ 配置
 
-在项目根目录创建 `config.json`：
+在 `~/.siliu/` 目录创建 `config.json`（Windows: `%USERPROFILE%\.siliu\config.json`）：
 
 ```json
 {
-  "ai": {
-    "mode": "openclaw",
-    "openclaw": {
-      "url": "ws://localhost:18789",
-      "token": "your-gateway-token"
-    },
-    "kimi": {
-      "apiKey": "sk-your-kimi-api-key",
-      "baseUrl": "https://api.moonshot.cn/v1",
-      "model": "kimi-k2.5"
-    },
-    "minimax": {
-      "apiKey": "your-minimax-api-key",
-      "baseUrl": "https://api.minimax.chat/v1",
-      "model": "abab6.5s"
-    }
+  "serviceType": "cloud",
+  "cloud": {
+    "apiEndpoint": "https://api.moonshot.cn/v1",
+    "apiKey": "sk-your-kimi-api-key",
+    "model": "kimi-k2.5"
   },
-  "visual": {
-    "maxWidth": 1280,
-    "quality": 80,
-    "format": "jpeg"
+  "local": {
+    "url": "ws://127.0.0.1:18789",
+    "token": "your-openclaw-token"
   }
 }
 ```
 
 ### AI 后端选项
 
-| 模式 | 说明 | 适用场景 |
-|------|------|----------|
-| `openclaw` | 本地网关服务 | 自托管、注重隐私 |
-| `kimi` | Moonshot Kimi API | 云端、无需本地部署 |
-| `minimax` | MiniMax API | 云端备选方案 |
+| 模式 | 配置项 | 说明 | 适用场景 |
+|------|--------|------|----------|
+| `cloud` | `cloud` | Moonshot Kimi API | 云端、无需本地部署 |
+| `local` | `local` | OpenClaw 网关 | 自托管、注重隐私 |
 
 ---
 

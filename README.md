@@ -92,42 +92,29 @@ npm run dist
 
 ## ⚙️ Configuration
 
-Create `config.json` in the project root:
+Create `config.json` in `~/.siliu/` directory (Windows: `%USERPROFILE%\.siliu\config.json`):
 
 ```json
 {
-  "ai": {
-    "mode": "openclaw",
-    "openclaw": {
-      "url": "ws://localhost:18789",
-      "token": "your-gateway-token"
-    },
-    "kimi": {
-      "apiKey": "sk-your-kimi-api-key",
-      "baseUrl": "https://api.moonshot.cn/v1",
-      "model": "kimi-k2.5"
-    },
-    "minimax": {
-      "apiKey": "your-minimax-api-key",
-      "baseUrl": "https://api.minimax.chat/v1",
-      "model": "abab6.5s"
-    }
+  "serviceType": "cloud",
+  "cloud": {
+    "apiEndpoint": "https://api.moonshot.cn/v1",
+    "apiKey": "sk-your-kimi-api-key",
+    "model": "kimi-k2.5"
   },
-  "visual": {
-    "maxWidth": 1280,
-    "quality": 80,
-    "format": "jpeg"
+  "local": {
+    "url": "ws://127.0.0.1:18789",
+    "token": "your-openclaw-token"
   }
 }
 ```
 
 ### AI Backend Options
 
-| Mode | Description | Best For |
-|------|-------------|----------|
-| `openclaw` | Local gateway service | Self-hosted, privacy-focused |
-| `kimi` | Moonshot Kimi API | Cloud-based, no local setup |
-| `minimax` | MiniMax API | Alternative cloud option |
+| Mode | Config Key | Description | Best For |
+|------|------------|-------------|----------|
+| `cloud` | `cloud` | Moonshot Kimi API | Cloud-based, no local setup |
+| `local` | `local` | OpenClaw gateway | Self-hosted, privacy-focused |
 
 ---
 
