@@ -2531,7 +2531,10 @@
             tag.onmouseenter = () => { tag.style.background = '#e5e7eb'; };
             tag.onmouseleave = () => { tag.style.background = '#f3f4f6'; };
             tag.onclick = () => {
+              // 设置基础描述文本
               input.value = tagText;
+              // 根据已选中的操作类型重新添加操作标记
+              updateInputWithOps();
               input.focus();
             };
             tagsArea.appendChild(tag);
