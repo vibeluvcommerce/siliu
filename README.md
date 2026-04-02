@@ -147,6 +147,8 @@ Example commands:
 
 ## 💡 Usage Examples
 
+> 📚 **More Examples**: See [AI_AUTOMATION_TEST.md](docs/AI_AUTOMATION_TEST.md) for comprehensive test scenarios including Bilibili upload, Taobao shopping, data extraction, and more.
+
 ### Example 1: Upload Video to Bilibili
 
 ```

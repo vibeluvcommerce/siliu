@@ -139,6 +139,8 @@ npm start
 
 ## 💡 使用示例
 
+> 📚 **更多示例**：查看 [AI_AUTOMATION_TEST.md](docs/AI_AUTOMATION_TEST.md) 获取完整的测试场景，包括 B站上传、淘宝购物、数据提取等更多示例。
+
 ### 示例 1：上传视频到 B站
 
 ```
