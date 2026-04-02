@@ -1,17 +1,28 @@
 # Dependencies
 node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
 
 # Build outputs
 dist/
-build/
-*.log
+*.exe
+*.dmg
+*.AppImage
+*.deb
+*.rpm
+*.tar.gz
+*.zip
 
-# OS files
-.DS_Store
-Thumbs.db
+# Logs
+logs/
+*.log
+log.txt
+
+# Environment
+.env
+.env.local
+
+# Config (user-specific)
+config.json
+config.local.json
 
 # IDE
 .vscode/
@@ -19,14 +30,22 @@ Thumbs.db
 *.swp
 *.swo
 
-# Electron
-out/
-release/
+# OS
+.DS_Store
+Thumbs.db
 
-# Config files with secrets
-.env
-*.local
+# Workspace data (user files)
+workspace/
+screenshots/
+downloads/
+exports/
+cache/
 
-# Cache
-.cache/
+# Test outputs
+coverage/
+.nyc_output/
+
+# Temporary files
+tmp/
+temp/
 *.tmp
