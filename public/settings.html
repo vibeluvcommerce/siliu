@@ -2517,25 +2517,20 @@
         if (result.success) {
           if (result.hasUpdate) {
             showUpdateAvailable(result.latestVersion);
-            // 询问是否跳转到下载页面
-            if (confirm(`发现新版本 ${result.latestVersion}\n\n是否前往下载页面？`)) {
-              window.open(result.releaseUrl || 'https://github.com/vibeluvcommerce/siliu/releases', '_blank');
-            }
+            // 直接打开下载页面（无需确认）
+            window.open(result.releaseUrl || 'https://github.com/vibeluvcommerce/siliu/releases', '_blank');
           } else {
             document.getElementById('update-badge').style.display = 'none';
             document.getElementById('nav-update-badge').style.display = 'none';
             status.textContent = '当前已是最新版本';
-            status.style.color = '';
-            alert('当前已是最新版本');
+            status.style.color = '#34a853';  // 绿色表示正常
           }
         } else {
           status.textContent = '检查失败，请稍后重试';
-          alert('检查更新失败，请检查网络连接');
         }
       } catch (err) {
         console.error('[About] Update check failed:', err);
-        status.textContent = '检查失败';
-        alert('检查更新失败: ' + err.message);
+        status.textContent = '检查失败: ' + err.message;
       } finally {
         // 恢复按钮状态
         btn.disabled = false;
