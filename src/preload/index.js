@@ -90,6 +90,11 @@ contextBridge.exposeInMainWorld('siliuAPI', {
   switchToAgent: (agentId) => ipcRenderer.invoke('agents:switch', agentId),
   deleteAgent: (agentId) => ipcRenderer.invoke('agents:delete', agentId),
   
+  // ========== 更新检查 ==========
+  updateGetStatus: () => ipcRenderer.invoke('update:getStatus'),
+  updateCheck: () => ipcRenderer.invoke('update:check'),
+  updateGetVersion: () => ipcRenderer.invoke('update:getVersion'),
+  
   // ========== Agent Editor: 标注编辑器 ==========
   agentEditorInject: (viewId, customScript, coordinates) => ipcRenderer.invoke('agentEditor:inject', viewId, customScript, coordinates),
   agentEditorRemove: (viewId) => ipcRenderer.invoke('agentEditor:remove', viewId),
@@ -165,7 +170,10 @@ contextBridge.exposeInMainWorld('siliuAPI', {
       'agentEditor:tabActivated',
       'agentEditor:cancelAll',
       // Agent 管理
-      'agents:reload'
+      'agents:reload',
+      // 更新检查
+      'update:available',
+      'update:noUpdate'
     ];
     if (validChannels.includes(channel)) {
       ipcRenderer.on(channel, (event, data) => {

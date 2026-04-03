@@ -465,6 +465,7 @@ async function startup() {
     // 【新增】初始化更新检测器
     log('[启动流程] 开始初始化 UpdateChecker...')
     modules.updateChecker = new UpdateChecker(modules.config);
+    app._updateChecker = modules.updateChecker;  // 保存到 app 供 IPC 访问
     log('[启动流程] ✓ UpdateChecker 初始化完成')
 
     // ⑩ 激活 AI 服务（有配置则自动连接，无配置则静默等待）

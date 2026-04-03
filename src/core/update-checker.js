@@ -71,12 +71,17 @@ class UpdateChecker {
           releaseNotes: release.body
         });
         
+        // 静默模式不弹窗，只通知 UI 显示红点标识
         if (!silent) {
           this._showUpdateDialog();
         }
       } else {
         console.log('[UpdateChecker] No updates available');
         this.updateAvailable = false;
+        globalEventBus.emit('update:noUpdate', {
+          currentVersion: this.currentVersion,
+          lastCheckTime: this.lastCheckTime
+        });
         
         if (!silent) {
           this._showNoUpdateDialog();

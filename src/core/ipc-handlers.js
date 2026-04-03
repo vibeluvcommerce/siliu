@@ -40,6 +40,7 @@ class IPCHandlers {
     this._setupShellContextMenu();
     this._setupFileChooserHandlers();
     this._setupAgentHandlers();
+    this._setupUpdateHandlers();
   }
 
   // ========== 导航控制 ==========
@@ -1061,6 +1062,81 @@ class IPCHandlers {
     } catch (err) {
       console.error('[IPC] Error setting up agent handlers:', err);
     }
+  }
+
+  // ========== 更新检查相关 IPC ==========
+  _setupUpdateHandlers() {
+    const { globalEventBus } = require('./event-bus');
+    
+    // 获取更新状态
+    ipcMain.handle('update:getStatus', () => {
+      // 从 app.js 的 modules 中获取 updateChecker
+      const app = require('electron').app;
+      const updateChecker = app._updateChecker;
+      
+      if (updateChecker) {
+        return updateChecker.getStatus();
+      }
+      
+      // 如果还没有初始化，返回基本版本信息
+      const packageJson = require('../../package.json');
+      return {
+        currentVersion: packageJson.version,
+        latestVersion: null,
+        updateAvailable: false,
+        lastCheckTime: null,
+        releaseUrl: null
+      };
+    });
+    
+    // 手动触发检查更新
+    ipcMain.handle('update:check', async () => {
+      return new Promise((resolve) => {
+        // 发送检查更新事件
+        globalEventBus.emit('update:check');
+        
+        // 等待检查结果（最多10秒）
+        const timeout = setTimeout(() => {
+          resolve({ success: false, error: 'Timeout' });
+        }, 10000);
+        
+        const onUpdateAvailable = (data) => {
+          clearTimeout(timeout);
+          globalEventBus.off('update:available', onUpdateAvailable);
+          globalEventBus.off('update:noUpdate', onNoUpdate);
+          resolve({ success: true, hasUpdate: true, ...data });
+        };
+        
+        const onNoUpdate = () => {
+          clearTimeout(timeout);
+          globalEventBus.off('update:available', onUpdateAvailable);
+          globalEventBus.off('update:noUpdate', onNoUpdate);
+          resolve({ success: true, hasUpdate: false });
+        };
+        
+        globalEventBus.once('update:available', onUpdateAvailable);
+        
+        // 创建一个自定义事件来表示无更新
+        const checkTimeout = setTimeout(() => {
+          globalEventBus.emit('update:noUpdate');
+        }, 5000);
+        
+        globalEventBus.once('update:noUpdate', () => {
+          clearTimeout(checkTimeout);
+          onNoUpdate();
+        });
+      });
+    });
+    
+    // 获取当前版本
+    ipcMain.handle('update:getVersion', () => {
+      const packageJson = require('../../package.json');
+      return {
+        version: packageJson.version,
+        name: packageJson.name,
+        description: packageJson.description
+      };
+    });
   }
 }
 
