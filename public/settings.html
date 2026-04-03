@@ -1591,8 +1591,11 @@
           <div class="setting-card">
             <div class="setting-item">
               <div class="setting-info">
-                <div class="setting-label">版本</div>
-                <div class="setting-desc">2.0.0 (Build 2024.03.21)</div>
+                <div class="setting-label">
+                  版本
+                  <span id="update-badge" class="badge" style="display: none; background: #ea4335; color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin-left: 8px;">NEW</span>
+                </div>
+                <div class="setting-desc" id="current-version">加载中...</div>
               </div>
             </div>
             <div class="setting-item">
@@ -1620,10 +1623,10 @@
             <div class="setting-item">
               <div class="setting-info">
                 <div class="setting-label">检查更新</div>
-                <div class="setting-desc">当前已是最新版本</div>
+                <div class="setting-desc" id="update-status">当前已是最新版本</div>
               </div>
               <div class="setting-control">
-                <button class="btn" onclick="checkForUpdates()">
+                <button class="btn" onclick="checkForUpdates()" id="check-update-btn">
                   <i class="ph ph-arrows-clockwise"></i>
                   检查
                 </button>
@@ -2471,10 +2474,82 @@
     }
 
     // 检查更新
-    function checkForUpdates() {
-      console.log('[About] Check for updates');
-      alert('检查更新功能即将推出');
+    // 加载版本信息
+    async function loadVersionInfo() {
+      try {
+        const versionInfo = await window.siliuAPI.updateGetVersion();
+        document.getElementById('current-version').textContent = versionInfo.version;
+        
+        // 检查是否有更新
+        const updateStatus = await window.siliuAPI.updateGetStatus();
+        if (updateStatus.updateAvailable) {
+          showUpdateAvailable(updateStatus.latestVersion);
+        }
+      } catch (err) {
+        console.error('[About] Failed to load version:', err);
+        document.getElementById('current-version').textContent = '未知';
+      }
     }
+
+    // 显示有更新
+    function showUpdateAvailable(latestVersion) {
+      document.getElementById('update-badge').style.display = 'inline';
+      document.getElementById('update-status').textContent = `发现新版本: ${latestVersion}`;
+      document.getElementById('update-status').style.color = '#1a73e8';
+    }
+
+    // 检查更新
+    async function checkForUpdates() {
+      console.log('[About] Checking for updates...');
+      const btn = document.getElementById('check-update-btn');
+      const status = document.getElementById('update-status');
+      
+      // 禁用按钮，显示加载状态
+      btn.disabled = true;
+      btn.innerHTML = '<i class="ph ph-spinner" style="animation: spin 1s linear infinite;"></i> 检查中...';
+      status.textContent = '正在检查更新...';
+      
+      try {
+        const result = await window.siliuAPI.updateCheck();
+        
+        if (result.success) {
+          if (result.hasUpdate) {
+            showUpdateAvailable(result.latestVersion);
+            // 询问是否跳转到下载页面
+            if (confirm(`发现新版本 ${result.latestVersion}\n\n是否前往下载页面？`)) {
+              window.open(result.releaseUrl || 'https://github.com/vibeluvcommerce/siliu/releases', '_blank');
+            }
+          } else {
+            document.getElementById('update-badge').style.display = 'none';
+            status.textContent = '当前已是最新版本';
+            status.style.color = '';
+            alert('当前已是最新版本');
+          }
+        } else {
+          status.textContent = '检查失败，请稍后重试';
+          alert('检查更新失败，请检查网络连接');
+        }
+      } catch (err) {
+        console.error('[About] Update check failed:', err);
+        status.textContent = '检查失败';
+        alert('检查更新失败: ' + err.message);
+      } finally {
+        // 恢复按钮状态
+        btn.disabled = false;
+        btn.innerHTML = '<i class="ph ph-arrows-clockwise"></i> 检查';
+      }
+    }
+
+    // 监听自动检测到的更新
+    if (window.siliuAPI) {
+      window.siliuAPI.on('update:available', (data) => {
+        console.log('[About] Update available:', data);
+        showUpdateAvailable(data.latestVersion);
+      });
+    }
+
+    // 页面加载时获取版本信息
+    document.addEventListener('DOMContentLoaded', loadVersionInfo);
 
     // 显示开源许可
     function showLicense() {
