@@ -37,10 +37,17 @@ This project adheres to a code of conduct that we expect all contributors to fol
 
 ### Fork and Clone
 
+**Step 1**: Click the "Fork" button on GitHub to create your own copy of the repository
+
+**Step 2**: Clone your fork to local machine
+
 ```bash
-# Fork the repository on GitHub, then clone your fork
+# Clone YOUR fork (not the original repo)
 git clone https://github.com/YOUR_USERNAME/siliu.git
 cd siliu
+
+# Add upstream remote (optional, for syncing with original repo)
+git remote add upstream https://github.com/vibeluvcommerce/siliu.git
 
 # Install dependencies
 npm install
@@ -132,14 +139,54 @@ docs(readme): update installation instructions
 
 ### Pull Request Process
 
-> **Note for Maintainers**: Even if you have direct write access, please use the PR workflow instead of pushing directly to `main`. This ensures code review and keeps the history clean.
+> **Who creates the branch?** You (the contributor) create it in **your fork**, not in the original repository.
 
-1. **Create a Branch**: `git checkout -b feature/your-feature`
-2. **Make Changes**: Write code following our coding standards
-3. **Test**: Ensure your changes work on Windows (primary platform)
-4. **Commit**: `git commit -m "feat: add new feature"`
-5. **Push**: `git push origin feature/your-feature`
-6. **Open PR**: Create a Pull Request with detailed description
+```
+┌─────────────────────────────────────────────────────────────┐
+│  GitHub                                                     │
+│  ┌─────────────────┐      ┌─────────────────────────────┐  │
+│  │  Original Repo  │      │  Your Fork                  │  │
+│  │  (vibeluvcommerce/siliu)│  (YOUR_USERNAME/siliu)     │  │
+│  │                 │      │                             │  │
+│  │  main ←─────────┼──────┼────┐  feature/your-feature │  │
+│  │                 │      │    │  (you create this)    │  │
+│  └─────────────────┘      │    │                         │  │
+│                           └────┼─────────────────────────┘  │
+│                                │                            │
+│                           Pull Request                      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Step-by-step**:
+
+1. **Sync with upstream** (optional but recommended):
+   ```bash
+   git fetch upstream
+   git checkout main
+   git merge upstream/main
+   ```
+
+2. **Create a Branch** (in your fork):
+   ```bash
+   git checkout -b feature/your-feature
+   ```
+
+3. **Make Changes**: Write code following our coding standards
+
+4. **Test**: Ensure your changes work on Windows (primary platform)
+
+5. **Commit**:
+   ```bash
+   git add .
+   git commit -m "feat: add new feature"
+   ```
+
+6. **Push to your fork**:
+   ```bash
+   git push origin feature/your-feature
+   ```
+
+7. **Open PR**: Go to GitHub and click "Compare & pull request"
 
 ### Direct Push to Main (Not Recommended)
 

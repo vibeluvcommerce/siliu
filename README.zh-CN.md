@@ -347,13 +347,25 @@ siliu/
 
 我们欢迎贡献！详情请参阅 [Contributing Guide](CONTRIBUTING.md)。
 
-### 开发流程
+### 贡献者快速开始
 
-1. Fork 本仓库
-2. 创建你的功能分支 (`git checkout -b feature/amazing-feature`)
-3. 提交更改 (`git commit -m 'Add amazing feature'`)
-4. 推送到分支 (`git push origin feature/amazing-feature`)
-5. 创建 Pull Request
+```bash
+# 1. 在 GitHub 上 Fork 本仓库，然后克隆你的 Fork
+git clone https://github.com/你的用户名/siliu.git
+
+# 2. 在你的 Fork 中创建分支
+git checkout -b feature/amazing-feature
+
+# 3. 修改代码并提交
+git commit -m "feat: 添加新功能"
+
+# 4. 推送到你的 Fork
+git push origin feature/amazing-feature
+
+# 5. 在 GitHub 上创建 Pull Request
+```
+
+> **注意**：`feature/amazing-feature` 分支是在**你的 Fork** 中创建的，不是在原仓库。你不需要原仓库的写入权限！
 
 ---
 

@@ -354,13 +354,25 @@ See [AI_AUTOMATION_TEST.md](docs/AI_AUTOMATION_TEST.md) for comprehensive testin
 
 We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
-### Development Workflow
+### Quick Start for Contributors
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+```bash
+# 1. Fork the repo on GitHub, then clone YOUR fork
+git clone https://github.com/YOUR_USERNAME/siliu.git
+
+# 2. Create a branch in YOUR fork
+git checkout -b feature/amazing-feature
+
+# 3. Make changes and commit
+git commit -m "feat: add amazing feature"
+
+# 4. Push to YOUR fork
+git push origin feature/amazing-feature
+
+# 5. Open a Pull Request on GitHub
+```
+
+> **Note**: The `feature/amazing-feature` branch is created in **your fork**, not in the original repository. You don't need write access to the original repo!
 
 ---
 
