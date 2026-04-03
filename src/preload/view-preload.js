@@ -32,9 +32,14 @@ contextBridge.exposeInMainWorld('siliuAPI', {
   // 显示 Toast（设置页面用）
   showToast: (message, type, duration) => ipcRenderer.invoke('view:showToast', { message, type, duration }),
 
+  // ========== 更新检查 ==========
+  updateGetStatus: () => ipcRenderer.invoke('update:getStatus'),
+  updateCheck: () => ipcRenderer.invoke('update:check'),
+  updateGetVersion: () => ipcRenderer.invoke('update:getVersion'),
+
   // 事件监听
   on: (channel, callback) => {
-    const validChannels = ['copilot:configSaved', 'copilot:connectionTested', 'config:changed'];
+    const validChannels = ['copilot:configSaved', 'copilot:connectionTested', 'config:changed', 'update:available', 'update:noUpdate'];
     if (validChannels.includes(channel)) {
       ipcRenderer.on(channel, (event, ...args) => callback(...args));
     }
