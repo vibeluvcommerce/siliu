@@ -88,6 +88,10 @@ npm run dist
 
 > 💡 **提示**：AI 配置也可以在启动应用后，在设置页面中进行配置。
 
+<p align="center">
+  <img src="assets/ai-config-screenshot.png" alt="AI 后端配置" width="560">
+</p>
+
 在 `~/.siliu/` 目录创建 `config.json`（Windows: `%USERPROFILE%\.siliu\config.json`）：
 
 ```json

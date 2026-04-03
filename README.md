@@ -96,6 +96,10 @@ npm run dist
 
 > 💡 **Tip**: AI configuration can also be done in the Settings page after launching the app.
 
+<p align="center">
+  <img src="assets/ai-config-screenshot.png" alt="AI Backend Configuration" width="560">
+</p>
+
 Create `config.json` in `~/.siliu/` directory (Windows: `%USERPROFILE%\.siliu\config.json`):
 
 ```json
