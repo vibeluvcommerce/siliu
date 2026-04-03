@@ -97,13 +97,29 @@ npm run dist
 Create `config.json` in `~/.siliu/` directory (Windows: `%USERPROFILE%\.siliu\config.json`):
 
 ```json
+// Option 1: Kimi Code Subscription (Recommended ⭐⭐⭐⭐)
+{
+  "serviceType": "cloud",
+  "cloud": {
+    "apiEndpoint": "https://api.kimi.com/coding/v1",
+    "apiKey": "sk-your-kimi-code-api-key",
+    "model": "k2p5"
+  }
+}
+
+// Option 2: Moonshot Kimi API
 {
   "serviceType": "cloud",
   "cloud": {
     "apiEndpoint": "https://api.moonshot.cn/v1",
-    "apiKey": "sk-your-kimi-api-key",
+    "apiKey": "sk-your-moonshot-api-key",
     "model": "kimi-k2.5"
-  },
+  }
+}
+
+// Option 3: OpenClaw (Self-hosted)
+{
+  "serviceType": "local",
   "local": {
     "url": "ws://127.0.0.1:18789",
     "token": "your-openclaw-token"
@@ -113,10 +129,11 @@ Create `config.json` in `~/.siliu/` directory (Windows: `%USERPROFILE%\.siliu\co
 
 ### AI Backend Options
 
-| Mode | Config Key | Description | Best For |
-|------|------------|-------------|----------|
-| `cloud` | `cloud` | Moonshot Kimi API | Cloud-based, no local setup |
-| `local` | `local` | OpenClaw gateway | Self-hosted, privacy-focused |
+| Mode | Config Key | Description | Rating |
+|------|------------|-------------|--------|
+| **Kimi Code** | `cloud` | Kimi Code Subscription (`api.kimi.com/coding`) | ⭐⭐⭐⭐ Recommended |
+| **Kimi API** | `cloud` | Moonshot Kimi API (`api.moonshot.cn`) | ⭐⭐⭐ |
+| **OpenClaw** | `local` | Self-hosted OpenClaw gateway | ⭐⭐ |
 
 ---
 

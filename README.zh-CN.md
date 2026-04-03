@@ -89,13 +89,29 @@ npm run dist
 在 `~/.siliu/` 目录创建 `config.json`（Windows: `%USERPROFILE%\.siliu\config.json`）：
 
 ```json
+// 选项 1: Kimi Code 订阅（推荐 ⭐⭐⭐⭐）
+{
+  "serviceType": "cloud",
+  "cloud": {
+    "apiEndpoint": "https://api.kimi.com/coding/v1",
+    "apiKey": "sk-your-kimi-code-api-key",
+    "model": "k2p5"
+  }
+}
+
+// 选项 2: Moonshot Kimi API
 {
   "serviceType": "cloud",
   "cloud": {
     "apiEndpoint": "https://api.moonshot.cn/v1",
-    "apiKey": "sk-your-kimi-api-key",
+    "apiKey": "sk-your-moonshot-api-key",
     "model": "kimi-k2.5"
-  },
+  }
+}
+
+// 选项 3: OpenClaw（自托管）
+{
+  "serviceType": "local",
   "local": {
     "url": "ws://127.0.0.1:18789",
     "token": "your-openclaw-token"
@@ -105,10 +121,11 @@ npm run dist
 
 ### AI 后端选项
 
-| 模式 | 配置项 | 说明 | 适用场景 |
+| 模式 | 配置项 | 说明 | 推荐指数 |
 |------|--------|------|----------|
-| `cloud` | `cloud` | Moonshot Kimi API | 云端、无需本地部署 |
-| `local` | `local` | OpenClaw 网关 | 自托管、注重隐私 |
+| **Kimi Code** | `cloud` | Kimi Code 订阅 (`api.kimi.com/coding`) | ⭐⭐⭐⭐ 推荐 |
+| **Kimi API** | `cloud` | Moonshot Kimi API (`api.moonshot.cn`) | ⭐⭐⭐ |
+| **OpenClaw** | `local` | 自托管 OpenClaw 网关 | ⭐⭐ |
 
 ---
 
