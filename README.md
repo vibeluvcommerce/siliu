@@ -60,6 +60,8 @@
 
 ## 📦 Installation
 
+> ⚠️ **Platform Note**: File operations (upload/download) have only been tested on **Windows**. Linux/macOS support for these features is not yet verified.
+
 ### Download Pre-built Binaries
 
 Download the latest release for your platform:
