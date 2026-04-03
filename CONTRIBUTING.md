@@ -132,12 +132,28 @@ docs(readme): update installation instructions
 
 ### Pull Request Process
 
+> **Note for Maintainers**: Even if you have direct write access, please use the PR workflow instead of pushing directly to `main`. This ensures code review and keeps the history clean.
+
 1. **Create a Branch**: `git checkout -b feature/your-feature`
 2. **Make Changes**: Write code following our coding standards
 3. **Test**: Ensure your changes work on Windows (primary platform)
 4. **Commit**: `git commit -m "feat: add new feature"`
 5. **Push**: `git push origin feature/your-feature`
 6. **Open PR**: Create a Pull Request with detailed description
+
+### Direct Push to Main (Not Recommended)
+
+If you have write access and bypass the PR process:
+```bash
+# This will work if you have permissions, but it's NOT recommended
+git push origin main
+```
+
+**Why avoid direct push?**
+- No code review
+- Risk of breaking the build
+- Messy commit history
+- No documentation of changes
 
 ### PR Description Template
 
@@ -263,6 +279,34 @@ siliu/
 ├── docs/                      # Documentation
 └── assets/                    # Icons and images
 ```
+
+---
+
+## 🔒 Branch Protection (For Maintainers)
+
+To prevent accidental direct pushes to `main` and enforce PR workflow:
+
+### GitHub Settings
+
+1. Go to **Settings** → **Branches**
+2. Click **Add rule**
+3. Branch name pattern: `main`
+4. Enable these options:
+   - ☑️ **Require a pull request before merging**
+   - ☑️ **Require status checks to pass before merging** (if you have CI)
+   - ☑️ **Include administrators** (enforces rules for maintainers too)
+   - ☑️ **Require linear history** (optional, keeps clean history)
+
+### After Enabling Protection
+
+When you try direct push:
+```bash
+$ git push origin main
+! [remote rejected] main -> main (protected branch hook declined)
+error: failed to push some refs to 'https://github.com/vibeluvcommerce/siliu.git'
+```
+
+**Solution**: Use branch + PR workflow as described above.
 
 ---
 
