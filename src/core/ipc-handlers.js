@@ -1137,6 +1137,13 @@ class IPCHandlers {
         description: packageJson.description
       };
     });
+
+    // 在 Siliu 中打开 URL
+    ipcMain.handle('app:openInSiliu', (event, url) => {
+      console.log('[IPC] Opening URL in Siliu:', url);
+      globalEventBus.emit('update:openInBrowser', { url });
+      return { success: true };
+    });
   }
 }
 

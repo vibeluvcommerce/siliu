@@ -221,6 +221,14 @@ async function startup() {
       console.log('[Siliu] ai:toast sent to renderer');
     });
 
+    // 更新检测：在浏览器中打开 URL
+    globalEventBus.on('update:openInBrowser', ({ url }) => {
+      console.log('[Siliu] Received update:openInBrowser event for URL:', url);
+      // 创建新标签页打开更新页面，保留 Copilot 侧边栏位置
+      const viewId = modules.core?.createView?.(url, true);
+      console.log('[Siliu] Created view with ID:', viewId);
+    });
+
     // ③ 加载 Core
     log('[启动流程] 开始初始化 Core...')
     console.log('[Siliu] Loading Core...');

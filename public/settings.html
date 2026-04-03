@@ -1621,25 +1621,22 @@
 
           <div class="section-title" style="margin-top: 24px;">更新</div>
           <div class="setting-card">
-            <div class="setting-item">
+            <div class="setting-item" id="update-item" style="display: none;">
               <div class="setting-info">
-                <div class="setting-label">检查更新</div>
-                <div class="setting-desc" id="update-status">当前已是最新版本</div>
+                <div class="setting-label">发现新版本</div>
+                <div class="setting-desc" id="update-status">有新版本可用</div>
               </div>
               <div class="setting-control">
-                <button class="btn" onclick="checkForUpdates()" id="check-update-btn">
-                  <i class="ph ph-arrows-clockwise"></i>
-                  检查
+                <button class="btn btn-primary" onclick="goToUpdate()" id="update-btn">
+                  <i class="ph ph-download-simple"></i>
+                  更新
                 </button>
               </div>
             </div>
-            <div class="setting-item">
+            <div class="setting-item" id="current-version-item">
               <div class="setting-info">
-                <div class="setting-label">自动更新</div>
-                <div class="setting-desc">自动下载并安装更新</div>
-              </div>
-              <div class="setting-control">
-                <div class="toggle active" id="auto-update" onclick="toggleSwitch(this)"></div>
+                <div class="setting-label">当前版本</div>
+                <div class="setting-desc" id="version-display">v1.0.0</div>
               </div>
             </div>
           </div>
@@ -2479,12 +2476,14 @@
     async function loadVersionInfo() {
       try {
         const versionInfo = await window.siliuAPI.updateGetVersion();
-        document.getElementById('current-version').textContent = versionInfo.version;
+        const versionText = 'v' + versionInfo.version;
+        document.getElementById('current-version').textContent = versionText;
+        document.getElementById('version-display').textContent = versionText;
         
-        // 检查是否有更新
+        // 检查是否有更新（依赖启动时自动检查的结果）
         const updateStatus = await window.siliuAPI.updateGetStatus();
         if (updateStatus.updateAvailable) {
-          showUpdateAvailable(updateStatus.latestVersion);
+          showUpdateAvailable(updateStatus.latestVersion, updateStatus.releaseUrl);
         }
       } catch (err) {
         console.error('[About] Failed to load version:', err);
@@ -2493,48 +2492,23 @@
     }
 
     // 显示有更新
-    function showUpdateAvailable(latestVersion) {
-      document.getElementById('update-badge').style.display = 'inline';
-      document.getElementById('nav-update-badge').style.display = 'inline';
+    let _updateReleaseUrl = null;
+    function showUpdateAvailable(latestVersion, releaseUrl) {
+      _updateReleaseUrl = releaseUrl || 'https://github.com/vibeluvcommerce/siliu/releases';
+      // 显示更新按钮
+      document.getElementById('update-item').style.display = 'flex';
       document.getElementById('update-status').textContent = `发现新版本: ${latestVersion}`;
       document.getElementById('update-status').style.color = '#1a73e8';
+      // 导航栏红点
+      document.getElementById('update-badge').style.display = 'inline';
+      document.getElementById('nav-update-badge').style.display = 'inline';
     }
 
-    // 检查更新
-    async function checkForUpdates() {
-      console.log('[About] Checking for updates...');
-      const btn = document.getElementById('check-update-btn');
-      const status = document.getElementById('update-status');
-      
-      // 禁用按钮，显示加载状态
-      btn.disabled = true;
-      btn.innerHTML = '<i class="ph ph-spinner" style="animation: spin 1s linear infinite;"></i> 检查中...';
-      status.textContent = '正在检查更新...';
-      
-      try {
-        const result = await window.siliuAPI.updateCheck();
-        
-        if (result.success) {
-          if (result.hasUpdate) {
-            showUpdateAvailable(result.latestVersion);
-            // 直接打开下载页面（无需确认）
-            window.open(result.releaseUrl || 'https://github.com/vibeluvcommerce/siliu/releases', '_blank');
-          } else {
-            document.getElementById('update-badge').style.display = 'none';
-            document.getElementById('nav-update-badge').style.display = 'none';
-            status.textContent = '当前已是最新版本';
-            status.style.color = '#34a853';  // 绿色表示正常
-          }
-        } else {
-          status.textContent = '检查失败，请稍后重试';
-        }
-      } catch (err) {
-        console.error('[About] Update check failed:', err);
-        status.textContent = '检查失败: ' + err.message;
-      } finally {
-        // 恢复按钮状态
-        btn.disabled = false;
-        btn.innerHTML = '<i class="ph ph-arrows-clockwise"></i> 检查';
+    // 跳转到更新页面
+    function goToUpdate() {
+      console.log('[About] Opening update page:', _updateReleaseUrl);
+      if (_updateReleaseUrl) {
+        window.siliuAPI.openInSiliu(_updateReleaseUrl);
       }
     }
 
@@ -2542,7 +2516,7 @@
     if (window.siliuAPI) {
       window.siliuAPI.on('update:available', (data) => {
         console.log('[About] Update available:', data);
-        showUpdateAvailable(data.latestVersion);
+        showUpdateAvailable(data.latestVersion, data.releaseUrl);
       });
     }
 

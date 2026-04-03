@@ -60,14 +60,6 @@ class TaskbarModule {
         }
       },
       { type: 'separator' },
-      {
-        label: '检查更新',
-        click: () => {
-          const { globalEventBus } = require('../event-bus');
-          globalEventBus.emit('update:check');
-        }
-      },
-      { type: 'separator' },
       { label: '退出', click: () => app.quit() }
     ]));
   }

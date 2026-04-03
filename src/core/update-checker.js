@@ -37,8 +37,8 @@ class UpdateChecker {
     // 定期检查
     setInterval(() => this.checkForUpdates(true), CHECK_INTERVAL);
     
-    // 监听手动检查请求
-    globalEventBus.on('update:check', () => this.checkForUpdates(false));
+    // 不再提供手动检查功能，完全依赖自动检查
+    // globalEventBus.on('update:check', () => this.checkForUpdates(false));
   }
 
   /**
@@ -46,6 +46,13 @@ class UpdateChecker {
    * @param {boolean} silent - 是否静默检查（无更新时不弹窗）
    */
   async checkForUpdates(silent = true) {
+    // 防止并发检查
+    if (this._checking) {
+      console.log('[UpdateChecker] Already checking, skip');
+      return;
+    }
+    this._checking = true;
+    
     try {
       console.log('[UpdateChecker] Checking for updates...');
       
@@ -92,6 +99,8 @@ class UpdateChecker {
       if (!silent) {
         this._showErrorDialog();
       }
+    } finally {
+      this._checking = false;
     }
   }
 
@@ -171,23 +180,54 @@ class UpdateChecker {
    * 显示更新对话框
    */
   _showUpdateDialog() {
+    // 防止并发显示多个对话框
+    if (this._showingDialog) {
+      console.log('[UpdateChecker] Dialog already showing, skip');
+      return;
+    }
+    this._showingDialog = true;
+    
+    console.log('[UpdateChecker] Showing update dialog...');
+    console.log('[UpdateChecker] Current version:', this.currentVersion);
+    console.log('[UpdateChecker] Latest version:', this.latestVersion);
+    console.log('[UpdateChecker] Release URL:', this.latestReleaseUrl);
+    
+    // 注意：不使用 defaultId，避免回车键误触发
     const result = dialog.showMessageBoxSync({
       type: 'info',
       title: '发现新版本',
       message: `Siliu Browser 有新版本可用`,
       detail: `当前版本: ${this.currentVersion}\n最新版本: ${this.latestVersion}\n\n是否前往下载页面？`,
       buttons: ['立即下载', '稍后再说', '查看详情'],
-      defaultId: 0,
-      cancelId: 1
+      cancelId: 1  // Esc 或 X 返回 1
     });
 
+    console.log('[UpdateChecker] Dialog result:', result, 'type:', typeof result);
+
+    // 严格检查：只有明确点击特定按钮才打开页面
+    // result 是 number 类型，表示点击的按钮索引
     if (result === 0) {
-      // 打开下载页面
-      shell.openExternal(this.latestReleaseUrl || RELEASES_PAGE_URL);
+      console.log('[UpdateChecker] User clicked "Download Now" (index 0)');
+      this._openInSiliu(this.latestReleaseUrl || RELEASES_PAGE_URL);
     } else if (result === 2) {
-      // 查看详情
-      shell.openExternal(this.latestReleaseUrl || RELEASES_PAGE_URL);
+      console.log('[UpdateChecker] User clicked "View Details" (index 2)');
+      this._openInSiliu(this.latestReleaseUrl || RELEASES_PAGE_URL);
+    } else if (result === 1) {
+      console.log('[UpdateChecker] User clicked "Later" or cancelled (index 1), no action');
+    } else {
+      console.log('[UpdateChecker] Unexpected result, no action:', result);
     }
+    
+    this._showingDialog = false;
+  }
+
+  /**
+   * 在 Siliu 中打开 URL
+   */
+  _openInSiliu(url) {
+    console.log('[UpdateChecker] Opening in Siliu:', url);
+    const { globalEventBus } = require('./event-bus');
+    globalEventBus.emit('update:openInBrowser', { url });
   }
 
   /**

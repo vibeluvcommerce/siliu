@@ -37,6 +37,9 @@ contextBridge.exposeInMainWorld('siliuAPI', {
   updateCheck: () => ipcRenderer.invoke('update:check'),
   updateGetVersion: () => ipcRenderer.invoke('update:getVersion'),
 
+  // 在 Siliu 中打开 URL
+  openInSiliu: (url) => ipcRenderer.invoke('app:openInSiliu', url),
+
   // 事件监听
   on: (channel, callback) => {
     const validChannels = ['copilot:configSaved', 'copilot:connectionTested', 'config:changed', 'update:available', 'update:noUpdate'];
