@@ -117,6 +117,9 @@ log('[模块加载] ✓ adblock 加载成功')
 const { COPILOT_EVENTS, AI_EVENTS } = require('./core/events');
 log('[模块加载] ✓ events 加载成功')
 
+const { UpdateChecker } = require('./core/update-checker');
+log('[模块加载] ✓ update-checker 加载成功')
+
 log('[模块加载] 所有模块引用完成')
 
 // ========== 全局实例 ==========
@@ -128,7 +131,8 @@ const modules = {
   controller: null,
   copilot: null,
   adblock: null,
-  agentLoader: null  // 【新增】Agent 动态加载器
+  agentLoader: null,  // 【新增】Agent 动态加载器
+  updateChecker: null  // 【新增】更新检测器
 };
 
 // ========== IPC 处理器状态 ==========
@@ -457,6 +461,11 @@ async function startup() {
     });
     setupIpcHandlers(); // 应用级 IPC 处理器
     log('[启动流程] ✓ IPC 处理器设置完成')
+
+    // 【新增】初始化更新检测器
+    log('[启动流程] 开始初始化 UpdateChecker...')
+    modules.updateChecker = new UpdateChecker(modules.config);
+    log('[启动流程] ✓ UpdateChecker 初始化完成')
 
     // ⑩ 激活 AI 服务（有配置则自动连接，无配置则静默等待）
     log('[启动流程] 开始激活 AI 服务...')
