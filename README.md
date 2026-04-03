@@ -60,7 +60,7 @@
 
 ## 📦 Installation
 
-> ⚠️ **Platform Note**: File operations (upload/download) have only been tested on **Windows**. Linux/macOS support for these features is not yet verified.
+> ⚠️ **Platform Note**: File operations (upload/download/export) have only been tested on **Windows**. Linux/macOS support for these features is not yet verified.
 
 ### Download Pre-built Binaries
 
