@@ -323,14 +323,17 @@ siliu-browser/
 
 ### Available Scripts
 
-| Command | Description |
-|---------|-------------|
-| `npm start` | Start the application |
-| `npm run dev` | Start with dev tools enabled |
-| `npm run dist` | Build for all platforms |
-| `npm run dist:win` | Build for Windows |
-| `npm run dist:mac` | Build for macOS |
-| `npm run dist:linux` | Build for Linux |
+| Command | Description | Status |
+|---------|-------------|--------|
+| `npm start` | Start the application | ✅ Working |
+| `npm run dev` | Start with dev tools enabled | ✅ Working |
+| `npm run dist` | Build for all platforms | ✅ Working |
+| `npm run dist:win` | Build for Windows | ✅ Working |
+| `npm run dist:mac` | Build for macOS | ✅ Working |
+| `npm run dist:linux` | Build for Linux | ✅ Working |
+| `npm test` | Run tests | ⚠️ No tests yet |
+
+> Note: Test suite is not yet implemented. [Contributions welcome!](CONTRIBUTING.md)
 
 ---
 
@@ -338,11 +341,11 @@ siliu-browser/
 
 See [AI_AUTOMATION_TEST.md](docs/AI_AUTOMATION_TEST.md) for comprehensive testing scenarios.
 
-Quick test command:
+### Quick Test
 
 ```bash
-# Run core automation tests
-npm test
+# Currently no automated tests available
+# Please refer to docs/AI_AUTOMATION_TEST.md for manual testing
 ```
 
 ---

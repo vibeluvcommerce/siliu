@@ -316,14 +316,17 @@ siliu/
 
 ### 可用命令
 
-| 命令 | 说明 |
-|------|------|
-| `npm start` | 启动应用 |
-| `npm run dev` | 开发者模式启动（启用开发工具） |
-| `npm run dist` | 为所有平台构建 |
-| `npm run dist:win` | 为 Windows 构建 |
-| `npm run dist:mac` | 为 macOS 构建 |
-| `npm run dist:linux` | 为 Linux 构建 |
+| 命令 | 说明 | 状态 |
+|------|------|------|
+| `npm start` | 启动应用 | ✅ 可用 |
+| `npm run dev` | 开发者模式启动（启用开发工具） | ✅ 可用 |
+| `npm run dist` | 为所有平台构建 | ✅ 可用 |
+| `npm run dist:win` | 为 Windows 构建 | ✅ 可用 |
+| `npm run dist:mac` | 为 macOS 构建 | ✅ 可用 |
+| `npm run dist:linux` | 为 Linux 构建 | ✅ 可用 |
+| `npm test` | 运行测试 | ⚠️ 暂无测试 |
+
+> 注意：测试套件尚未实现，[欢迎贡献！](CONTRIBUTING.md)
 
 ---
 
@@ -331,11 +334,11 @@ siliu/
 
 查看 [AI_AUTOMATION_TEST.md](docs/AI_AUTOMATION_TEST.md) 获取完整的测试场景。
 
-快速测试命令：
+### 快速测试
 
 ```bash
-# 运行核心自动化测试
-npm test
+# 目前尚无自动化测试
+# 请参考 docs/AI_AUTOMATION_TEST.md 进行手动测试
 ```
 
 ---
