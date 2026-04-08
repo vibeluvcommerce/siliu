@@ -6,9 +6,8 @@ const CDPManager = require('./cdp-manager');
 class CDPController {
   constructor(options = {}) {
     this.cdp = new CDPManager(options);
-    // 【调试模式】关闭所有拟人化功能以测试执行速度
-    // this.humanize = { enabled: false };
-    this.humanize = options.humanize || { enabled: true, minDelay: 150, maxDelay: 400 };
+    // 【优化模式】默认关闭拟人化以提升执行速度，可通过配置开启
+    this.humanize = options.humanize || { enabled: false, minDelay: 50, maxDelay: 100 };
     this.nodeIdMap = new Map(); // 缓存节点 ID
   }
 
@@ -151,7 +150,8 @@ class CDPController {
    * 导航到 URL
    */
   async navigate(url) {
-    await this.randomDelay(200, 500);
+    // 【优化】移除导航前的随机延迟
+    // await this.randomDelay(200, 500);
 
     let targetUrl = url;
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
@@ -175,8 +175,8 @@ class CDPController {
       // 网络空闲超时没关系，继续
     }
 
-    // 优化：最小化渲染等待
-    await this.sleep(50);
+    // 【优化】移除渲染等待
+    // await this.sleep(50);
 
     return { success: true, url: targetUrl };
   }
@@ -568,8 +568,8 @@ class CDPController {
     let nodeId = await this.smartFind(selectorOrText);
     
     if (!nodeId) {
-      // 优化：减少等待时间
-      await this.sleep(150);
+      // 【优化】大幅减少重试等待时间
+      await this.sleep(50);
       nodeId = await this.smartFind(selectorOrText);
       if (!nodeId) {
         throw new Error(`Element not found: ${selectorOrText}`);
@@ -1198,34 +1198,53 @@ class CDPController {
       await this.humanPause('hesitate');
     }
 
-    // 清空现有内容（模拟人类行为：Ctrl+A 然后 Delete）
-    // 注意：如果之前已经执行了 selectAll，应该设置 clear: false 避免重复操作
+    // 清空现有内容
     if (options.clear !== false) {
-      // Ctrl+A 全选
-      await this.cdp.send('Input.dispatchKeyEvent', {
-        type: 'keyDown',
-        key: 'a',
-        modifiers: 2 // Ctrl
-      });
-      await this.sleep(30 + Math.random() * 20);
-      await this.cdp.send('Input.dispatchKeyEvent', {
-        type: 'keyUp',
-        key: 'a',
-        modifiers: 2
-      });
-      await this.sleep(50 + Math.random() * 30);
-      
-      // Delete 删除
-      await this.cdp.send('Input.dispatchKeyEvent', {
-        type: 'keyDown',
-        key: 'Delete'
-      });
-      await this.sleep(20 + Math.random() * 10);
-      await this.cdp.send('Input.dispatchKeyEvent', {
-        type: 'keyUp',
-        key: 'Delete'
-      });
-      await this.humanPause('normal');
+      // 【优化】如果关闭拟人化，使用快速清空
+      if (!this.humanize.enabled) {
+        await this.cdp.send('Input.dispatchKeyEvent', {
+          type: 'keyDown',
+          key: 'a',
+          modifiers: 2
+        });
+        await this.cdp.send('Input.dispatchKeyEvent', {
+          type: 'keyUp',
+          key: 'a',
+          modifiers: 2
+        });
+        await this.cdp.send('Input.dispatchKeyEvent', {
+          type: 'keyDown',
+          key: 'Delete'
+        });
+        await this.cdp.send('Input.dispatchKeyEvent', {
+          type: 'keyUp',
+          key: 'Delete'
+        });
+      } else {
+        // 拟人化模式：模拟人类行为
+        await this.cdp.send('Input.dispatchKeyEvent', {
+          type: 'keyDown',
+          key: 'a',
+          modifiers: 2
+        });
+        await this.sleep(30 + Math.random() * 20);
+        await this.cdp.send('Input.dispatchKeyEvent', {
+          type: 'keyUp',
+          key: 'a',
+          modifiers: 2
+        });
+        await this.sleep(50 + Math.random() * 30);
+        await this.cdp.send('Input.dispatchKeyEvent', {
+          type: 'keyDown',
+          key: 'Delete'
+        });
+        await this.sleep(20 + Math.random() * 10);
+        await this.cdp.send('Input.dispatchKeyEvent', {
+          type: 'keyUp',
+          key: 'Delete'
+        });
+        await this.humanPause('normal');
+      }
     }
 
     // 【快速模式】如果关闭拟人化，使用 CDP dispatchKeyEvent 快速输入
@@ -1298,8 +1317,8 @@ class CDPController {
     // 等待元素出现
     let nodeId = await this.smartFind(selectorOrText);
     if (!nodeId) {
-      // 优化：减少等待时间
-      await this.sleep(150);
+      // 【优化】大幅减少重试等待时间
+      await this.sleep(50);
       nodeId = await this.smartFind(selectorOrText);
       if (!nodeId) {
         throw new Error(`Element not found for JS type: ${selectorOrText}`);

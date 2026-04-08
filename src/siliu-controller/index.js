@@ -1163,7 +1163,8 @@ class SiliuController {
     if (selectorOrText && typeof selectorOrText === 'object' && selectorOrText.x !== undefined) {
       // 坐标方式：点击获取焦点，然后全选
       await this._nativeClickAt(selectorOrText.x, selectorOrText.y);
-      await this._sleep(100);
+      // 【优化】减少焦点获取等待时间
+      await this._sleep(30);
       
       await wc.executeJavaScript(`
         (function() {

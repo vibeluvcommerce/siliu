@@ -382,7 +382,8 @@ class AIServiceManager {
 
     try {
       await this.disconnect();
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // 【优化】减少断开连接后的等待时间
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       this.currentService = AIServiceFactory.create('openclaw', localConfig);
       const connectResult = await this.currentService.connect();

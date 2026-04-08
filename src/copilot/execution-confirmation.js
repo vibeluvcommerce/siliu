@@ -55,8 +55,8 @@ class ExecutionConfirmation {
    * 自动确认 - 截图对比分析
    */
   async _autoConfirm(decision, result, context) {
-    // 等待页面稳定
-    await this._sleep(1000);
+    // 【优化】减少页面稳定等待时间
+    await this._sleep(200);
 
     // 截图对比（如果有前后截图）
     let changeDetected = true;

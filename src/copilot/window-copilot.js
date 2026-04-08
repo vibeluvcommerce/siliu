@@ -2398,7 +2398,8 @@ ${text.substring(0, 500)}
       // 出错时尝试重试，不要轻易结束
       if (this.stepCount < 50) {
         console.log(`[WindowCopilot:${this.windowId}] Retrying after error...`);
-        await this._sleep(2000);
+        // 【优化】减少错误重试等待时间
+        await this._sleep(500);
         await this._continueAction({
           success: false,
           error: `系统错误: ${err.message}，请重试`
@@ -2750,8 +2751,8 @@ ${text.substring(0, 500)}
           return false;
         })()
       `);
-      // 等待滚动完成
-      await this._sleep(500);
+      // 【优化】减少滚动后等待时间
+      await this._sleep(200);
     } catch (err) {
       console.error(`[WindowCopilot:${this.windowId}] Scroll into view failed:`, err);
     }
@@ -2786,8 +2787,8 @@ ${text.substring(0, 500)}
         }
 
         case 'click': {
-          // 等待短暂时间让页面响应
-          await this._sleep(300);
+          // 【优化】减少点击后验证等待时间
+          await this._sleep(100);
           // 验证：检查页面是否有变化（URL、DOM 变化）
           const currentUrl = await webContents.executeJavaScript('window.location.href');
           const lastUrl = this.executionContext?.lastObservation?.url;
@@ -2820,8 +2821,8 @@ ${text.substring(0, 500)}
         }
 
         case 'type': {
-          // 验证输入值是否正确设置
-          await this._sleep(200);
+          // 【优化】减少输入后验证等待时间
+          await this._sleep(50);
           const target = decision.target?.selector || decision.selector;
           if (!target) return { success: true };
           
@@ -2940,17 +2941,18 @@ ${text.substring(0, 500)}
    * @returns {Promise<void>}
    */
   async _smartWait(actionType, options = {}) {
+    // 【优化】大幅减少基础等待时间
     const baseWait = {
-      navigate: 300,     // 导航后等待页面加载（优化：适度减少）
-      click: 150,        // 点击后等待响应（优化：适度减少）
-      hover: 150,        // hover后等待下拉菜单显示（优化：适度减少）
-      select: 100,       // 选择后等待页面响应（优化：适度减少）
-      type: 80,          // 输入后短暂等待（优化：适度减少）
-      scroll: 250,       // 滚动后等待内容加载（优化：适度减少）
-      wheel: 400,        // 滚轮切换视频等待动画（优化：适度减少）
+      navigate: 200,     // 导航后等待
+      click: 80,         // 点击后等待
+      hover: 80,         // hover后等待
+      select: 50,        // 选择后等待
+      type: 30,          // 输入后等待
+      scroll: 100,       // 滚动后等待
+      wheel: 200,        // 滚轮后等待
       screenshot: 0,     // 截图无需等待
-      press: 250,        // 按键后等待（优化：适度减少）
-      wait: 300          // 默认等待（优化：适度减少）
+      press: 100,        // 按键后等待
+      wait: 150          // 默认等待
     };
 
     const waitTime = options.ms || baseWait[actionType] || 500;
@@ -2974,8 +2976,8 @@ ${text.substring(0, 500)}
       const currentUrl = await this.getActiveViewWebContents()?.executeJavaScript('window.location.href').catch(() => initialUrl);
       if (currentUrl !== initialUrl) {
         console.log(`[WindowCopilot:${this.windowId}] Page navigated after click, extending wait...`);
-        // 优化：减少跳转后的额外等待时间
-        await this._sleep(300);
+        // 【优化】减少跳转后的额外等待时间
+        await this._sleep(100);
       }
       return;
     }
