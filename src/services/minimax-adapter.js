@@ -1,5 +1,5 @@
 // src/services/minimax-adapter.js
-// MiniMax 适配器（使用 OpenAI 兼容格式）
+// MiniMax 适配器（使用 Anthropic Messages 格式）
 
 const axios = require('axios');
 const { globalEventBus } = require('../core/event-bus');
@@ -7,8 +7,8 @@ const { globalEventBus } = require('../core/event-bus');
 class MinimaxAdapter {
   constructor(options = {}) {
     this.apiKey = options.apiKey;
-    // MiniMax 使用 OpenAI 兼容格式
-    this.baseUrl = options.baseUrl || 'https://api.minimaxi.com/v1';
+    // MiniMax CodePlan 使用 Anthropic 格式
+    this.baseUrl = options.baseUrl || 'https://api.minimaxi.com/anthropic';
     this.model = options.model || 'MiniMax-M2.7-highspeed';
     this.messageCallbacks = [];
   }
@@ -23,7 +23,7 @@ class MinimaxAdapter {
 
   /**
    * 发送普通文本消息
-   * 使用 OpenAI 兼容 API 格式
+   * 使用 Anthropic Messages API 格式
    */
   async sendMessage(message, options = {}) {
     const text = typeof message === 'string' ? message : message.text || message;
@@ -35,9 +35,9 @@ class MinimaxAdapter {
       // 触发思考状态
       globalEventBus.emit('ai:thinking', { sessionKey });
 
-      // OpenAI 兼容 API 格式
+      // Anthropic Messages API 格式
       const response = await axios.post(
-        `${this._getBaseUrl()}/chat/completions`,
+        `${this._getBaseUrl()}/v1/messages`,
         {
           model: this.model,
           max_tokens: 4096,
@@ -48,15 +48,33 @@ class MinimaxAdapter {
         },
         {
           headers: {
-            'Authorization': `Bearer ${this.apiKey}`,
+            'x-api-key': this.apiKey,  // MiniMax Token Plan 使用 x-api-key
             'Content-Type': 'application/json'
           },
           timeout: 60000
         }
       );
 
-      // OpenAI 格式响应
-      const replyText = response.data.choices?.[0]?.message?.content || 'No response';
+      // Anthropic 响应格式不同，支持 thinking 块
+      const content = response.data.content || [];
+      let replyText = '';
+      
+      for (const block of content) {
+        if (block.type === 'text') {
+          replyText += block.text || '';
+        } else if (block.type === 'thinking') {
+          // 可以记录思考过程
+          console.log('[MinimaxAdapter] Thinking:', block.thinking?.substring(0, 100));
+        }
+      }
+      
+      if (!replyText && response.data.completion) {
+        replyText = response.data.completion;
+      }
+      
+      if (!replyText) {
+        replyText = 'No response';
+      }
       
       console.log('[MinimaxAdapter] Received response:', replyText.substring(0, 100) + '...');
 
@@ -108,7 +126,7 @@ class MinimaxAdapter {
 
   /**
    * 发送多模态消息（支持图片）
-   * MiniMax 支持图片输入（OpenAI 兼容格式）
+   * MiniMax CodePlan 支持图片输入
    */
   async sendMultimodalMessage(text, images, options = {}) {
     const sessionKey = options.sessionKey || 'default';
@@ -119,7 +137,7 @@ class MinimaxAdapter {
       // 触发思考状态
       globalEventBus.emit('ai:thinking', { sessionKey });
 
-      // 构建内容数组（OpenAI 格式）
+      // 构建内容数组
       const content = [];
       
       // 添加文本
@@ -132,14 +150,17 @@ class MinimaxAdapter {
       if (images && images.length > 0) {
         for (const image of images) {
           content.push({
-            type: 'image_url',
-            image_url: {
-              url: `data:${image.mimeType || 'image/jpeg'};base64,${image.data}`
+            type: 'image',
+            source: {
+              type: 'base64',
+              media_type: image.mimeType || 'image/jpeg',
+              data: image.data
             }
           });
         }
       }
 
+      // 【调试日志】打印完整请求 payload
       const requestPayload = {
         model: this.model,
         max_tokens: 4096,
@@ -148,21 +169,50 @@ class MinimaxAdapter {
           content: content
         }]
       };
+      console.log('\n========== [DEBUG] MiniMax API Request Payload ==========');
+      // 截断图片数据以便阅读
+      const debugPayload = JSON.parse(JSON.stringify(requestPayload));
+      debugPayload.messages[0].content.forEach(item => {
+        if (item.type === 'image' && item.source?.data) {
+          item.source.data = `[Base64: ${item.source.data.length} chars]`;
+        }
+      });
+      console.log(JSON.stringify(debugPayload, null, 2));
+      console.log('========== [DEBUG] End Request Payload ==========\n');
 
       const response = await axios.post(
-        `${this._getBaseUrl()}/chat/completions`,
+        `${this._getBaseUrl()}/v1/messages`,
         requestPayload,
         {
           headers: {
-            'Authorization': `Bearer ${this.apiKey}`,
-            'Content-Type': 'application/json'
+            'x-api-key': this.apiKey,
+            'Content-Type': 'application/json',
+            'anthropic-version': '2023-06-01',
+            'User-Agent': 'OpenClaw-Gateway/1.0'
           },
-          timeout: 120000
+          timeout: 120000  // 多模态可能需要更长时间
         }
       );
 
-      // OpenAI 格式响应
-      const replyText = response.data.choices?.[0]?.message?.content || 'No response';
+      // 处理响应
+      const responseContent = response.data.content || [];
+      let replyText = '';
+      
+      for (const block of responseContent) {
+        if (block.type === 'text') {
+          replyText += block.text || '';
+        } else if (block.type === 'thinking') {
+          console.log('[MinimaxAdapter] Thinking:', block.thinking?.substring(0, 100));
+        }
+      }
+      
+      if (!replyText && response.data.completion) {
+        replyText = response.data.completion;
+      }
+      
+      if (!replyText) {
+        replyText = 'No response';
+      }
 
       console.log('[MinimaxAdapter] Received multimodal response:', replyText.substring(0, 100) + '...');
 
@@ -208,11 +258,11 @@ class MinimaxAdapter {
    */
   async checkConnection() {
     try {
-      console.log('[MinimaxAdapter] Testing connection to:', `${this._getBaseUrl()}/chat/completions`);
+      console.log('[MinimaxAdapter] Testing connection to:', `${this._getBaseUrl()}/v1/messages`);
       
-      // 实际发送一个 chat completions 请求来验证模型
+      // 实际发送一个 messages 请求来验证模型
       await axios.post(
-        `${this._getBaseUrl()}/chat/completions`,
+        `${this._getBaseUrl()}/v1/messages`,
         {
           model: this.model,
           max_tokens: 5,
@@ -220,8 +270,10 @@ class MinimaxAdapter {
         },
         {
           headers: {
-            'Authorization': `Bearer ${this.apiKey}`,
-            'Content-Type': 'application/json'
+            'x-api-key': this.apiKey,
+            'Content-Type': 'application/json',
+            'anthropic-version': '2023-06-01',
+            'User-Agent': 'OpenClaw-Gateway/1.0'
           },
           timeout: 10000
         }
