@@ -6,8 +6,8 @@ const CDPManager = require('./cdp-manager');
 class CDPController {
   constructor(options = {}) {
     this.cdp = new CDPManager(options);
-    // 【优化模式】默认关闭拟人化以提升执行速度，可通过配置开启
-    this.humanize = options.humanize || { enabled: false, minDelay: 50, maxDelay: 100 };
+    // 【优化模式】恢复拟人化但大幅缩减等待时间
+    this.humanize = options.humanize || { enabled: true, minDelay: 20, maxDelay: 50 };
     this.nodeIdMap = new Map(); // 缓存节点 ID
   }
 
@@ -91,8 +91,8 @@ class CDPController {
         y: point.y + jitterY
       });
 
-      // 随机间隔，不是匀速
-      const delay = 16 + Math.random() * 8;
+      // 随机间隔，不是匀速（大幅缩减）
+      const delay = 5 + Math.random() * 5; // 【优化】5-10ms（原16-24ms）
       await this.sleep(delay);
     }
   }
@@ -101,11 +101,12 @@ class CDPController {
    * 随机停顿（模拟人类思考和反应）- 优化版本，减少等待时间
    */
   async humanPause(type = 'normal') {
+    // 【优化】大幅缩减拟人化停顿时间
     const pauses = {
-      normal: [30, 80],        // 正常停顿（优化：大幅减少）
-      think: [100, 200],       // 思考（优化：大幅减少）
-      read: [200, 400],        // 阅读（优化：大幅减少）
-      hesitate: [20, 50]       // 犹豫（优化：大幅减少）
+      normal: [10, 25],        // 正常停顿（大幅缩减）
+      think: [20, 40],         // 思考（大幅缩减）
+      read: [30, 60],          // 阅读（大幅缩减）
+      hesitate: [5, 15]        // 犹豫（大幅缩减）
     };
 
     const [min, max] = pauses[type] || pauses.normal;
@@ -150,8 +151,8 @@ class CDPController {
    * 导航到 URL
    */
   async navigate(url) {
-    // 【优化】移除导航前的随机延迟
-    // await this.randomDelay(200, 500);
+    // 【优化】恢复但大幅缩减导航前的随机延迟
+    await this.randomDelay(30, 80);
 
     let targetUrl = url;
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
@@ -175,8 +176,8 @@ class CDPController {
       // 网络空闲超时没关系，继续
     }
 
-    // 【优化】移除渲染等待
-    // await this.sleep(50);
+    // 【优化】恢复但大幅缩减渲染等待
+    await this.sleep(20);
 
     return { success: true, url: targetUrl };
   }
@@ -481,8 +482,8 @@ class CDPController {
         attempts++;
         if (attempts < maxAttempts) {
           console.log(`[CDPController] Element not found, waiting... (${attempts}/${maxAttempts})`);
-          // 优化：大幅减少等待时间
-          await this.sleep(200 + Math.random() * 200);
+          // 【优化】大幅减少重试等待时间
+          await this.sleep(50 + Math.random() * 50); // 【优化】50-100ms（原200-400ms）
         }
       }
     }
@@ -521,8 +522,8 @@ class CDPController {
     const startX = startPos.x || 100;
     const startY = startPos.y || 100;
 
-    // 模拟人类鼠标移动轨迹
-    const moveDuration = 200 + Math.random() * 300; // 200-500ms 移动时间
+    // 模拟人类鼠标移动轨迹（大幅缩减移动时间）
+    const moveDuration = 50 + Math.random() * 100; // 【优化】50-150ms 移动时间（原200-500ms）
     await this.humanLikeMouseMove(startX, startY, targetX, targetY, moveDuration);
 
     // 停顿一下再点击（模拟瞄准）
@@ -537,8 +538,8 @@ class CDPController {
       clickCount: options.doubleClick ? 2 : 1
     });
 
-    // 随机按压时间（人类不会瞬间松开）
-    await this.sleep(50 + Math.random() * 100);
+    // 随机按压时间（大幅缩减）
+    await this.sleep(15 + Math.random() * 15); // 【优化】15-30ms（原50-150ms）
 
     // 模拟鼠标释放
     await this.cdp.send('Input.dispatchMouseEvent', {
@@ -549,8 +550,8 @@ class CDPController {
       clickCount: options.doubleClick ? 2 : 1
     });
 
-    // 点击后随机停顿
-    await this.randomDelay(100, 400);
+    // 点击后随机停顿（大幅缩减）
+    await this.randomDelay(30, 60); // 【优化】30-60ms（原100-400ms）
 
     // 偶尔模拟阅读行为
     if (Math.random() > 0.7) {
@@ -618,8 +619,8 @@ class CDPController {
     // 查找元素
     let nodeId = await this.smartFind(selectorOrText);
     if (!nodeId) {
-      // 优化：减少等待时间
-      await this.sleep(150);
+      // 【优化】大幅减少等待时间
+      await this.sleep(50); // 【优化】50ms（原150ms）
       nodeId = await this.smartFind(selectorOrText);
       if (!nodeId) {
         throw new Error(`Element not found for JS click: ${selectorOrText}`);
@@ -909,8 +910,8 @@ class CDPController {
       clickCount: 1
     });
 
-    // 随机按压时间
-    await this.sleep(50 + Math.random() * 100);
+    // 随机按压时间（大幅缩减）
+    await this.sleep(15 + Math.random() * 15); // 【优化】15-30ms（原50-150ms）
 
     // 鼠标释放
     await this.cdp.send('Input.dispatchMouseEvent', {
@@ -929,7 +930,7 @@ class CDPController {
    * 支持 CSS 选择器、文本内容、XPath
    */
   async selectAll(selectorOrText) {
-    await this.randomDelay(200, 400);
+    await this.randomDelay(30, 60); // 【优化】30-60ms（原200-400ms）
 
     // 如果提供了选择器，先找到并聚焦元素
     if (selectorOrText) {
@@ -1004,7 +1005,7 @@ class CDPController {
    * @param {string} filePath - 本地文件绝对路径
    */
   async upload(selectorOrText, filePath) {
-    await this.randomDelay(300, 600);
+    await this.randomDelay(50, 100); // 【优化】50-100ms（原300-600ms）
     console.log('[CDPController] Upload starting, file:', filePath);
 
     const path = require('path');
@@ -1181,8 +1182,8 @@ class CDPController {
         attempts++;
         if (attempts < maxAttempts) {
           console.log(`[CDPController] Element not found for type, waiting... (${attempts}/${maxAttempts})`);
-          // 优化：大幅减少等待时间
-          await this.sleep(200 + Math.random() * 200);
+          // 【优化】大幅减少重试等待时间
+          await this.sleep(50 + Math.random() * 50); // 【优化】50-100ms（原200-400ms）
         }
       }
     }
@@ -1290,15 +1291,15 @@ class CDPController {
         text: char
       });
 
-      // 模拟人类打字速度（不是匀速）
-      // 根据字符类型调整速度
-      let baseDelay = 50;
-      if (char === ' ') baseDelay = 80; // 空格后稍微停顿
-      if (char === ',' || char === '.' || char === '，' || char === '。') baseDelay = 150; // 标点停顿
-      if (char >= '\u4e00' && char <= '\u9fff') baseDelay = 120; // 中文字符稍慢
+      // 模拟人类打字速度（大幅缩减延迟）
+      // 【优化】根据字符类型调整速度（大幅缩减）
+      let baseDelay = 8;  // 【优化】8ms（原50ms）
+      if (char === ' ') baseDelay = 12; // 【优化】12ms（原80ms）
+      if (char === ',' || char === '.' || char === '，' || char === '。') baseDelay = 20; // 【优化】20ms（原150ms）
+      if (char >= '\u4e00' && char <= '\u9fff') baseDelay = 15; // 【优化】15ms（原120ms）
       
-      const delay = baseDelay + Math.random() * 80 - 40; // 添加随机波动
-      await this.sleep(Math.max(20, delay));
+      const delay = baseDelay + Math.random() * 10 - 5; // 【优化】±5ms波动（原±40ms）
+      await this.sleep(Math.max(3, delay)); // 【优化】最小3ms（原20ms）
     }
 
     // 输入完成后停顿
@@ -1533,15 +1534,15 @@ class CDPController {
    * 滚动页面
    */
   async scroll(direction = 'down', amount = 500) {
-    await this.randomDelay();
+    await this.randomDelay(20, 40); // 【优化】使用缩减后的默认值
 
     const x = direction === 'left' ? -amount : direction === 'right' ? amount : 0;
     const y = direction === 'up' ? -amount : direction === 'down' ? amount : 0;
 
     await this.cdp.evaluate(`window.scrollBy(${x}, ${y})`);
 
-    // 优化：减少滚动等待时间
-    await this.sleep(this.humanize.scrollDelay || 80);
+    // 【优化】大幅减少滚动等待时间
+    await this.sleep(30); // 【优化】30ms（原80ms）
 
     return { success: true, scrollX: x, scrollY: y };
   }
@@ -1635,7 +1636,7 @@ class CDPController {
    * 滚动到元素
    */
   async scrollToElement(selectorOrText) {
-    await this.randomDelay();
+    await this.randomDelay(20, 40); // 【优化】使用缩减后的默认值
 
     let nodeId = 0;
 
@@ -1810,7 +1811,7 @@ class CDPController {
    * 【注意】CDP 合成鼠标事件无法触发 CSS :hover，需要主动触发 JS 事件
    */
   async hover(selectorOrText, options = {}) {
-    await this.randomDelay(200, 400);
+    await this.randomDelay(30, 60); // 【优化】30-60ms（原200-400ms）
 
     // 支持坐标 hover
     if (options.coordinate || (typeof selectorOrText === 'object' && selectorOrText.x !== undefined)) {
@@ -1823,9 +1824,9 @@ class CDPController {
       const pixelX = Math.round(x * cssWidth);
       const pixelY = Math.round(y * cssHeight);
 
-      // 移动鼠标（视觉反馈）
+      // 移动鼠标（视觉反馈，大幅缩减移动时间）
       const startPos = await this.getMousePosition();
-      await this.humanLikeMouseMove(startPos.x || 100, startPos.y || 100, pixelX, pixelY, 300);
+      await this.humanLikeMouseMove(startPos.x || 100, startPos.y || 100, pixelX, pixelY, 80); // 【优化】80ms（原300ms）
 
       // 【关键】在对应坐标位置触发 hover 效果
       await this.cdp.evaluate(`
@@ -1917,9 +1918,9 @@ class CDPController {
     const targetX = (content[0] + content[4]) / 2;
     const targetY = (content[1] + content[5]) / 2;
 
-    // 移动鼠标到元素位置
+    // 移动鼠标到元素位置（大幅缩减移动时间）
     const startPos = await this.getMousePosition();
-    await this.humanLikeMouseMove(startPos.x || 100, startPos.y || 100, targetX, targetY, 300);
+    await this.humanLikeMouseMove(startPos.x || 100, startPos.y || 100, targetX, targetY, 80); // 【优化】80ms（原300ms）
 
     // 【关键】在元素上触发 hover 事件
     const objectId = (await this.cdp.send('DOM.resolveNode', { nodeId })).object.objectId;
@@ -1966,7 +1967,7 @@ class CDPController {
    * @param {string} option - 选项值（可以是 value、text 或 index）
    */
   async selectOption(selector, option) {
-    await this.randomDelay(200, 400);
+    await this.randomDelay(30, 60); // 【优化】30-60ms（原200-400ms）
 
     // 使用 CDP 执行选择
     const result = await this.cdp.evaluate(`
@@ -2168,7 +2169,7 @@ class CDPController {
     }
 
     // 等待下载开始（给浏览器一点时间）
-    await this.sleep(1000);
+    await this.sleep(200); // 【优化】200ms（原1000ms）
 
     return { 
       success: true, 
