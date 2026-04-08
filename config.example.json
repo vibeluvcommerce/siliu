@@ -28,7 +28,16 @@
   //   "model": "kimi-k2.5"
   // },
   
-  // 选项 3: OpenClaw 本地网关 ⭐⭐
+  // 选项 3: 智谱 GLM-4.6V ⭐⭐⭐⭐⭐ 推荐（国内最佳视觉模型）
+  // 特点：原生多模态视觉，国内访问快，无需 MCP，识别准确
+  // "serviceType": "cloud",
+  // "cloud": {
+  //   "apiEndpoint": "https://open.bigmodel.cn/api/paas/v4",
+  //   "apiKey": "your-zhipu-api-key",
+  //   "model": "glm-4.6v"
+  // },
+  
+  // 选项 4: OpenClaw 本地网关 ⭐⭐
   // 特点：自托管，隐私优先，需要额外部署
   // "serviceType": "local",
   // "local": {

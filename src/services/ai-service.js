@@ -440,9 +440,20 @@ class AIServiceManager {
       const model = cloudConfig.model || 'kimi-k2.5';
       const isCodingModel = model === 'k2p5' || model === 'k2';
       const isMinimaxModel = model.startsWith('MiniMax-');
-      console.log('[AIServiceManager] Model:', model, 'isCodingModel:', isCodingModel, 'isMinimaxModel:', isMinimaxModel);
+      const isGLMModel = model.startsWith('glm-4') || model.startsWith('glm-4v');
+      console.log('[AIServiceManager] Model:', model, 'isCodingModel:', isCodingModel, 'isMinimaxModel:', isMinimaxModel, 'isGLMModel:', isGLMModel);
       
-      if (isMinimaxModel) {
+      if (isGLMModel) {
+        // 使用智谱 GLM-4V 适配器（OpenAI 兼容格式，原生多模态）
+        const { GLMAdapter } = require('./glm-adapter');
+        const glmConfig = {
+          apiKey: cloudConfig.apiKey,
+          baseUrl: cloudConfig.apiEndpoint || 'https://open.bigmodel.cn/api/paas/v4',
+          model: model
+        };
+        this.kimiAdapter = new GLMAdapter(glmConfig);
+        console.log('[AIServiceManager] Using GLM-4V adapter for multimodal vision');
+      } else if (isMinimaxModel) {
         // 使用 MiniMax 适配器（Anthropic 格式）
         const { MinimaxAdapter } = require('./minimax-adapter');
         const minimaxConfig = {

@@ -405,8 +405,9 @@
         <div class="form-group">
           <label>模型</label>
           <select id="cloud-model">
-            <option value="kimi-k2.5">Kimi K2.5</option>
             <option value="k2p5">Kimi K2.5 (Coding)</option>
+            <option value="kimi-k2.5">Kimi K2.5</option>
+            <option value="glm-4.6v">GLM-4.6V</option>
             <option value="MiniMax-M2.7-highspeed">MiniMax M2.7 HighSpeed</option>
           </select>
           <span class="label-description" id="model-hint"></span>
@@ -567,8 +568,10 @@
           modelSelect.value = modelValue;
         } else if (modelValue && modelValue.startsWith('MiniMax-')) {
           modelSelect.value = modelValue;
+        } else if (modelValue && modelValue.startsWith('glm-4')) {
+          modelSelect.value = modelValue;
         } else {
-          modelSelect.value = 'kimi-k2.5';
+          modelSelect.value = 'glm-4.6v';
         }
         updateModelHint();
         document.getElementById('cloud-temperature').value = config.cloud.temperature || 0.7;
@@ -602,14 +605,16 @@
 
       document.getElementById('service-info').textContent = type === 'local'
         ? '本地 OpenClaw 需要在本机运行 OpenClaw Gateway'
-        : 'Siliu AI 云端需要有效的 API Key，可在控制台获取';
+        : 'Siliu AI 云端支持 Kimi、GLM、MiniMax 等模型';
     }
 
     // 根据选择的模型更新提示
     function updateModelHint() {
       const modelSelect = document.getElementById('cloud-model');
       const modelHint = document.getElementById('model-hint');
-      if (modelSelect.value === 'k2p5') {
+      if (modelSelect.value.startsWith('glm-4')) {
+        modelHint.textContent = '智谱 GLM-4V 系列：原生多模态视觉，无需 MCP';
+      } else if (modelSelect.value === 'k2p5') {
         modelHint.textContent = '使用 Kimi Coding API (Anthropic 格式)';
       } else if (modelSelect.value.startsWith('MiniMax-')) {
         modelHint.textContent = '使用 MiniMax API (Anthropic 格式)';
@@ -619,7 +624,37 @@
     }
 
     // 监听模型选择变化
-    document.getElementById('cloud-model')?.addEventListener('change', updateModelHint);
+    document.getElementById('cloud-model')?.addEventListener('change', () => {
+      updateModelHint();
+      updateEndpointHint();
+    });
+
+    // 根据模型更新推荐 Endpoint
+    function updateEndpointHint() {
+      const modelSelect = document.getElementById('cloud-model');
+      const endpointInput = document.getElementById('cloud-endpoint');
+      const currentEndpoint = endpointInput.value;
+      const model = modelSelect.value;
+      
+      // 如果当前 endpoint 是空的或者是默认推荐值，则自动切换
+      const isEmptyOrDefault = !currentEndpoint || 
+        currentEndpoint.includes('siliu.ai') || 
+        currentEndpoint.includes('moonshot.cn') ||
+        currentEndpoint.includes('bigmodel.cn') ||
+        currentEndpoint.includes('minimaxi.com');
+      
+      if (isEmptyOrDefault) {
+        if (model.startsWith('glm-4')) {
+          endpointInput.value = 'https://open.bigmodel.cn/api/paas/v4';
+        } else if (model.startsWith('MiniMax-')) {
+          endpointInput.value = 'https://api.minimaxi.com/anthropic';
+        } else if (model === 'k2p5') {
+          endpointInput.value = 'https://api.kimi.com/coding/v1';
+        } else {
+          endpointInput.value = 'https://api.moonshot.cn/v1';
+        }
+      }
+    }
 
     // 切换密码显示
     function togglePassword(id) {
