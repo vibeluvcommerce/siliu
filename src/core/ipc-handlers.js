@@ -619,11 +619,11 @@ class IPCHandlers {
           console.log('[IPC] Model:', model, 'isCodingModel:', isCodingModel, 'isMinimaxModel:', isMinimaxModel);
           
           if (isMinimaxModel) {
-            // 使用 MiniMax 适配器（Anthropic 格式）
+            // 使用 MiniMax 适配器（OpenAI 兼容格式）
             const { MinimaxAdapter } = require('../services/minimax-adapter');
             const minimaxConfig = {
               apiKey: config.cloud.apiKey,
-              baseUrl: config.cloud.apiEndpoint || 'https://api.minimaxi.com/anthropic',
+              baseUrl: config.cloud.apiEndpoint || 'https://api.minimaxi.com/v1',
               model: model
             };
             console.log('[IPC] MinimaxAdapter config:', { ...minimaxConfig, apiKey: minimaxConfig.apiKey.substring(0, 10) + '...' });

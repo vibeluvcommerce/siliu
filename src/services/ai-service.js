@@ -443,15 +443,15 @@ class AIServiceManager {
       console.log('[AIServiceManager] Model:', model, 'isCodingModel:', isCodingModel, 'isMinimaxModel:', isMinimaxModel);
       
       if (isMinimaxModel) {
-        // 使用 MiniMax 适配器（Anthropic 格式）
+        // 使用 MiniMax 适配器（OpenAI 兼容格式）
         const { MinimaxAdapter } = require('./minimax-adapter');
         const minimaxConfig = {
           apiKey: cloudConfig.apiKey,
-          baseUrl: cloudConfig.apiEndpoint || 'https://api.minimaxi.com/anthropic',
+          baseUrl: cloudConfig.apiEndpoint || 'https://api.minimaxi.com/v1',
           model: model
         };
         this.kimiAdapter = new MinimaxAdapter(minimaxConfig);
-        console.log('[AIServiceManager] Using MiniMax adapter with Anthropic format');
+        console.log('[AIServiceManager] Using MiniMax adapter with OpenAI format');
       } else if (isCodingModel) {
         // 使用 Kimi Coding 适配器（Anthropic 格式）
         const { KimiCodingAdapter } = require('./kimi-coding-adapter');
