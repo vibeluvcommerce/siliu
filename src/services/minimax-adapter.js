@@ -9,7 +9,7 @@ class MinimaxAdapter {
     this.apiKey = options.apiKey;
     // MiniMax CodePlan 使用 Anthropic 格式
     this.baseUrl = options.baseUrl || 'https://api.minimaxi.com/anthropic';
-    this.model = options.model || 'MiniMax-M2.5-highspeed';
+    this.model = options.model || 'MiniMax-M2.7-highspeed';
     this.messageCallbacks = [];
   }
 
@@ -48,10 +48,9 @@ class MinimaxAdapter {
         },
         {
           headers: {
-            'x-api-key': this.apiKey,  // Anthropic 使用 x-api-key
+            'Authorization': `Bearer ${this.apiKey}`,  // MiniMax 使用 Authorization
             'Content-Type': 'application/json',
-            'anthropic-version': '2023-06-01',
-            'User-Agent': 'Siliu-Browser/1.0'
+            'User-Agent': 'OpenClaw-Gateway/1.0'
           },
           timeout: 60000
         }
@@ -187,10 +186,10 @@ class MinimaxAdapter {
         requestPayload,
         {
           headers: {
-            'x-api-key': this.apiKey,
+            'Authorization': `Bearer ${this.apiKey}`,
             'Content-Type': 'application/json',
             'anthropic-version': '2023-06-01',
-            'User-Agent': 'Siliu-Browser/1.0'
+            'User-Agent': 'OpenClaw-Gateway/1.0'
           },
           timeout: 120000  // 多模态可能需要更长时间
         }
@@ -272,10 +271,10 @@ class MinimaxAdapter {
         },
         {
           headers: {
-            'x-api-key': this.apiKey,
+            'Authorization': `Bearer ${this.apiKey}`,
             'Content-Type': 'application/json',
             'anthropic-version': '2023-06-01',
-            'User-Agent': 'Siliu-Browser/1.0'
+            'User-Agent': 'OpenClaw-Gateway/1.0'
           },
           timeout: 10000
         }
