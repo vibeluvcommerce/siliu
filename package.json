@@ -1,6 +1,6 @@
 {
   "name": "siliu",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Siliu - AI Copilot Browser",
   "main": "src/app.js",
   "scripts": {
