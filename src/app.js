@@ -1358,7 +1358,8 @@ function setupIpcHandlers() {
           overlay.style.cssText = 
             'position:fixed;top:0;left:0;width:100%;height:100%;' +
             'z-index:2147483647;cursor:crosshair;background:rgba(233,69,96,0.2);' +
-            (isPaused ? 'display:none;pointer-events:none;' : '');
+            'pointer-events:none;' +  // 默认允许穿透，支持 hover
+            (isPaused ? 'display:none;' : '');
           
           // 创建左上角手风琴面板（Agent Editor）
           const historyPanel = document.createElement('div');
@@ -1595,7 +1596,8 @@ function setupIpcHandlers() {
                 'background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);' +
                 'display:flex;align-items:center;justify-content:center;' +
                 'z-index:2147483650;opacity:0;transition:opacity 0.2s;' +
-                'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;';
+                'pointer-events:auto;' +  // 确保弹出框可交互
+                'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
               
               const modal = document.createElement('div');
               modal.style.cssText = 
@@ -2082,8 +2084,22 @@ function setupIpcHandlers() {
           
           window.addEventListener('scroll', updateScroll, { passive: true });
           
-          overlay.addEventListener('click', (e) => {
+          // 【关键】使用 document 监听 click（捕获阶段），确保先于页面元素拦截
+          // 并在点击时切换遮罩层 pointer-events
+          document.addEventListener('click', (e) => {
+            // 暂存状态下不拦截
+            if (isPaused) return;
+            
+            // 保护面板和弹出框交互
+            if (e.target.closest('#__agent_editor_panel__')) return;
+            if (e.target.closest('#__agent_editor_naming__')) return;
+            if (e.target.closest('#__agent_editor_save_modal__')) return;
+            
             console.log('[Agent Editor] Click detected at:', e.clientX, e.clientY);
+            
+            // 【关键】点击时切换遮罩层为不穿透，阻止页面跳转
+            overlay.style.pointerEvents = 'auto';
+            
             e.preventDefault();
             e.stopPropagation();
             
@@ -2176,6 +2192,9 @@ function setupIpcHandlers() {
             
             console.log('[Agent Editor] Red marker created at doc:', docX, docY, 'tag:', tag, 'selector:', selector);
             
+            // 【关键】标记完成后恢复遮罩层穿透，允许 hover
+            overlay.style.pointerEvents = 'none';
+            
             window.postMessage({
               type: 'AGENT_EDITOR_CLICK',
               viewportX: viewportX,      // 视口比例坐标 (0-1)
@@ -2191,7 +2210,7 @@ function setupIpcHandlers() {
               url: location.href         // 页面 URL
             }, '*');
             console.log('[Siliu Overlay] Message posted with full coordinate data');
-          });
+          }, true); // 使用捕获阶段，确保先于页面元素响应
           
           if (document.body) {
             document.body.appendChild(overlay);
@@ -2552,7 +2571,8 @@ function setupIpcHandlers() {
               'background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);' +
               'display:flex;align-items:center;justify-content:center;' +
               'z-index:2147483650;opacity:0;transition:opacity 0.2s;' +
-              'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;';
+              'pointer-events:auto;' +  // 确保弹出框可交互
+              'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
             
             // 创建弹窗
             const modal = document.createElement('div');
