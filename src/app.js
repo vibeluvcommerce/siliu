@@ -1253,7 +1253,8 @@ function setupIpcHandlers() {
                 'position:fixed;top:0;left:0;right:0;bottom:0;' +
                 'background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);' +
                 'display:flex;align-items:center;justify-content:center;' +
-                'z-index:2147483650;opacity:0;transition:opacity 0.2s;';
+                'z-index:2147483650;opacity:0;transition:opacity 0.2s;' +
+                'pointer-events:auto;';  // 确保确认框可交互，不穿透
               
               // 创建弹窗
               const modal = document.createElement('div');
@@ -1491,9 +1492,9 @@ function setupIpcHandlers() {
               pauseBtn.style.color = '#2563eb';
               console.log('[Agent Editor] Paused - overlay hidden');
             } else {
-              // 继续：显示遮罩层，恢复标注能力
+              // 继续：显示遮罩层，恢复标注能力（默认穿透，支持 hover）
               overlay.style.display = 'block';
-              overlay.style.pointerEvents = 'auto';
+              overlay.style.pointerEvents = 'none';
               pauseBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>';
               pauseBtn.title = '暂存';
               pauseBtn.style.color = '#9ca3af';
@@ -2094,6 +2095,7 @@ function setupIpcHandlers() {
             if (e.target.closest('#__agent_editor_panel__')) return;
             if (e.target.closest('#__agent_editor_naming__')) return;
             if (e.target.closest('#__agent_editor_save_modal__')) return;
+            if (e.target.closest('#__agent_editor_confirm_modal__')) return; // 保护确认框
             
             console.log('[Agent Editor] Click detected at:', e.clientX, e.clientY);
             
@@ -2381,7 +2383,8 @@ function setupIpcHandlers() {
               'position:fixed;top:0;left:0;right:0;bottom:0;' +
               'background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);' +
               'display:flex;align-items:center;justify-content:center;' +
-              'z-index:2147483650;opacity:0;transition:opacity 0.2s;';
+              'z-index:2147483650;opacity:0;transition:opacity 0.2s;' +
+              'pointer-events:auto;';  // 确保确认框可交互，不穿透
             
             // 创建弹窗
             const modal = document.createElement('div');
